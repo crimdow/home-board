@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Home Board">
@@ -18,6 +18,7 @@
   --hair: #d0d2d6;
   --ash: #d45b6c;
   --ben: #4f7bd4;
+  --both: #6f8a5c;
   --chip: #d5d7db;
   --today: #2b2e33;
   --field: #d9dbdf;
@@ -25,16 +26,17 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #1d1e22; --ink: #e4e4e2; --muted: #8b9098; --hair: #2c2d32;
-    --ash: #cf6475; --ben: #5f86d6;
+    --ash: #cf6475; --ben: #5f86d6; --both: #7d9a68;
     --chip: #2a2b30; --today: #e4e4e2; --field: #26272c;
   }
 }
 :root[data-theme="dark"] {
   --bg: #1d1e22; --ink: #e4e4e2; --muted: #8b9098; --hair: #2c2d32;
-  --ash: #cf6475; --ben: #5f86d6;
+  --ash: #cf6475; --ben: #5f86d6; --both: #7d9a68;
   --chip: #2a2b30; --today: #e4e4e2; --field: #26272c;
 }
 *, *::before, *::after { box-sizing: inherit; }
+html, body { touch-action: manipulation; overscroll-behavior: none; }
 html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); background: var(--bg); }
 body {
   margin: 0; height: 100%; background: var(--bg); color: var(--ink);
@@ -46,11 +48,11 @@ body {
 }
 .wrap {
   max-width: 500px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column;
-  padding: 12px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px));
+  padding: 2px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px));
 }
 
-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 4px; }
-.title h1 { margin: 0; font-size: 32px; white-space: nowrap; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 0; }
+.title h1 { margin: 0; font-size: 24px; white-space: nowrap; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
 .title p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
 .nav { display: flex; gap: 8px; }
 .nav button {
@@ -66,13 +68,13 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   display: grid; grid-template-columns: 56px repeat(3, 1fr);
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-  padding: 14px 0 8px; border-bottom: 0.5px solid var(--hair);
+  padding: 8px 0 6px; border-bottom: 0.5px solid var(--hair);
   font-size: 13px; font-weight: 700; color: var(--muted); text-align: center;
 }
 
 #days { flex: 1; display: flex; flex-direction: column; }
 .day {
-  flex: 1 1 auto; min-height: 84px; padding: 8px 0; border-bottom: 0.5px solid var(--hair);
+  flex: 0 0 auto; min-height: 64px; padding: 8px 0; border-bottom: 0.5px solid var(--hair);
   display: flex; flex-direction: column; justify-content: center;
 }
 .row { display: grid; grid-template-columns: 56px repeat(3, 1fr); align-items: center; }
@@ -81,65 +83,82 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   appearance: none; border: 0; background: none; color: inherit; font: inherit; cursor: pointer;
   padding: 4px 0; text-align: left;
 }
-.dname .dot {
-  position: absolute; top: 22px; left: 34px; width: 6px; height: 6px; border-radius: 3px;
-  background: var(--muted); opacity: 0; transition: opacity .15s;
-}
-.day.has-note .dname .dot { opacity: 1; }
-.day.today .dname .dot { background: var(--ben); }
-.day.open .dname .dot { opacity: 0; }
-.dname .dow { font-size: 14px; font-weight: 700; color: var(--muted); }
+.dname .dow { font-size: 13px; font-weight: 700; color: var(--muted); }
 .dname:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; border-radius: 8px; }
 .dname .num {
-  font-size: 22px; font-weight: 800; line-height: 1; margin-top: 4px;
-  min-width: 34px; height: 34px; display: grid; place-items: center; border-radius: 17px; margin-left: -5px; padding: 0 4px;
+  font-size: 19px; font-weight: 800; line-height: 1; margin-top: 2px;
+  min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 15px; margin-left: -5px; padding: 0 4px;
 }
 .day.today .dname .dow { color: var(--ink); }
 .day.today .dname .num { background: var(--today); color: var(--bg); }
 
 .cell {
   justify-self: center; appearance: none; border: 0; cursor: pointer;
-  width: 54px; height: 54px; border-radius: 27px;
-  font-family: inherit; font-size: 22px; font-weight: 800; line-height: 1;
+  width: 46px; height: 46px; border-radius: 23px;
+  font-family: inherit; font-size: 19px; font-weight: 800; line-height: 1;
   color: var(--muted); background: var(--chip);
   transition: transform .12s ease, background-color .15s ease;
 }
 .cell:active { transform: scale(.92); }
 .cell[data-v="A"] { background: var(--ash); color: #fff; }
 .cell[data-v="B"] { background: var(--ben); color: #fff; }
+.cell[data-v="Both"] { background: var(--both); color: #fff; font-size: 12px; letter-spacing: -0.2px; }
 .cell:focus-visible, textarea:focus-visible, .nav button:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; }
 
 .notes-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .2s ease; }
 .notes-panel > div { overflow: hidden; }
-.day.open .notes-panel { grid-template-rows: 1fr; }
+.day.open .notes-panel, .day.has-note .notes-panel { grid-template-rows: 1fr; }
+.day.has-note { flex: 0 0 auto; }
 textarea {
-  display: block; width: 100%; margin: 6px 0 4px; resize: none; overflow: hidden;
+  display: block; width: 100%; margin: 4px 0 2px; resize: none; overflow: hidden;
   border: 0; border-radius: 10px; background: var(--field); color: var(--ink);
   font-size: 16px; line-height: 1.4; font-weight: 500; font-family: inherit; /* 16px stops iOS zoom on focus */
-  padding: 9px 12px; min-height: 40px;
+  padding: 7px 12px; min-height: 36px;
 }
 textarea:focus { outline: none; }
 textarea::placeholder { color: var(--muted); opacity: .7; }
 
-.foot { margin-top: 12px; text-align: center; }
-.foot button { font: 13px inherit; font-family: inherit; color: var(--muted); background: none; border: 0; cursor: pointer; }
+.foot { margin-top: auto; padding-top: 14px; display: flex; justify-content: center; }
+.foot button {
+  appearance: none; border: 0; cursor: pointer; font-family: inherit;
+  font-size: 14px; font-weight: 700; padding: 8px 22px; border-radius: 18px;
+  background: var(--ink); color: var(--bg); min-width: 90px;
+}
+body.editing .foot button { background: var(--chip); color: var(--ink); }
+.foot button:active { transform: scale(.97); }
 
 @media (prefers-reduced-motion: reduce) { .notes-panel { transition: none; } .cell { transition: none; } .cell:active { transform: none; } }
 
-/* sign-in */
-.login { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; max-width: 340px; width: 100%; margin: 0 auto; }
-.login h1 { margin: 0 0 8px; font-size: 32px; font-weight: 700; letter-spacing: -0.4px; }
-.login input {
-  width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
-  font: inherit; font-size: 17px; padding: 14px 14px;
+/* read-only + sign-in sheet */
+body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-events: none; cursor: default; }
+.sheet-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none;
+  transition: opacity .2s; z-index: 9;
 }
-.login input:focus { outline: 2px solid var(--ben); outline-offset: 0; }
-.login button {
-  border: 0; border-radius: 12px; background: var(--ink); color: var(--bg);
+.sheet-bg.show { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: fixed; left: 50%; transform: translate(-50%, 120%);
+  bottom: 0; width: 100%; max-width: 440px; z-index: 10;
+  background: var(--bg); border-radius: 20px 20px 0 0;
+  padding: 22px max(18px, env(safe-area-inset-left,0px)) calc(22px + env(safe-area-inset-bottom, 0px));
+  transition: transform .25s cubic-bezier(.32,.72,0,1);
+  box-shadow: 0 -8px 40px rgba(0,0,0,.18);
+}
+.sheet.show { transform: translate(-50%, 0); }
+.sheet h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.sheet .sub { margin: 0 0 16px; color: var(--muted); font-size: 15px; }
+.sheet input {
+  width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 17px; padding: 14px; margin-bottom: 10px;
+}
+.sheet input:focus { outline: 2px solid var(--ben); outline-offset: 0; }
+.sheet .go {
+  width: 100%; border: 0; border-radius: 12px; background: var(--ink); color: var(--bg);
   font: inherit; font-size: 17px; font-weight: 700; padding: 14px; cursor: pointer;
 }
-.login button:disabled { opacity: .5; }
-.login .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0; }
+.sheet .go:disabled { opacity: .5; }
+.sheet .cancel { display: block; width: 100%; margin-top: 10px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; cursor: pointer; }
+.sheet .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0 0 6px; }
 .hidden { display: none !important; }
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
@@ -148,34 +167,38 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
   padding: 10px 16px; border-radius: 20px; opacity: 0; transition: opacity .2s; pointer-events: none;
 }
 .toast.show { opacity: 1; }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
-<div class="wrap hidden" id="loginView">
-  <form class="login" id="loginForm" autocomplete="on">
-    <h1>Home Board</h1>
-    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
-    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
-    <p class="err" id="loginErr"></p>
-    <button type="submit" id="loginBtn">Sign in</button>
-  </form>
-</div>
-
-<div class="wrap hidden" id="boardView">
+<div class="wrap" id="boardView">
   <header>
     <div class="title"><h1 id="title"></h1></div>
     <div class="nav">
       <button id="theme" class="theme" aria-label="Switch theme"></button>
+      <!-- Week arrows: turned off for now. To bring back, uncomment these two buttons AND the two "prev"/"next" listener lines in the script.
       <button id="prev" aria-label="Previous week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
       <button id="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      -->
     </div>
   </header>
   <div class="cols"><span></span><span>Drop off</span><span>Pick up</span><span>Dinner</span></div>
   <div id="days"></div>
-  <div class="foot"><button id="signout">Sign out</button></div>
+  <div class="foot"><button id="authBtn"></button></div>
 </div>
+
+<div class="sheet-bg" id="sheetBg"></div>
+<form class="sheet" id="sheet" autocomplete="on">
+  <h2>Sign in to edit</h2>
+  <p class="sub">Anyone can view the board. Editing needs the household login.</p>
+  <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+  <p class="err" id="loginErr"></p>
+  <button type="submit" class="go" id="loginBtn">Sign in</button>
+  <button type="button" class="cancel" id="sheetCancel">Not now</button>
+</form>
 
 <div class="toast" id="toast" role="status"></div>
 
@@ -186,8 +209,8 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  var CYCLE = ["", "A", "B"];
-  var NAMES = { "": "nobody yet", A: "Ash", B: "Ben" };
+  var CYCLE = ["", "A", "B", "Both"];
+  var NAMES = { "": "nobody yet", A: "Ash", B: "Ben", Both: "both of us" };
   var SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var FIELDS = [["drop_off","Drop off"],["pick_up","Pick up"],["dinner","Dinner"]];
 
@@ -257,6 +280,7 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
     FIELDS.forEach(function (f) { r.paint[f[0]](CYCLE.indexOf(row[f[0]] || "") > 0 ? row[f[0]] : ""); });
     if (document.activeElement !== r.t) { r.t.value = row.notes || ""; autosize(r.t); }
     r.day.classList.toggle("has-note", !!(row.notes || "").trim());
+    if ((row.notes || "").trim()) autosize(r.t);
   }
 
   function render() {
@@ -291,6 +315,7 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
         };
         paint[f[0]]("");
         b.addEventListener("click", function () {
+          if (!editing) return;
           var v = CYCLE[(CYCLE.indexOf(b.dataset.v) + 1) % CYCLE.length];
           paint[f[0]](v);
           saveField(key, f[0], v);
@@ -302,6 +327,7 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
       var t = document.createElement("textarea");
       t.rows = 1; t.placeholder = "Notes";
       t.setAttribute("aria-label", label + " notes");
+      t.readOnly = true;
       t.addEventListener("input", function () {
         autosize(t);
         day.classList.toggle("has-note", !!t.value.trim());
@@ -311,6 +337,7 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
       var inner = document.createElement("div"); inner.appendChild(t); panel.appendChild(inner);
       day.appendChild(panel);
       dn.addEventListener("click", function () {
+        if (!editing) return;
         var open = day.classList.toggle("open");
         dn.setAttribute("aria-expanded", String(open));
         if (open) { autosize(t); if (!t.value) t.focus({ preventScroll: true }); } else t.blur();
@@ -319,6 +346,7 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
       wrap.appendChild(day);
       refs[key] = { paint: paint, t: t, day: day };
       applyRow(key);
+      t.readOnly = !editing;
     });
   }
 
@@ -343,8 +371,9 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
   }
 
   function go(n) { weekStart = addDays(weekStart, 7 * n); render(); loadWeek(); }
-  document.getElementById("prev").addEventListener("click", function () { go(-1); });
-  document.getElementById("next").addEventListener("click", function () { go(1); });
+  // Week arrows turned off for now (see the commented-out buttons in the header):
+  // document.getElementById("prev").addEventListener("click", function () { go(-1); });
+  // document.getElementById("next").addEventListener("click", function () { go(1); });
   window.addEventListener("resize", function () { Object.keys(refs).forEach(function (k) { autosize(refs[k].t); }); });
   // phone waking up or reopening the app: catch up on anything missed
   document.addEventListener("visibilitychange", function () {
@@ -355,15 +384,46 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
     }
   });
 
-  // ---- sign-in ----
-  var loginView = document.getElementById("loginView"), boardView = document.getElementById("boardView");
-  function showBoard() {
-    loginView.classList.add("hidden"); boardView.classList.remove("hidden");
-    render(); loadWeek(); listen();
-  }
-  function showLogin() { boardView.classList.add("hidden"); loginView.classList.remove("hidden"); }
+  // ---- view mode / edit mode ----
+  var editing = false;
+  var sheet = document.getElementById("sheet"), sheetBg = document.getElementById("sheetBg");
+  var authBtn = document.getElementById("authBtn");
 
-  document.getElementById("loginForm").addEventListener("submit", function (e) {
+  function setEditing(on) {
+    editing = on;
+    document.body.classList.toggle("editing", on);
+    document.body.classList.toggle("readonly", !on);
+    authBtn.textContent = on ? "Done" : "Edit";
+    Object.keys(refs).forEach(function (k) {
+      refs[k].t.readOnly = !on;
+      if (!on) {
+        refs[k].day.classList.remove("open");
+        refs[k].t.blur();
+      }
+    });
+  }
+
+  function openSheet() {
+    sheet.classList.add("show"); sheetBg.classList.add("show");
+    setTimeout(function () { document.getElementById("email").focus({ preventScroll: true }); }, 250);
+  }
+  function closeSheet() {
+    sheet.classList.remove("show"); sheetBg.classList.remove("show");
+    document.getElementById("loginErr").textContent = "";
+  }
+  function requestEdit() {
+    db.auth.getSession().then(function (res) {
+      if (res.data && res.data.session) setEditing(true); else openSheet();
+    });
+  }
+
+  authBtn.addEventListener("click", function () {
+    if (editing) setEditing(false); else requestEdit();
+  });
+  sheetBg.addEventListener("click", closeSheet);
+  document.getElementById("sheetCancel").addEventListener("click", closeSheet);
+
+  sheet.addEventListener("submit", function (e) {
     e.preventDefault();
     var btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
     btn.disabled = true; err.textContent = "";
@@ -373,18 +433,21 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
     }).then(function (res) {
       btn.disabled = false;
       if (res.error) { err.textContent = "That email or password didn't match."; return; }
-      showBoard();
+      document.getElementById("password").value = "";
+      closeSheet(); setEditing(true);
     });
   });
-  document.getElementById("signout").addEventListener("click", function () {
-    if (channel) { db.removeChannel(channel); channel = null; }
-    db.auth.signOut().then(showLogin);
-  });
 
-  db.auth.getSession().then(function (res) {
-    if (res.data && res.data.session) showBoard(); else showLogin();
-  });
+  // ---- start: board is public, so just show it ----
+  setEditing(false);
+  render(); loadWeek(); listen();
 })();
+</script>
+<script>
+// stop pinch-zoom and double-tap-zoom in iOS Safari
+document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
+document.addEventListener("gesturechange", function (e) { e.preventDefault(); }, { passive: false });
+document.addEventListener("dblclick", function (e) { e.preventDefault(); }, { passive: false });
 </script>
 </body>
 </html>
