@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Home Board">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="apple-touch-icon.png">
+<meta name="theme-color" content="#e4e5e8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d1e22" media="(prefers-color-scheme: dark)">
 <title>Home Board</title>
 <style>
 :root {
@@ -142,11 +144,118 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
 /* full-page sign-in gate */
 body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
 body.locked .wrap, body.locked .bottom { display: none; }
-.gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 16px; }
+.gate {
+  display: none; position: fixed; inset: 0; z-index: 20; overflow: hidden;
+  align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg);
+}
+/* soft colour wash in the app's own palette */
+.gate::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(circle 13px at 55.0% 34.6%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 64.3% 92.9%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 86.6% 59.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 12.4% 94.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 7.8% 75.1%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 97.8% 73.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 18.6% 37.6%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 17.9% 19.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 52.4% 8.7%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 66.3% 62.4%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 71.7% 5.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 27.9% 67.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 13px at 58.1% 26.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 9px at 97.2% 30.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 27.5% 53.7%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 40.1% 19.3%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 9px at 64.0% 15.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 31.2% 33.3%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 17.8% 68.6%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 60.2% 63.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 51.4% 93.6%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 94.3% 58.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 21.3% 91.5%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 54.9% 17.3%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 16.9% 81.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 5.1% 89.2%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 88.3% 36.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 9px at 89.5% 47.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 26.8% 29.4%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 69.6% 81.1%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 43.6% 67.5%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 8.8% 3.4%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 57.0% 98.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 47.1% 81.4%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 46.8% 43.8%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 70.8% 16.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 19.1% 53.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 11px at 61.1% 4.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 74.5% 75.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 14.1% 53.8%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 76.9% 21.4%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 5.6% 49.5%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 13px at 41.3% 36.8%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 49.2% 67.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 40.0% 88.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 34.3% 44.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 36.3% 77.9%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 7px at 81.2% 95.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 9px at 79.6% 2.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 11px at 92.4% 92.8%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 22.9% 77.2%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 13.1% 40.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 39.1% 3.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 50.3% 54.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 96.9% 8.0%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 52.6% 78.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 90.5% 69.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 2.9% 80.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 11.1% 31.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 84.0% 23.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 32.5% 98.3%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 3.1% 35.5%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 67.5% 30.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 3.0% 68.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 27.5% 3.5%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 11px at 22.5% 5.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 74.7% 60.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 50.1% 32.2%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 97.1% 93.3%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 69.1% 52.5%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 31.4% 11.1%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 47.8% 14.6%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 13px at 90.6% 18.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 33.3% 20.7%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 7px at 77.8% 40.1%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 9px at 60.1% 74.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 11px at 73.6% 47.9%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 11px at 27.0% 94.2%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 25.9% 39.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 29.0% 83.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 7px at 85.9% 76.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 23.3% 60.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 9px at 61.9% 84.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 17.6% 7.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 37.6% 58.4%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 8.7% 59.7%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 94.0% 40.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 35.9% 30.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 10.7% 18.2%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 79.6% 51.2%, var(--both) 92%, transparent 100%);
+  opacity: .6;
+}
+.gate form {
+  position: relative; z-index: 1;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border-radius: 24px; padding: 30px 22px 24px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.10);
+}
 body.locked .gate { display: flex; }
-.gate form { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.gate form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
 .gate img { width: 76px; height: 76px; border-radius: 18px; margin: 0 auto 4px; }
-.gate h1 { margin: 0 0 8px; font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+.gate h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+.gate .hello { margin: 0 0 6px; color: var(--ink); font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
 .gate input {
   width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
   font: inherit; font-size: 17px; padding: 14px; text-align: left;
@@ -167,6 +276,12 @@ body.locked .gate { display: flex; }
 }
 .toast.show { opacity: 1; }
 
+
+/* solid strip behind the status bar / Dynamic Island so nothing scrolls under it (any iPhone) */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: env(safe-area-inset-top, 0px); background: var(--bg); pointer-events: none;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -174,8 +289,6 @@ body.locked .gate { display: flex; }
 
 <div class="gate" id="gate">
   <form id="gateForm" autocomplete="on">
-    <img src="apple-touch-icon.png" alt="">
-    <h1>Home Board</h1>
     <input id="email" type="email" placeholder="Email" autocomplete="username" required>
     <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
     <p class="err" id="loginErr"></p>
