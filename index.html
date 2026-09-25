@@ -50,7 +50,7 @@ body {
 }
 .wrap {
   max-width: 500px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column;
-  padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(120px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(84px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
 }
 
 header { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 0; }
@@ -128,14 +128,6 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
   border-top: 0.5px solid var(--hair);
   padding: 8px 0 calc(4px + env(safe-area-inset-bottom, 0px));
 }
-.editrow { display: flex; justify-content: center; }
-#authBtn {
-  appearance: none; border: 0; cursor: pointer; font-family: inherit;
-  font-size: 13px; font-weight: 700; padding: 5px 16px; border-radius: 14px;
-  background: var(--chip); color: var(--ink); min-width: 70px;
-}
-body.editing #authBtn { background: var(--ben); color: #fff; }
-#authBtn:active { transform: scale(.96); }
 .tabs { display: flex; justify-content: center; padding-top: 4px; }
 .tabs a {
   flex: 0 1 150px; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -146,36 +138,26 @@ body.editing #authBtn { background: var(--ben); color: #fff; }
 
 @media (prefers-reduced-motion: reduce) { .notes-panel { transition: none; } .cell { transition: none; } .cell:active { transform: none; } }
 
-/* read-only + sign-in sheet */
-body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-events: none; cursor: default; }
-.sheet-bg {
-  position: fixed; inset: 0; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none;
-  transition: opacity .2s; z-index: 9;
-}
-.sheet-bg.show { opacity: 1; pointer-events: auto; }
-.sheet {
-  position: fixed; left: 50%; transform: translate(-50%, 120%);
-  bottom: 0; width: 100%; max-width: 440px; z-index: 10;
-  background: var(--bg); border-radius: 20px 20px 0 0;
-  padding: 22px max(18px, env(safe-area-inset-left,0px)) calc(22px + env(safe-area-inset-bottom, 0px));
-  transition: transform .25s cubic-bezier(.32,.72,0,1);
-  box-shadow: 0 -8px 40px rgba(0,0,0,.18);
-}
-.sheet.show { transform: translate(-50%, 0); }
-.sheet h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
-.sheet .sub { margin: 0 0 16px; color: var(--muted); font-size: 15px; }
-.sheet input {
+
+/* full-page sign-in gate */
+body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
+body.locked .wrap, body.locked .bottom { display: none; }
+.gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 16px; }
+body.locked .gate { display: flex; }
+.gate form { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.gate img { width: 76px; height: 76px; border-radius: 18px; margin: 0 auto 4px; }
+.gate h1 { margin: 0 0 8px; font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+.gate input {
   width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
-  font: inherit; font-size: 17px; padding: 14px; margin-bottom: 10px;
+  font: inherit; font-size: 17px; padding: 14px; text-align: left;
 }
-.sheet input:focus { outline: 2px solid var(--ben); outline-offset: 0; }
-.sheet .go {
-  width: 100%; border: 0; border-radius: 12px; background: var(--ink); color: var(--bg);
+.gate input:focus { outline: 2px solid var(--ben); outline-offset: 0; }
+.gate button {
+  border: 0; border-radius: 12px; background: var(--ink); color: var(--bg);
   font: inherit; font-size: 17px; font-weight: 700; padding: 14px; cursor: pointer;
 }
-.sheet .go:disabled { opacity: .5; }
-.sheet .cancel { display: block; width: 100%; margin-top: 10px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; cursor: pointer; }
-.sheet .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0 0 6px; }
+.gate button:disabled { opacity: .5; }
+.gate .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0; }
 .hidden { display: none !important; }
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
@@ -188,7 +170,20 @@ body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-even
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
-<body>
+<body class="checking">
+
+<div class="gate" id="gate">
+  <form id="gateForm" autocomplete="on">
+    <img src="apple-touch-icon.png" alt="">
+    <h1>Home Board</h1>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <p class="err" id="loginErr"></p>
+    <button type="submit" id="loginBtn">Sign in</button>
+  </form>
+</div>
+
+
 
 <div class="wrap" id="boardView">
   <header>
@@ -206,7 +201,6 @@ body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-even
 </div>
 
 <div class="bottom">
-  <div class="editrow"><button id="authBtn"></button></div>
   <nav class="tabs">
     <a href="./" class="on">
       <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Week
@@ -217,16 +211,6 @@ body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-even
   </nav>
 </div>
 
-<div class="sheet-bg" id="sheetBg"></div>
-<form class="sheet" id="sheet" autocomplete="on">
-  <h2>Sign in to edit</h2>
-  <p class="sub">Anyone can view the board. Editing needs the household login.</p>
-  <input id="email" type="email" placeholder="Email" autocomplete="username" required>
-  <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
-  <p class="err" id="loginErr"></p>
-  <button type="submit" class="go" id="loginBtn">Sign in</button>
-  <button type="button" class="cancel" id="sheetCancel">Not now</button>
-</form>
 
 <div class="toast" id="toast" role="status"></div>
 
@@ -355,7 +339,6 @@ body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-even
       var t = document.createElement("textarea");
       t.rows = 1; t.placeholder = "Notes";
       t.setAttribute("aria-label", label + " notes");
-      t.readOnly = true;
       t.addEventListener("input", function () {
         autosize(t);
         day.classList.toggle("has-note", !!t.value.trim());
@@ -374,7 +357,6 @@ body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-even
       wrap.appendChild(day);
       refs[key] = { paint: paint, t: t, day: day };
       applyRow(key);
-      t.readOnly = !editing;
     });
   }
 
@@ -412,46 +394,20 @@ body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-even
     }
   });
 
-  // ---- view mode / edit mode ----
-  var editing = false;
-  var sheet = document.getElementById("sheet"), sheetBg = document.getElementById("sheetBg");
-  var authBtn = document.getElementById("authBtn");
-
-  function setEditing(on) {
-    editing = on;
-    document.body.classList.toggle("editing", on);
-    document.body.classList.toggle("readonly", !on);
-    authBtn.textContent = on ? "Done" : "Edit";
-    Object.keys(refs).forEach(function (k) {
-      refs[k].t.readOnly = !on;
-      if (!on) {
-        refs[k].day.classList.remove("open");
-        refs[k].t.blur();
-      }
-    });
+  // always editable once signed in
+  var editing = true;
+  document.body.classList.add("editing");
+  var started = false;
+  function START() {
+    if (started) { loadWeek(); return; }
+    started = true;
+    render(); loadWeek(); listen();
   }
 
-  function openSheet() {
-    sheet.classList.add("show"); sheetBg.classList.add("show");
-    setTimeout(function () { document.getElementById("email").focus({ preventScroll: true }); }, 250);
-  }
-  function closeSheet() {
-    sheet.classList.remove("show"); sheetBg.classList.remove("show");
-    document.getElementById("loginErr").textContent = "";
-  }
-  function requestEdit() {
-    db.auth.getSession().then(function (res) {
-      if (res.data && res.data.session) setEditing(true); else openSheet();
-    });
-  }
-
-  authBtn.addEventListener("click", function () {
-    if (editing) setEditing(false); else requestEdit();
-  });
-  sheetBg.addEventListener("click", closeSheet);
-  document.getElementById("sheetCancel").addEventListener("click", closeSheet);
-
-  sheet.addEventListener("submit", function (e) {
+  // ---- sign-in gate: the whole app needs the household login; each phone stays signed in ----
+  function lock() { document.body.classList.remove("checking"); document.body.classList.add("locked"); }
+  function unlock() { document.body.classList.remove("checking", "locked"); }
+  document.getElementById("gateForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
     btn.disabled = true; err.textContent = "";
@@ -462,13 +418,13 @@ body.readonly .cell, body.readonly .dname, body.readonly textarea { pointer-even
       btn.disabled = false;
       if (res.error) { err.textContent = "That email or password didn't match."; return; }
       document.getElementById("password").value = "";
-      closeSheet(); setEditing(true);
+      unlock(); START();
     });
   });
-
-  // ---- start: board is public, so just show it ----
-  setEditing(false);
-  render(); loadWeek(); listen();
+  db.auth.onAuthStateChange(function (event) { if (event === "SIGNED_OUT") lock(); });
+  db.auth.getSession().then(function (res) {
+    if (res.data && res.data.session) { unlock(); START(); } else lock();
+  });
 })();
 </script>
 <script>
