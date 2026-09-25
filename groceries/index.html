@@ -4,11 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Home Board">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="icon" type="image/png" href="../apple-touch-icon.png">
-<meta name="theme-color" content="#e4e5e8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1d1e22" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e4e5e8">
+<script>
+  // Set light/dark before anything draws, and tell iOS the exact top colour.
+  // A mismatch here is what makes iOS 26 blur the top of a home-screen web app.
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem("homeboard-theme"); } catch (e) {}
+    if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", t);
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#1d1e22" : "#e4e5e8");
+  })();
+</script>
 <title>Groceries</title>
 <style>
 :root {
@@ -675,7 +686,7 @@ body::before {
     if (t) return t;
     return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
-  function applyTheme(t) { document.documentElement.setAttribute("data-theme", t); $("theme").innerHTML = t === "dark" ? SUN : MOON; }
+  function applyTheme(t) { document.documentElement.setAttribute("data-theme", t); document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#1d1e22" : "#e4e5e8"); $("theme").innerHTML = t === "dark" ? SUN : MOON; }
   var savedTheme = null;
   try { savedTheme = localStorage.getItem("homeboard-theme"); } catch (e) {}
   applyTheme(savedTheme || currentTheme());
