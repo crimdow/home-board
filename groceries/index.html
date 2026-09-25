@@ -42,7 +42,7 @@ body {
 }
 .wrap {
   max-width: 500px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column;
-  padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(120px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(84px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
 }
 header { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 0; }
 h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
@@ -163,14 +163,6 @@ body.editing #gear { display: grid; }
   border-top: 0.5px solid var(--hair);
   padding: 8px 0 calc(4px + env(safe-area-inset-bottom, 0px));
 }
-.editrow { display: flex; justify-content: center; }
-#editBtn {
-  appearance: none; border: 0; cursor: pointer; font-family: inherit;
-  font-size: 13px; font-weight: 700; padding: 5px 16px; border-radius: 14px;
-  background: var(--chip); color: var(--ink); min-width: 70px;
-}
-body.editing #editBtn { background: var(--ben); color: #fff; }
-#editBtn:active { transform: scale(.96); }
 .tabs { display: flex; justify-content: center; padding-top: 4px; }
 .tabs a {
   flex: 0 1 150px; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -224,7 +216,28 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
 }
 .toast.show { opacity: 1; }
 
-/* sign-in sheet */
+
+/* full-page sign-in gate */
+body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
+body.locked .wrap, body.locked .bottom { display: none; }
+.gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 16px; }
+body.locked .gate { display: flex; }
+.gate form { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.gate img { width: 76px; height: 76px; border-radius: 18px; margin: 0 auto 4px; }
+.gate h1 { margin: 0 0 8px; font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+.gate input {
+  width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 17px; padding: 14px; text-align: left;
+}
+.gate input:focus { outline: 2px solid var(--ben); outline-offset: 0; }
+.gate button {
+  border: 0; border-radius: 12px; background: var(--ink); color: var(--bg);
+  font: inherit; font-size: 17px; font-weight: 700; padding: 14px; cursor: pointer;
+}
+.gate button:disabled { opacity: .5; }
+.gate .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0; }
+
+/* (old sign-in sheet styles unused) */
 .sheet h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
 .sheet .sub { margin: 0 0 16px; color: var(--muted); font-size: 15px; }
 .sheet input {
@@ -243,7 +256,20 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
 .sheet input[type=email], .sheet input[type=password] { margin-bottom: 10px; }
 </style>
 </head>
-<body class="readonly">
+<body class="checking editing">
+
+<div class="gate" id="gate">
+  <form id="gateForm" autocomplete="on">
+    <img src="../apple-touch-icon.png" alt="">
+    <h1>Home Board</h1>
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <p class="err" id="loginErr"></p>
+    <button type="submit" id="loginBtn">Sign in</button>
+  </form>
+</div>
+
+
 <div class="wrap">
   <div class="top">
   <header>
@@ -268,7 +294,6 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
 </div>
 
 <div class="bottom">
-  <div class="editrow"><button id="editBtn">Edit</button></div>
   <nav class="tabs">
     <a href="../">
       <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Week
@@ -297,15 +322,6 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
   <div class="row"><button class="done" id="storeDone">Done</button></div>
 </div>
 
-<form class="sheet" id="loginSheet" autocomplete="on">
-  <h2>Sign in to edit</h2>
-  <p class="sub">Anyone can view the list. Editing needs the household login.</p>
-  <input id="email" type="email" placeholder="Email" autocomplete="username" required>
-  <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
-  <p class="err" id="loginErr"></p>
-  <button type="submit" class="go" id="loginBtn">Sign in</button>
-  <button type="button" class="cancel" id="loginCancel">Not now</button>
-</form>
 
 <div class="toast" id="toast" role="status"></div>
 
@@ -319,7 +335,7 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
 
   var stores = [];   // [{id, name, position}]
   var items = [];    // [{id, name, store_id, note, done, created_at}]
-  var editing = false, openId = null;
+  var editing = true, openId = null;   // always editable once signed in
   var NONE = "__none";
   var filterStore = "", hideGot = false;
   try { hideGot = localStorage.getItem("g-hide") === "1"; filterStore = localStorage.getItem("g-store") || ""; } catch (e) {}
@@ -441,7 +457,7 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
   // ---- sheets ----
   function showSheet(id) { $(id).classList.add("show"); $("sheetBg").classList.add("show"); }
   function hideSheets() {
-    ["sheet", "storeSheet", "loginSheet"].forEach(function (id) { $(id).classList.remove("show"); });
+    ["sheet", "storeSheet"].forEach(function (id) { $(id).classList.remove("show"); });
     $("sheetBg").classList.remove("show");
     if (document.activeElement) document.activeElement.blur();
   }
@@ -522,32 +538,6 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
     if ($("sheet").classList.contains("show")) closeItem(true); else { hideSheets(); render(); }
   });
 
-  // ---- edit mode + sign-in ----
-  function setEditing(on) {
-    editing = on;
-    document.body.classList.toggle("editing", on);
-    document.body.classList.toggle("readonly", !on);
-    $("editBtn").textContent = on ? "Done" : "Edit";
-  }
-  $("editBtn").addEventListener("click", function () {
-    if (editing) { setEditing(false); return; }
-    db.auth.getSession().then(function (res) {
-      if (res.data && res.data.session) setEditing(true);
-      else { showSheet("loginSheet"); setTimeout(function () { $("email").focus({ preventScroll: true }); }, 250); }
-    });
-  });
-  $("loginCancel").addEventListener("click", function () { hideSheets(); $("loginErr").textContent = ""; });
-  $("loginSheet").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var btn = $("loginBtn"), err = $("loginErr");
-    btn.disabled = true; err.textContent = "";
-    db.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value }).then(function (res) {
-      btn.disabled = false;
-      if (res.error) { err.textContent = "That email or password didn't match."; return; }
-      $("password").value = ""; hideSheets(); setEditing(true);
-    });
-  });
-
   // ---- load + live sync ----
   function loadAll() {
     return Promise.all([
@@ -562,11 +552,7 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
   }
   var reloadT;
   function soon() { clearTimeout(reloadT); reloadT = setTimeout(loadAll, 250); }
-  db.channel("groceries-live")
-    .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items" }, soon)
-    .on("postgres_changes", { event: "*", schema: "public", table: "grocery_stores" }, soon)
-    .subscribe();
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) loadAll(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && started) loadAll(); });
 
   // ---- theme (shared with the week board) ----
   var MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
@@ -587,7 +573,39 @@ body.editing #editBtn { background: var(--ben); color: #fff; }
 
   document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
   document.addEventListener("gesturechange", function (e) { e.preventDefault(); }, { passive: false });
-  setEditing(false); render(); loadAll();
+  var started = false;
+  function START() {
+    if (started) { loadAll(); return; }
+    started = true;
+    db.channel("groceries-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items" }, soon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "grocery_stores" }, soon)
+      .subscribe();
+    render(); loadAll();
+  }
+
+  // ---- sign-in gate: the whole app needs the household login; each phone stays signed in ----
+  function lock() { document.body.classList.remove("checking"); document.body.classList.add("locked"); }
+  function unlock() { document.body.classList.remove("checking", "locked"); }
+  document.getElementById("gateForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
+    btn.disabled = true; err.textContent = "";
+    db.auth.signInWithPassword({
+      email: document.getElementById("email").value.trim(),
+      password: document.getElementById("password").value
+    }).then(function (res) {
+      btn.disabled = false;
+      if (res.error) { err.textContent = "That email or password didn't match."; return; }
+      document.getElementById("password").value = "";
+      unlock(); START();
+    });
+  });
+  db.auth.onAuthStateChange(function (event) { if (event === "SIGNED_OUT") lock(); });
+  db.auth.getSession().then(function (res) {
+    if (res.data && res.data.session) { unlock(); START(); } else lock();
+  });
+
 })();
 </script>
 </body>
