@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<!-- keep "default": "black-translucent" makes iOS 26 blur the top of the home-screen app -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Home Board">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
@@ -379,6 +381,11 @@ body.locked .gate { display: flex; }
 body::before {
   content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 50;
   height: env(safe-area-inset-top, 0px); background: var(--bg); pointer-events: none;
+}
+
+/* home-screen app only: nudge content down, clear of the iOS status-bar blur */
+@media (display-mode: standalone) {
+  .top { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
 }
 </style>
 </head>
