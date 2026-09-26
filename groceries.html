@@ -398,7 +398,7 @@ body::before {
 
 /* new-row highlight */
 .item.flash { animation: rowflash 1.4s ease-out; }
-@keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, transparent); } 100% { background: transparent; } }
+@keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, var(--bg)); } 100% { background: var(--bg); } }
 /* + button and quick-add bar (same as Meals / TODOS / Plans) */
 #addBtn { background: var(--ben); color: #fff; }
 #addBtn svg { width: 18px; height: 18px; }
@@ -449,6 +449,8 @@ body.viewonly .del { visibility: hidden; }
   background: var(--ash); color: #fff; font: inherit; font-size: 15px; font-weight: 700;
 }
 body.viewonly .swipe .delbg { display: none; }
+.swipe .delbg { visibility: hidden; }
+.swipe.dragging .delbg, .swipe.open .delbg { visibility: visible; }
 </style>
 </head>
 <body class="checking editing">
@@ -550,7 +552,7 @@ body.viewonly .swipe .delbg { display: none; }
 
   // Swipe a row left to reveal Delete; tap Delete (or swipe all the way) to remove it.
   var openSwipe = null;
-  function closeSwipe() { if (openSwipe) { openSwipe.querySelector(".item").style.transform = ""; openSwipe = null; } }
+  function closeSwipe() { if (openSwipe) { var w = openSwipe; w.querySelector(".item").style.transform = ""; openSwipe = null; setTimeout(function () { if (openSwipe !== w) w.classList.remove("open"); }, 220); } }
   document.addEventListener("touchstart", function (e) { if (openSwipe && !openSwipe.contains(e.target)) closeSwipe(); }, { passive: true });
   function swipeable(el, onDelete) {
     var wrap = document.createElement("div"); wrap.className = "swipe";
@@ -575,9 +577,9 @@ body.viewonly .swipe .delbg { display: none; }
     el.addEventListener("touchend", function () {
       wrap.classList.remove("dragging");
       if (mode !== "x") return;
-      if (dx < -el.offsetWidth * 0.6) { el.style.transform = "translateX(-100%)"; setTimeout(onDelete, 180); openSwipe = null; }
-      else if (dx < -44) { el.style.transform = "translateX(-88px)"; openSwipe = wrap; }
-      else { el.style.transform = ""; if (openSwipe === wrap) openSwipe = null; }
+      if (dx < -el.offsetWidth * 0.6) { wrap.classList.add("open"); el.style.transform = "translateX(-100%)"; setTimeout(onDelete, 180); openSwipe = null; }
+      else if (dx < -44) { el.style.transform = "translateX(-88px)"; openSwipe = wrap; wrap.classList.add("open"); }
+      else { el.style.transform = ""; if (openSwipe === wrap) openSwipe = null; setTimeout(function () { if (openSwipe !== wrap) wrap.classList.remove("open"); }, 220); }
     });
     // a tap on a row that's swiped open just closes it
     el.addEventListener("click", function (e) { if (openSwipe === wrap) { e.stopPropagation(); e.preventDefault(); closeSwipe(); } }, true);

@@ -466,7 +466,7 @@ body::before {
 
 /* new-row highlight */
 .item.flash { animation: rowflash 1.4s ease-out; }
-@keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, transparent); } 100% { background: transparent; } }
+@keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, var(--bg)); } 100% { background: var(--bg); } }
 /* add to calendar */
 .sheet .cal-btn {
   display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
@@ -501,6 +501,28 @@ body.viewonly #addBtn, body.viewonly #gear, body.viewonly #clearBtn { display: n
 body.viewonly #list, body.viewonly #gotList, body.viewonly #days { pointer-events: none; }
 body.viewonly .who, body.viewonly .kind, body.viewonly .dpill, body.viewonly .store, body.viewonly .check,
 body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default; }
+/* undo bar */
+.undo {
+  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 10px 10px 16px;
+  font-size: 14px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.2);
+}
+.undo.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.undo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.undo button { border: 0; border-radius: 14px; background: var(--ben); color: #fff; font: inherit; font-size: 14px; font-weight: 800; padding: 6px 14px; cursor: pointer; flex: none; }
+/* swipe left to delete (like Mail) */
+.swipe { position: relative; overflow: hidden; }
+.swipe .item { position: relative; background: var(--bg); transition: transform .2s ease; touch-action: pan-y; }
+.swipe.dragging .item { transition: none; }
+.swipe .delbg {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 88px; border: 0; cursor: pointer;
+  background: var(--ash); color: #fff; font: inherit; font-size: 15px; font-weight: 700;
+}
+body.viewonly .swipe .delbg { display: none; }
+.swipe .delbg { visibility: hidden; }
+.swipe.dragging .delbg, .swipe.open .delbg { visibility: visible; }
 </style>
 </head>
 <body class="checking editing">
@@ -542,6 +564,7 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
   </nav>
 </div>
 
+<div class="undo" id="undo" role="status"><span id="undoText"></span><button type="button" id="undoBtn">Undo</button></div>
 <div class="toast" id="toast"></div>
 <div class="sheet-bg" id="sheetBg"></div>
 <form class="sheet quick" id="quickSheet" autocomplete="off">
@@ -592,6 +615,63 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
     }, function () {});
   }
   var $ = function (id) { return document.getElementById(id); };
+  // Delete with a few seconds to undo: the row disappears at once, the database delete
+  // happens when the undo bar goes away (or when you leave the page).
+  var pendingDel = null, undoT = null;
+  function flushDelete() {
+    clearTimeout(undoT); $("undo").classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.commit(); }
+  }
+  function deleteWithUndo(id, name, commit, restore) {
+    flushDelete();
+    pendingDel = { id: id, commit: commit, restore: restore };
+    $("undoText").textContent = "Deleted \u201c" + name + "\u201d";
+    $("undo").classList.add("show");
+    undoT = setTimeout(flushDelete, 4500);
+  }
+  function notPending(x) { return !pendingDel || x.id !== pendingDel.id; }
+  $("undoBtn").addEventListener("click", function () {
+    clearTimeout(undoT); $("undo").classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.restore(); }
+  });
+  window.addEventListener("pagehide", flushDelete);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) flushDelete(); });
+  // Swipe a row left to reveal Delete; tap Delete (or swipe all the way) to remove it.
+  var openSwipe = null;
+  function closeSwipe() { if (openSwipe) { var w = openSwipe; w.querySelector(".item").style.transform = ""; openSwipe = null; setTimeout(function () { if (openSwipe !== w) w.classList.remove("open"); }, 220); } }
+  document.addEventListener("touchstart", function (e) { if (openSwipe && !openSwipe.contains(e.target)) closeSwipe(); }, { passive: true });
+  function swipeable(el, onDelete) {
+    var wrap = document.createElement("div"); wrap.className = "swipe";
+    var bg = document.createElement("button"); bg.type = "button"; bg.className = "delbg"; bg.textContent = "Delete";
+    wrap.appendChild(bg); wrap.appendChild(el);
+    var x0 = 0, y0 = 0, dx = 0, mode = "", base = 0;
+    el.addEventListener("touchstart", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = "";
+      base = openSwipe === wrap ? -88 : 0;
+    }, { passive: true });
+    el.addEventListener("touchmove", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      var mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (!mode) { if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) mode = "x"; else if (Math.abs(my) > 8) mode = "y"; }
+      if (mode !== "x") return;
+      e.preventDefault();
+      if (openSwipe && openSwipe !== wrap) closeSwipe();
+      dx = Math.min(0, base + mx); wrap.classList.add("dragging");
+      el.style.transform = "translateX(" + Math.max(dx, -el.offsetWidth) + "px)";
+    }, { passive: false });
+    el.addEventListener("touchend", function () {
+      wrap.classList.remove("dragging");
+      if (mode !== "x") return;
+      if (dx < -el.offsetWidth * 0.6) { wrap.classList.add("open"); el.style.transform = "translateX(-100%)"; setTimeout(onDelete, 180); openSwipe = null; }
+      else if (dx < -44) { el.style.transform = "translateX(-88px)"; openSwipe = wrap; wrap.classList.add("open"); }
+      else { el.style.transform = ""; if (openSwipe === wrap) openSwipe = null; setTimeout(function () { if (openSwipe !== wrap) wrap.classList.remove("open"); }, 220); }
+    });
+    // a tap on a row that's swiped open just closes it
+    el.addEventListener("click", function (e) { if (openSwipe === wrap) { e.stopPropagation(); e.preventDefault(); closeSwipe(); } }, true);
+    bg.addEventListener("click", function () { openSwipe = null; onDelete(); });
+    return wrap;
+  }
 
   // After adding: bring the new row into view just under the header, with a quick highlight
   var lastAdded = null;
@@ -708,7 +788,13 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
       (sl ? '<div class="soon">' + sl + '</div>' : '') + '</button>';
     el.querySelector(".tile").addEventListener("click", function () { openSheet(p.id, true); });
     el.querySelector(".main").addEventListener("click", function () { openSheet(p.id); });
-    return el;
+    return swipeable(el, function () {
+      if (String(p.id).indexOf("tmp") === 0) return;
+      plans = plans.filter(function (x) { return x !== p; }); render();
+      deleteWithUndo(p.id, p.name,
+        function () { db.from("plans").delete().eq("id", p.id).then(oops); },
+        function () { plans.push(p); render(); });
+    });
   }
   function ideaRow(p) {
     var el = document.createElement("div"); el.className = "item"; el.dataset.id = p.id;
@@ -728,7 +814,13 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
       settleLater(p.id, function () { save(p, { date: p.date }); }, function () { if (p.date) toast(p.name + " → " + w.textContent); });
     });
     el.querySelector(".main").addEventListener("click", function () { openSheet(p.id); });
-    return el;
+    return swipeable(el, function () {
+      if (String(p.id).indexOf("tmp") === 0) return;
+      plans = plans.filter(function (x) { return x !== p; }); render();
+      deleteWithUndo(p.id, p.name,
+        function () { db.from("plans").delete().eq("id", p.id).then(oops); },
+        function () { plans.push(p); render(); });
+    });
   }
   function render() {
     computeDates();
@@ -869,7 +961,7 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
   function loadAll() {
     return db.from("plans").select("*").then(function (r) {
       if (r.error) { toast("Couldn't load plans."); return; }
-      plans = r.data || [];
+      plans = (r.data || []).filter(notPending);
       if (!openId && !settleT) render();
     });
   }
