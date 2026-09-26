@@ -5,20 +5,20 @@ HB.register("week", {
   title: "Weekly Plan",
 
   css: `
-#pg-week .wk-nav { display: inline-flex; align-items: center; margin-left: 2px; vertical-align: middle; position: relative; top: -1px; white-space: nowrap; }
+#pg-week header { align-items: center; }
+#pg-week .title h1 { white-space: nowrap; }
+#pg-week .nav { align-items: center; }
+#pg-week .wk-nav { display: inline-flex; align-items: center; height: 36px; border-radius: 18px; background: var(--chip); padding: 0 2px; white-space: nowrap; }
 #pg-week .wk-nav button {
   appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
-  width: 22px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 8px;
+  width: 30px; height: 32px; padding: 0; display: grid; place-items: center; border-radius: 16px;
 }
 #pg-week .wk-nav button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-#pg-week .wk-nav button:active { background: var(--chip); }
+#pg-week .wk-nav button:active { background: var(--hair); }
 #pg-week .wk-nav button:disabled { opacity: .25; cursor: default; background: none; pointer-events: none; }
-#pg-week .range { color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: 0; position: relative; }
+#pg-week .range { color: var(--ink); font-size: 14px; font-weight: 700; letter-spacing: 0; position: relative; min-width: 84px; text-align: center; }
 #pg-week .range.other { color: var(--ben); }
-#pg-week .range.other::after {
-  content: attr(aria-label); position: absolute; left: 0; right: 0; top: 100%; text-align: center;
-  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
-}
+#pg-week .wk-nav.other { background: color-mix(in srgb, var(--ben) 16%, var(--chip)); }
 
 #pg-week .cols {
   display: grid; grid-template-columns: 56px repeat(3, 1fr);
@@ -98,12 +98,14 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 
     root.innerHTML =
       '<div class="top"><header>' +
-        '<div class="title"><h1>Weekly Plan<span class="wk-nav">' +
-          '<button class="prev" aria-label="Last week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>' +
-          '<span class="range"></span>' +
-          '<button class="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>' +
-        '</span></h1></div>' +
-        '<div class="nav"><span class="vo">View only</span></div>' +
+        '<div class="title"><h1>Weekly Plan</h1></div>' +
+        '<div class="nav"><span class="vo">View only</span>' +
+          // last week / this week / next week only
+          '<span class="wk-nav">' +
+            '<button class="prev" aria-label="Last week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>' +
+            '<span class="range"></span>' +
+            '<button class="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>' +
+          '</span></div>' +
       '</header>' +
       '<div class="cols"><span></span><span>Drop off</span><span>Pick up</span><span>Dinner</span></div></div>' +
       '<div class="days"></div>';
@@ -242,6 +244,8 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       prevBtn.disabled = o <= -1;
       nextBtn.disabled = o >= 1;
       rangeEl.classList.toggle("other", o !== 0);
+      rangeEl.parentNode.classList.toggle("other", o !== 0);
+      rangeEl.parentNode.title = o === 0 ? "This week" : o < 0 ? "Last week" : "Next week";
       rangeEl.setAttribute("aria-label", o === 0 ? "This week" : o < 0 ? "Last week" : "Next week");
     }
     function go(n) {

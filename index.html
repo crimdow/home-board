@@ -32,6 +32,7 @@
   --bg: #e4e5e8; --ink: #2b2e33; --muted: #7a7f88; --hair: #d0d2d6;
   --ash: #d45b6c; --ben: #4f7bd4; --both: #6f8a5c;
   --chip: #d5d7db; --today: #2b2e33; --field: #d9dbdf; --sheet: #eeeff1;
+  --accent: #4f7bd4; --on-accent: #fff;   /* the round + button; each colour theme sets its own */
   /* colours for stores, weekdays and TODO types */
   --s0: #d45b6c; --s1: #4f7bd4; --s2: #6f8a5c; --s3: #c98a3e; --s4: #8a6bb8; --s5: #3f9a93; --s6: #b8735a;
 }
@@ -39,15 +40,16 @@
   --bg: #1d1e22; --ink: #e4e4e2; --muted: #8b9098; --hair: #2c2d32;
   --ash: #cf6475; --ben: #5f86d6; --both: #7d9a68;
   --chip: #2a2b30; --today: #e4e4e2; --field: #26272c; --sheet: #25262b;
+  --accent: #5f86d6; --on-accent: #fff;
   --s0: #cf6475; --s1: #5f86d6; --s2: #7d9a68; --s3: #cf9550; --s4: #9679c2; --s5: #4fa69f; --s6: #c4826a;
 }
 /* colour themes (picked in the More menu) */
-:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; --sheet: #fdf1f6; }
-:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; --sheet: #331c2d; }
-:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; --sheet: #f6eee4; }
-:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; --sheet: #2a1f19; }
-:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; --sheet: #f9f2e9; }
-:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; --sheet: #211e26; }
+:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; --sheet: #fdf1f6; --accent: #e0218a; --on-accent: #fff; }
+:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; --sheet: #331c2d; --accent: #ff4fa3; --on-accent: #2a1624; }
+:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; --sheet: #f6eee4; --accent: #6f4a2f; --on-accent: #fff; }
+:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; --sheet: #2a1f19; --accent: #d4a373; --on-accent: #211813; }
+:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; --sheet: #f9f2e9; --accent: #e8772e; --on-accent: #fff; }
+:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; --sheet: #211e26; --accent: #ff7a1a; --on-accent: #17151b; }
 
 *, *::before, *::after { box-sizing: inherit; }
 html, body { touch-action: manipulation; overscroll-behavior: none; }
@@ -188,15 +190,32 @@ body::before {
 #more .acct span { color: var(--muted); font-size: 14px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #more .acct button { flex: none; border: 0; border-radius: 10px; background: var(--chip); color: var(--ash); font: inherit; font-size: 15px; font-weight: 700; padding: 8px 14px; cursor: pointer; }
 
+/* ---- round + button, bottom right above the last tab (pages that add things) ---- */
+.fab {
+  position: fixed; z-index: 6; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); left: calc(100% - 72px);
+  width: 56px; height: 56px; border-radius: 28px; border: 0; padding: 0; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 38%, transparent), 0 2px 6px rgba(0,0,0,.12);
+  transform: scale(.6); opacity: 0; pointer-events: none;
+  transition: transform .22s cubic-bezier(.3,1.4,.5,1), opacity .15s, background-color .35s;
+}
+.fab.show { transform: scale(1); opacity: 1; pointer-events: auto; }
+.fab:active { transform: scale(.92); }
+.fab svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; }
+/* the + lives here now, not in each page header */
+#pages #addBtn, #pages .addBtn { display: none !important; }
+/* leave room so the last row can scroll clear of the + */
+body.has-fab .wrap { padding-bottom: calc(156px + env(safe-area-inset-bottom, 0px)); }
+
 /* undo bar */
 .undo {
-  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 25;
-  transform: translate(-50%, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
-  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+  position: fixed; left: max(16px, calc(50% - 234px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 25;
+  transform: translate(0, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 112px);
   background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 10px 10px 16px;
   font-size: 14px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.2);
 }
-.undo.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.undo.show { opacity: 1; transform: translate(0, 0); pointer-events: auto; }
 .undo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .undo button { border: 0; border-radius: 14px; background: var(--ben); color: #fff; font: inherit; font-size: 14px; font-weight: 800; padding: 6px 14px; cursor: pointer; flex: none; }
 
@@ -520,13 +539,14 @@ body.locked .gate { display: flex; }
   </div>
 </div>
 
+<button class="fab" id="fab" aria-label="Add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 <div class="undo" id="undo" role="status"><span id="undoText"></span><button type="button" id="undoBtn">Undo</button></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-26c";
+  var VERSION = "2026-09-26d";
 
   // ---- Supabase connection (the anon key is meant to be public; the tables are protected by login) ----
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
@@ -1122,7 +1142,7 @@ body.locked .gate { display: flex; }
     if (Array.isArray(p)) { p = p.filter(function (id, i) { return page(id) && p.indexOf(id) === i; }).slice(0, MAX_PINS); if (p.length) return p; }
     return PAGES.slice(0, MAX_PINS).map(function (x) { return x.id; });
   }
-  function setPins(p) { store("homeboard-tabs", JSON.stringify(p)); paintTabs(); renderList(); }
+  function setPins(p) { store("homeboard-tabs", JSON.stringify(p)); paintTabs(); placeFab(); renderList(); }
 
   var current = null;
   function paintTabs() {
@@ -1133,6 +1153,25 @@ body.locked .gate { display: flex; }
     }).join("") +
       '<a data-id="more" href="#" class="' + (onMore ? "on" : "") + '" aria-label="More" title="More">' + svg("more") + '</a>';
   }
+  // the round + sits right above the last tab (the ☰), and only on pages that add things
+  var fab = document.getElementById("fab");
+  function placeFab() {
+    var last = document.querySelector("#tabs a:last-child"); if (!last) return;
+    var r = last.getBoundingClientRect();
+    fab.style.left = Math.round(r.left + r.width / 2 - 28) + "px";
+  }
+  function paintFab() {
+    var box = current && boxes[current], b = box && box.querySelector("#addBtn, .addBtn");
+    var on = !!b && !HB.viewer;
+    fab.classList.toggle("show", on);
+    document.body.classList.toggle("has-fab", on);
+    placeFab();
+  }
+  window.addEventListener("resize", placeFab);
+  fab.addEventListener("click", function () {
+    var box = current && boxes[current], b = box && box.querySelector("#addBtn, .addBtn");
+    if (b) b.click();
+  });
   document.getElementById("tabs").addEventListener("click", function (e) {
     var a = e.target.closest("a"); if (!a) return;
     var id = a.dataset.id;
@@ -1245,6 +1284,7 @@ body.locked .gate { display: flex; }
     load(p).then(function (mod) {
       mod.mount(box);
       if (current === p.id && mod.shown) mod.shown();
+      paintFab();
     }, function () {
       box.innerHTML = '<div class="page-msg">Couldn’t load ' + p.name + '.<br><button>Try again</button></div>';
       box.querySelector("button").onclick = function () { mount(p, box); };
@@ -1259,7 +1299,7 @@ body.locked .gate { display: flex; }
       var old = mods[current]; if (old && old.hidden) old.hidden();
       scrolls[current] = window.scrollY; boxes[current].hidden = true;
     }
-    current = p.id; paintTabs();
+    current = p.id; paintTabs(); paintFab();
     document.title = p.name;
     var box = boxes[p.id];
     if (!box) {
@@ -1288,7 +1328,7 @@ body.locked .gate { display: flex; }
   function checkRole() {
     db.rpc("is_editor").then(function (r) {
       var viewer = !r.error && r.data === false;
-      HB.viewer = viewer;
+      HB.viewer = viewer; paintFab();
       document.body.classList.toggle("viewonly", viewer);
       if (viewer) document.querySelectorAll("#pages textarea, #pages input").forEach(function (t) { t.readOnly = true; });
     }, function () {});
