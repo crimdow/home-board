@@ -12,46 +12,43 @@
 <link rel="icon" type="image/png" href="apple-touch-icon.png">
 <meta name="theme-color" content="#e4e5e8">
 <script>
-  // Set light/dark before anything draws, and tell iOS the exact top colour.
-  // A mismatch here is what makes iOS 26 blur the top of a home-screen web app.
+  // Set light/dark and the colour theme before anything draws.
+  // "homeboard-theme" = light | dark (missing = follow the phone). "homeboard-skin" = colour theme.
   (function () {
-    var t = null;
-    try { t = localStorage.getItem("homeboard-theme"); } catch (e) {}
-    if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    var t = null, k = "";
+    try { t = localStorage.getItem("homeboard-theme"); k = localStorage.getItem("homeboard-skin") || ""; } catch (e) {}
+    if (t !== "light" && t !== "dark") t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", t);
-    try { var k = localStorage.getItem("homeboard-skin"); if (k) document.documentElement.setAttribute("data-skin", k); } catch (e) {}
-    setTimeout(function () { document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()); }, 0);
+    if (k) document.documentElement.setAttribute("data-skin", k);
   })();
 </script>
-<title>Weekly Plan</title>
+<title>Home Board</title>
 <style>
+/* ================= shared look for every page ================= */
 :root {
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  --bg: #e4e5e8;
-  --ink: #2b2e33;
-  --muted: #7a7f88;
-  --hair: #d0d2d6;
-  --ash: #d45b6c;
-  --ben: #4f7bd4;
-  --both: #6f8a5c;
-  --chip: #d5d7db;
-  --today: #2b2e33;
-  --field: #d9dbdf;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #1d1e22; --ink: #e4e4e2; --muted: #8b9098; --hair: #2c2d32;
-    --ash: #cf6475; --ben: #5f86d6; --both: #7d9a68;
-    --chip: #2a2b30; --today: #e4e4e2; --field: #26272c;
-  }
+  --bg: #e4e5e8; --ink: #2b2e33; --muted: #7a7f88; --hair: #d0d2d6;
+  --ash: #d45b6c; --ben: #4f7bd4; --both: #6f8a5c;
+  --chip: #d5d7db; --today: #2b2e33; --field: #d9dbdf; --sheet: #eeeff1;
+  /* colours for stores, weekdays and TODO types */
+  --s0: #d45b6c; --s1: #4f7bd4; --s2: #6f8a5c; --s3: #c98a3e; --s4: #8a6bb8; --s5: #3f9a93; --s6: #b8735a;
 }
 :root[data-theme="dark"] {
   --bg: #1d1e22; --ink: #e4e4e2; --muted: #8b9098; --hair: #2c2d32;
   --ash: #cf6475; --ben: #5f86d6; --both: #7d9a68;
-  --chip: #2a2b30; --today: #e4e4e2; --field: #26272c;
+  --chip: #2a2b30; --today: #e4e4e2; --field: #26272c; --sheet: #25262b;
+  --s0: #cf6475; --s1: #5f86d6; --s2: #7d9a68; --s3: #cf9550; --s4: #9679c2; --s5: #4fa69f; --s6: #c4826a;
 }
+/* colour themes (picked in the More menu) */
+:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; --sheet: #fdf1f6; }
+:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; --sheet: #331c2d; }
+:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; --sheet: #f6eee4; }
+:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; --sheet: #2a1f19; }
+:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; --sheet: #f9f2e9; }
+:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; --sheet: #211e26; }
+
 *, *::before, *::after { box-sizing: inherit; }
 html, body { touch-action: manipulation; overscroll-behavior: none; }
 html { height: 100%; background: var(--bg); }
@@ -62,85 +59,51 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
+  transition: background-color .35s ease, color .35s ease;
 }
+.hidden { display: none !important; }
 .wrap {
-  max-width: 500px; margin: 0 auto; display: flex; flex-direction: column;   /* no forced full height: short lists don't scroll */
+  max-width: 500px; margin: 0 auto;   /* no forced full height: short pages don't scroll */
   padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(84px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
 }
+.page { display: flex; flex-direction: column; }
+.page[hidden] { display: none; }
+.page-msg { padding: 60px 0; text-align: center; color: var(--muted); font-weight: 600; }
+.page-msg button { margin-top: 10px; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-weight: 700; padding: 10px 16px; }
 
-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 0; }
-.title h1 { margin: 0; font-size: 24px; white-space: nowrap; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
-.title p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
-.title .range { color: var(--muted); font-size: 14px; font-weight: 600; margin-left: 8px; letter-spacing: 0; }
+/* page header: sticky title row */
+.top {
+  position: sticky; top: 0; z-index: 4;
+  margin: 0 -16px; padding: calc(4px + env(safe-area-inset-top, 0px)) 16px 0;
+  margin-top: calc(-1 * env(safe-area-inset-top, 0px));
+  background: var(--bg); transition: background-color .35s ease;
+}
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 4px 0 0; }
+.title { min-width: 0; }
+.title h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
 .nav { display: flex; gap: 8px; }
 .nav button {
   width: 36px; height: 36px; border-radius: 50%; border: 0;
   background: var(--chip); color: var(--ink); font-size: 18px; line-height: 1; cursor: pointer;
   display: grid; place-items: center;
 }
-.nav .theme svg { width: 18px; height: 18px; }
-#skin svg { stroke-width: 2; } #skin circle { fill: currentColor; stroke: none; }
 .nav svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.nav button:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; }
+/* view-only accounts see a small chip instead of editing controls */
+.vo { display: none; align-items: center; height: 36px; padding: 0 9px; border-radius: 18px; background: var(--chip); color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+body.viewonly .vo { display: inline-flex; }
 
-.top {
-  position: sticky; top: 0; z-index: 4;
-  margin: 0 -16px; padding: calc(4px + env(safe-area-inset-top, 0px)) 16px 0;
-  margin-top: calc(-1 * env(safe-area-inset-top, 0px));
-  background: var(--bg);
+/* solid strip behind the status bar / Dynamic Island so nothing scrolls under it */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: env(safe-area-inset-top, 0px); background: var(--bg); pointer-events: none;
 }
-.cols {
-  display: grid; grid-template-columns: 56px repeat(3, 1fr);
-  padding: 8px 0 6px; border-bottom: 0.5px solid var(--hair);
-  font-size: 13px; font-weight: 700; color: var(--muted); text-align: center;
+/* home-screen app only: nudge content down, clear of the iOS status-bar blur */
+@media (display-mode: standalone) {
+  .top { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
 }
 
-#days { flex: 1; display: flex; flex-direction: column; }
-.day {
-  flex: 0 0 auto; min-height: 64px; padding: 8px 0; border-bottom: 0.5px solid var(--hair);
-  display: flex; flex-direction: column; justify-content: center;
-}
-.row { display: grid; grid-template-columns: 56px repeat(3, 1fr); align-items: center; }
-.dname {
-  display: flex; flex-direction: column; align-items: flex-start; position: relative;
-  appearance: none; border: 0; background: none; color: inherit; font: inherit; cursor: pointer;
-  padding: 4px 0; text-align: left;
-}
-.dname .dow { font-size: 13px; font-weight: 700; color: var(--muted); }
-.dname:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; border-radius: 8px; }
-.dname .num {
-  font-size: 19px; font-weight: 800; line-height: 1; margin-top: 2px;
-  min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 15px; margin-left: -5px; padding: 0 4px;
-}
-.day.today .dname .dow { color: var(--ink); }
-.day.today .dname .num { background: var(--today); color: var(--bg); }
-
-.cell {
-  justify-self: center; appearance: none; border: 0; cursor: pointer;
-  width: 46px; height: 46px; border-radius: 23px;
-  font-family: inherit; font-size: 19px; font-weight: 800; line-height: 1;
-  color: var(--muted); background: var(--chip);
-  transition: transform .12s ease, background-color .15s ease;
-}
-.cell:active { transform: scale(.92); }
-.cell[data-v="A"] { background: var(--ash); color: #fff; }
-.cell[data-v="B"] { background: var(--ben); color: #fff; }
-.cell[data-v="Both"] { background: var(--both); color: #fff; font-size: 12px; letter-spacing: -0.2px; }
-.cell:focus-visible, textarea:focus-visible, .nav button:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; }
-
-.notes-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .2s ease; }
-.notes-panel > div { overflow: hidden; }
-.day.open .notes-panel, .day.has-note .notes-panel { grid-template-rows: 1fr; }
-.day.has-note { flex: 0 0 auto; }
-textarea {
-  display: block; width: 100%; margin: 4px 0 2px; resize: none; overflow: hidden;
-  border: 0; border-radius: 10px; background: var(--field); color: var(--ink);
-  font-size: 16px; line-height: 1.4; font-weight: 500; font-family: inherit; /* 16px stops iOS zoom on focus */
-  padding: 7px 12px; min-height: 36px;
-}
-textarea:focus { outline: none; }
-textarea::placeholder { color: var(--muted); opacity: .7; }
-
-/* bottom bar: small Edit pill above the page tabs (same as Groceries) */
+/* ---- bottom tab bar: this phone's pinned pages + More ---- */
 .bottom {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -148,16 +111,94 @@ textarea::placeholder { color: var(--muted); opacity: .7; }
   border-top: 0.5px solid var(--hair);
   padding: 8px 0 calc(4px + env(safe-area-inset-bottom, 0px));
 }
-.tabs { display: flex; justify-content: center; padding-top: 4px; }
+.tabs { display: flex; justify-content: center; padding-top: 2px; max-width: 500px; margin: 0 auto; }
 .tabs a {
-  flex: 0 1 120px; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 0;
+  flex: 0 1 76px; display: flex; flex-direction: column; align-items: center;
+  color: var(--muted); text-decoration: none; padding: 8px 0 6px; cursor: pointer;
 }
-.tabs a.on { color: var(--ink); }
-.tabs svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.tabs svg { width: 29px; height: 29px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabs a.on { color: var(--today); }
+.tabs a.on svg { stroke-width: 2.2; }
+.tabs a::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; margin: 4px auto 0; }
+.tabs a.on::after { background: var(--today); }
 
-@media (prefers-reduced-motion: reduce) { .notes-panel { transition: none; } .cell { transition: none; } .cell:active { transform: none; } }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 60;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 600;
+  padding: 10px 16px; border-radius: 20px; opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
 
+/* ---- More menu (bottom sheet) ---- */
+#moreBg { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .22s; }
+#moreBg.show { opacity: 1; pointer-events: auto; }
+#more {
+  position: fixed; left: 50%; bottom: 0; z-index: 31; width: 100%; max-width: 500px;
+  max-height: calc(100% - 40px - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain;
+  transform: translate(-50%, 105%); visibility: hidden;
+  background: var(--sheet); color: var(--ink); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.18);
+  padding: 8px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s linear .3s, background-color .35s;
+}
+#more.show { transform: translate(-50%, 0); visibility: visible; transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s, background-color .35s; }
+#more .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--hair); margin: 0 auto 10px; }
+#more .sh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+#more .sh-head h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+#more .linkbtn { appearance: none; border: 0; background: none; color: var(--ben); font: inherit; font-size: 16px; font-weight: 700; padding: 6px 2px; cursor: pointer; }
+#more h3 { margin: 18px 4px 6px; font-size: 12px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+#more h3 small { text-transform: none; letter-spacing: 0; font-weight: 600; margin-left: 4px; }
+#more .group { background: var(--bg); border-radius: 14px; overflow: hidden; transition: background-color .35s; }
+#more .pg-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 6px 12px;
+  appearance: none; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+#more .pg-row + .pg-row { border-top: 0.5px solid var(--hair); }
+#more .pg-row .ico { width: 30px; height: 30px; display: grid; place-items: center; color: var(--muted); flex: none; }
+#more .pg-row .ico svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#more .pg-row .nm { flex: 1; font-size: 17px; font-weight: 600; }
+#more .pg-row.here .ico, #more .pg-row.here .nm { color: var(--today); }
+#more .pg-row .tag { font-size: 12px; font-weight: 700; color: var(--muted); }
+#more .pg-row .ctl { display: flex; gap: 4px; }
+#more .pg-row .ctl button {
+  width: 34px; height: 34px; border-radius: 17px; border: 0; background: var(--chip); color: var(--ink);
+  display: grid; place-items: center; cursor: pointer; padding: 0;
+}
+#more .pg-row .ctl button:disabled { opacity: .3; cursor: default; }
+#more .pg-row .ctl button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+#more .pg-row .ctl .rm { color: var(--ash); }
+#more .pg-row .ctl .add { color: var(--both); }
+#more .pg-empty { padding: 14px 12px; color: var(--muted); font-size: 14px; font-weight: 600; }
+
+#more .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--chip); border-radius: 12px; }
+#more .seg button { border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: 15px; font-weight: 700; padding: 9px 0; cursor: pointer; }
+#more .seg button.on { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+#more .skins { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#more .skin {
+  appearance: none; border: 2px solid transparent; border-radius: 14px; padding: 10px 4px 8px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 7px; font: inherit;
+}
+#more .skin.on { border-color: var(--ink); }
+#more .skin .dots { display: flex; gap: 3px; }
+#more .skin .dots i { width: 13px; height: 13px; border-radius: 7px; display: block; }
+#more .skin b { font-size: 12px; font-weight: 800; }
+
+#more .acct { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; }
+#more .acct span { color: var(--muted); font-size: 14px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#more .acct button { flex: none; border: 0; border-radius: 10px; background: var(--chip); color: var(--ash); font: inherit; font-size: 15px; font-weight: 700; padding: 8px 14px; cursor: pointer; }
+
+/* undo bar */
+.undo {
+  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 25;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 10px 10px 16px;
+  font-size: 14px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.2);
+}
+.undo.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.undo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.undo button { border: 0; border-radius: 14px; background: var(--ben); color: #fff; font: inherit; font-size: 14px; font-weight: 800; padding: 6px 14px; cursor: pointer; flex: none; }
 
 /* full-page sign-in gate */
 body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
@@ -285,102 +326,12 @@ body.locked .gate { display: flex; }
 }
 .gate button:disabled { opacity: .5; }
 .gate .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0; }
-.hidden { display: none !important; }
-.toast {
-  position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 600;
-  padding: 10px 16px; border-radius: 20px; opacity: 0; transition: opacity .2s; pointer-events: none;
-}
-.toast.show { opacity: 1; }
 
-
-/* solid strip behind the status bar / Dynamic Island so nothing scrolls under it (any iPhone) */
-body::before {
-  content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-  height: env(safe-area-inset-top, 0px); background: var(--bg); pointer-events: none;
-}
-
-/* home-screen app only: nudge content down, clear of the iOS status-bar blur */
-@media (display-mode: standalone) {
-  .top { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
-}
-
-/* icon-only tab bar (5 pages) */
-.tabs { padding-top: 2px; }
-.tabs a { flex: 0 1 76px !important; padding: 8px 0 6px !important; }
-.tabs svg { width: 29px !important; height: 29px !important; stroke-width: 1.8 !important; }
-.tabs a.on svg { stroke-width: 2.2 !important; }
-.tabs a.on::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; background: var(--ink); margin: 4px auto 0; }
-.tabs a:not(.on)::after { content: ""; display: block; height: 5px; margin-top: 4px; }
-
-/* view-only accounts: no editing controls, nothing tappable in the lists */
-.vo { display: none; align-items: center; height: 36px; padding: 0 12px; border-radius: 18px; background: var(--chip); color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
-body.viewonly .vo { display: inline-flex; }
-body.viewonly #addBtn, body.viewonly #gear, body.viewonly #clearBtn { display: none !important; }
-body.viewonly #list, body.viewonly #gotList, body.viewonly #days { pointer-events: none; }
-body.viewonly .who, body.viewonly .kind, body.viewonly .dpill, body.viewonly .store, body.viewonly .check,
-body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default; }
-/* week arrows sit right beside the dates */
-.wk-nav { display: inline-flex; align-items: center; margin-left: 2px; vertical-align: middle; position: relative; top: -1px; white-space: nowrap; }
-.title h1 { white-space: normal !important; }
-header { align-items: flex-start !important; gap: 8px; }
-.title { min-width: 0; }
-.title .range { font-size: 13px !important; }
-body.viewonly .vo { font-size: 12px; padding: 0 9px; }
-.wk-nav button {
-  appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
-  width: 22px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 8px;
-}
-.wk-nav button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.wk-nav button:active { background: var(--chip); }
-.wk-nav button:disabled { opacity: .25; cursor: default; background: none; pointer-events: none; }
-.title .range { margin-left: 0 !important; position: relative; }
-.title .range.other { color: var(--ben); }
-.title .range.other::after {
-  content: attr(aria-label); position: absolute; left: 0; right: 0; top: 100%; text-align: center;
-  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
-}
-body.viewonly .wk-nav { pointer-events: auto; }
-/* empty bubble shows a small person, same as TODOS */
-.cell svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
-/* Sat & Sun: same rows as the weekdays, just a note instead of bubbles */
-.day.weekend .row { cursor: pointer; }
-.day.weekend .wk-hint { grid-column: 2 / -1; color: var(--muted); opacity: .55; font-size: 14px; font-weight: 600; padding-left: 6px; }
-.day.weekend.has-note .wk-hint, .day.weekend.open .wk-hint { visibility: hidden; }
-body.viewonly .day.weekend .wk-hint { display: none; }
-/* slightly smaller rows so all seven days fit */
-.day { min-height: 56px !important; padding: 5px 0 !important; }
-.cell { width: 42px !important; height: 42px !important; border-radius: 21px !important; font-size: 18px !important; }
-.cell[data-v="Both"] { font-size: 11px !important; }
-.dname .dow { font-size: 12px !important; }
-.dname .num { font-size: 18px !important; min-width: 28px !important; height: 28px !important; }
-/* ---- colour themes (palette button on Weekly Plan; applies on every page) ---- */
-:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; }
-:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; }
-:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; }
-:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; }
-:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; }
-:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; }
-body, .top, .bottom, .day, .cell, .dname .num { transition: background-color .35s ease, color .35s ease; }
-.tabs a.on { color: var(--today) !important; }
-.tabs a.on::after { background: var(--today) !important; }
-#skin.spin { animation: moonspin .6s cubic-bezier(.3,1.4,.5,1); }
-@keyframes moonspin { 0% { transform: rotate(0) scale(1); } 60% { transform: rotate(300deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
-#skin, #theme { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-.skin-toast {
-  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 41;
-  transform: translate(-50%, 10px) scale(.96); opacity: 0; pointer-events: none;
-  background: var(--today); color: var(--bg); font-size: 15px; font-weight: 800; letter-spacing: .2px;
-  padding: 9px 18px; border-radius: 20px; box-shadow: 0 6px 22px rgba(0,0,0,.18);
-  transition: opacity .2s, transform .25s cubic-bezier(.3,1.4,.5,1);
-}
-.skin-toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
-
+@media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
-<body class="checking">
+<body class="checking editing">
 
 <div class="gate" id="gate">
   <form id="gateForm" autocomplete="on">
@@ -391,47 +342,156 @@ body, .top, .bottom, .day, .cell, .dname .num { transition: background-color .35
   </form>
 </div>
 
+<!-- each page draws itself into its own box in here -->
+<main class="wrap" id="pages"></main>
 
+<div class="bottom"><nav class="tabs" id="tabs"></nav></div>
 
-<div class="wrap" id="boardView">
-  <div class="top">
-  <header>
-    <div class="title"><h1>Weekly Plan<span class="wk-nav"><!-- last week / this week / next week only --><button id="prev" aria-label="Last week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><span class="range" id="title"></span><button id="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></span></h1></div>
-    <div class="nav">
-      <span class="vo">View only</span>
-      <button id="skin" class="theme" aria-label="Change colour theme"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.8-1.7H16a5 5 0 0 0 5-5C21 6.5 17 3 12 3z"/><circle cx="7.5" cy="11.5" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15" cy="7.8" r="1.2"/></svg></button>
-      <button id="theme" class="theme" aria-label="Switch theme"></button>
+<div class="more-bg" id="moreBg"></div>
+<div class="more-sheet" id="more" role="dialog" aria-modal="true" aria-label="More">
+  <div class="grab"></div>
+  <div class="sh-head"><h2 id="moreTitle">More</h2><button class="linkbtn" id="editTabs">Edit tab bar</button></div>
+  <div id="pageList"></div>
+  <div id="settings">
+    <h3>Appearance</h3>
+    <div class="seg" id="modeSeg">
+      <button data-m="light">Light</button><button data-m="dark">Dark</button><button data-m="auto">Auto</button>
     </div>
-  </header>
-  <div class="cols"><span></span><span>Drop off</span><span>Pick up</span><span>Dinner</span></div>
+    <h3>Theme</h3>
+    <div class="skins" id="skinList"></div>
+    <h3>Account</h3>
+    <div class="group acct"><span id="whoami">Signed in</span><button id="signOut">Sign out</button></div>
   </div>
-  <div id="days"></div>
 </div>
 
-<div class="bottom">
-  <nav class="tabs">
-    <a href="./" class="on" aria-label="Week" title="Week"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></a>
-    <a href="groceries.html" aria-label="Groceries" title="Groceries"><svg viewBox="0 0 24 24"><path d="M3 4h2.5l2.2 11h10.6l2-8H6.6"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/></svg></a>
-    <a href="meals.html" aria-label="Meals" title="Meals"><svg viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 21V3c-2 1.5-3 4-3 7v3h3"/></svg></a>
-    <a href="todos.html" aria-label="TODOS" title="TODOS"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5"/></svg></a>
-    <a href="plans.html" aria-label="Plans" title="Plans"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></svg></a>
-  </nav>
-</div>
-
-
-<div class="skin-toast" id="skinToast" aria-live="polite"></div>
+<div class="undo" id="undo" role="status"><span id="undoText"></span><button type="button" id="undoBtn">Undo</button></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
 (function () {
-  // ---- Supabase connection (the anon key is meant to be public; the table is protected by login) ----
+  // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
+  var VERSION = "2026-09-26b";
+
+  // ---- Supabase connection (the anon key is meant to be public; the tables are protected by login) ----
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
-  var PERSON_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>';   // empty bubble: tap to assign
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Short lists shouldn't scroll: when the keyboard closes, iOS can leave the page nudged
-  // upward. If everything fits on screen, put it back at the top.
+  // ---- every page in the app ----
+  // src = page file loaded inside this app. href = older stand-alone page (not moved over yet).
+  var ICON = {
+    week: '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    groceries: '<path d="M3 4h2.5l2.2 11h10.6l2-8H6.6"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/>',
+    meals: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 21V3c-2 1.5-3 4-3 7v3h3"/>',
+    todos: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5"/>',
+    plans: '<path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
+    more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'
+  };
+  var PAGES = [
+    { id: "week",      name: "Weekly Plan", src: "week.js" },
+    { id: "groceries", name: "Groceries",   src: "groceries.js" },
+    { id: "meals",     name: "Meals",       src: "meals.js" },
+    { id: "todos",     name: "TODOS",       src: "todos.js" },
+    { id: "plans",     name: "Plans",       src: "plans.js" }
+  ];
+  var MAX_PINS = 5;
+  function page(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return null; }
+  function svg(id) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[id] + '</svg>'; }
+  function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  // ---- shared helpers the pages use ----
+  var toastEl = document.getElementById("toast"), toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
+  }
+  var waiting = {}, mods = {};
+  window.HB = {
+    db: db, toast: toast, viewer: false,
+    // a page file calls this once it has loaded
+    register: function (id, mod) {
+      if (mod.css) { var st = document.createElement("style"); st.textContent = mod.css; document.head.appendChild(st); }
+      mods[id] = mod;
+      if (waiting[id]) waiting[id](mod);
+    }
+  };
+
+  // ================= shared list helpers (Groceries, Meals, TODOS, Plans) =================
+  // Swipe a row left to reveal Delete; tap Delete (or swipe all the way) to remove it.
+  var openSwipe = null;
+  function closeSwipe() { if (openSwipe) { var w = openSwipe; w.querySelector(".item").style.transform = ""; openSwipe = null; setTimeout(function () { if (openSwipe !== w) w.classList.remove("open"); }, 220); } }
+  document.addEventListener("touchstart", function (e) { if (openSwipe && !openSwipe.contains(e.target)) closeSwipe(); }, { passive: true });
+  function swipeable(el, onDelete) {
+    var wrap = document.createElement("div"); wrap.className = "swipe";
+    var bg = document.createElement("button"); bg.type = "button"; bg.className = "delbg"; bg.textContent = "Delete";
+    wrap.appendChild(bg); wrap.appendChild(el);
+    var x0 = 0, y0 = 0, dx = 0, mode = "", base = 0;
+    el.addEventListener("touchstart", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = "";
+      base = openSwipe === wrap ? -88 : 0;
+    }, { passive: true });
+    el.addEventListener("touchmove", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      var mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (!mode) { if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) mode = "x"; else if (Math.abs(my) > 8) mode = "y"; }
+      if (mode !== "x") return;
+      e.preventDefault();
+      if (openSwipe && openSwipe !== wrap) closeSwipe();
+      dx = Math.min(0, base + mx); wrap.classList.add("dragging");
+      el.style.transform = "translateX(" + Math.max(dx, -el.offsetWidth) + "px)";
+    }, { passive: false });
+    el.addEventListener("touchend", function () {
+      wrap.classList.remove("dragging");
+      if (mode !== "x") return;
+      if (dx < -el.offsetWidth * 0.6) { wrap.classList.add("open"); el.style.transform = "translateX(-100%)"; setTimeout(onDelete, 180); openSwipe = null; }
+      else if (dx < -44) { el.style.transform = "translateX(-88px)"; openSwipe = wrap; wrap.classList.add("open"); }
+      else { el.style.transform = ""; if (openSwipe === wrap) openSwipe = null; setTimeout(function () { if (openSwipe !== wrap) wrap.classList.remove("open"); }, 220); }
+    });
+    // a tap on a row that's swiped open just closes it
+    el.addEventListener("click", function (e) { if (openSwipe === wrap) { e.stopPropagation(); e.preventDefault(); closeSwipe(); } }, true);
+    bg.addEventListener("click", function () { openSwipe = null; onDelete(); });
+    return wrap;
+  }
+
+  // Delete with a few seconds to undo: the row disappears at once, the database delete
+  // happens when the undo bar goes away (or when you leave the page).
+  var pendingDel = null, undoT = null, undoBar = document.getElementById("undo");
+  function flushDelete() {
+    clearTimeout(undoT); undoBar.classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.commit(); }
+  }
+  function deleteWithUndo(id, name, commit, restore) {
+    flushDelete();
+    pendingDel = { id: id, commit: commit, restore: restore };
+    document.getElementById("undoText").textContent = "Deleted \u201c" + name + "\u201d";
+    undoBar.classList.add("show");
+    undoT = setTimeout(flushDelete, 4500);
+  }
+  function notPending(x) { return !pendingDel || x.id !== pendingDel.id; }
+  document.getElementById("undoBtn").addEventListener("click", function () {
+    clearTimeout(undoT); undoBar.classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.restore(); }
+  });
+  window.addEventListener("pagehide", flushDelete);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) flushDelete(); });
+
+  // After adding: bring the new row into view just under the header, with a quick highlight
+  function reveal(root, id) {
+    setTimeout(function () {
+      var el = root.querySelector('[data-id="' + id + '"]'); if (!el) return;
+      var top = root.querySelector(".top"), off = top ? top.getBoundingClientRect().bottom : 0;
+      var vh = window.visualViewport ? visualViewport.height : window.innerHeight;
+      var q = root.querySelector("#quickSheet"), qh = q && q.classList.contains("show") ? q.offsetHeight : 0;
+      var r = el.getBoundingClientRect();
+      if (r.top < off || r.bottom > vh - qh - 8) window.scrollTo(0, Math.max(0, r.top + window.scrollY - off - 8));
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    }, 60);
+  }
+  HB.swipeable = swipeable; HB.deleteWithUndo = deleteWithUndo; HB.notPending = notPending; HB.flushDelete = flushDelete; HB.reveal = reveal;
+
+  // Short pages shouldn't scroll: when the keyboard closes, iOS can leave the page nudged up.
   function snapBack() {
     setTimeout(function () {
       if (document.documentElement.scrollHeight <= window.innerHeight + 2 && window.scrollY !== 0) window.scrollTo(0, 0);
@@ -441,244 +501,231 @@ body, .top, .bottom, .day, .cell, .dname .num { transition: background-color .35
   window.addEventListener("resize", snapBack);
   if (window.visualViewport) visualViewport.addEventListener("resize", snapBack);
 
-  // View-only accounts: the database already refuses their changes; this just hides the
-  // editing controls so nothing looks tappable. Household logins are "editors".
+  // ================= light / dark and colour theme =================
+  var SKINS = [
+    { k: "",          name: "Classic",   light: ["#e4e5e8", "#d45b6c", "#4f7bd4", "#6f8a5c"], dark: ["#1d1e22", "#cf6475", "#5f86d6", "#7d9a68"] },
+    { k: "barbie",    name: "Barbie",    light: ["#f8e7ef", "#d9467f", "#5b7fd6", "#e0218a"], dark: ["#2a1624", "#ee5b98", "#7394e0", "#ff4fa3"] },
+    { k: "espresso",  name: "Espresso",  light: ["#efe5d8", "#c55f5b", "#5a739c", "#6f4a2f"], dark: ["#211813", "#cf7068", "#7390c2", "#d4a373"] },
+    { k: "halloween", name: "Halloween", light: ["#f3e9dc", "#d2574d", "#6b64c9", "#e8772e"], dark: ["#17151b", "#e0645a", "#8a78e6", "#ff7a1a"] }
+  ];
+  var sysDark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
+  function mode() { var m = read("homeboard-theme"); return m === "light" || m === "dark" ? m : "auto"; }
+  function paintLook() {
+    var m = mode(), t = m === "auto" ? (sysDark && sysDark.matches ? "dark" : "light") : m;
+    var k = read("homeboard-skin") || "";
+    document.documentElement.setAttribute("data-theme", t);
+    if (k) document.documentElement.setAttribute("data-skin", k); else document.documentElement.removeAttribute("data-skin");
+    // iOS: the top bar colour must match the page exactly, or iOS 26 blurs it
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
+    document.querySelectorAll("#modeSeg button").forEach(function (b) { b.classList.toggle("on", b.dataset.m === m); });
+    var list = document.getElementById("skinList");
+    list.innerHTML = SKINS.map(function (s) {
+      var c = s[t];
+      return '<button class="skin' + (s.k === k ? " on" : "") + '" data-k="' + s.k + '" style="background:' + c[0] + ';color:' + (t === "dark" ? "#eee" : "#2b2e33") + '">' +
+        '<span class="dots"><i style="background:' + c[1] + '"></i><i style="background:' + c[2] + '"></i><i style="background:' + c[3] + '"></i></span><b>' + s.name + '</b></button>';
+    }).join("");
+  }
+  document.getElementById("modeSeg").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    store("homeboard-theme", b.dataset.m === "auto" ? null : b.dataset.m); paintLook();
+  });
+  document.getElementById("skinList").addEventListener("click", function (e) {
+    var b = e.target.closest(".skin"); if (!b) return;
+    store("homeboard-skin", b.dataset.k); paintLook();
+  });
+  if (sysDark && sysDark.addEventListener) sysDark.addEventListener("change", function () { if (mode() === "auto") paintLook(); });
+  window.addEventListener("storage", function (e) { if (e.key === "homeboard-theme" || e.key === "homeboard-skin") paintLook(); });
+  paintLook();
+
+  // ================= tab bar (saved per phone) =================
+  function pins() {
+    var p = null;
+    try { p = JSON.parse(read("homeboard-tabs")); } catch (e) {}
+    if (Array.isArray(p)) { p = p.filter(function (id, i) { return page(id) && p.indexOf(id) === i; }).slice(0, MAX_PINS); if (p.length) return p; }
+    return PAGES.slice(0, MAX_PINS).map(function (x) { return x.id; });
+  }
+  function setPins(p) { store("homeboard-tabs", JSON.stringify(p)); paintTabs(); renderList(); }
+
+  var current = null;
+  function paintTabs() {
+    var p = pins(), onMore = current && p.indexOf(current) < 0;
+    document.getElementById("tabs").innerHTML = p.map(function (id) {
+      var x = page(id);
+      return '<a data-id="' + id + '" href="' + (x.src ? "#" + id : x.href) + '" class="' + (id === current ? "on" : "") + '" aria-label="' + x.name + '" title="' + x.name + '">' + svg(id) + '</a>';
+    }).join("") +
+      '<a data-id="more" href="#" class="' + (onMore ? "on" : "") + '" aria-label="More" title="More">' + svg("more") + '</a>';
+  }
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var a = e.target.closest("a"); if (!a) return;
+    var id = a.dataset.id;
+    if (id === "more") { e.preventDefault(); openMore(); return; }
+    if (!page(id).src) return;                    // older stand-alone page: let the link load it
+    e.preventDefault();
+    if (id === current) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    go(id);
+  });
+
+  // ================= More menu =================
+  var editingTabs = false;
+  var UP = '<svg viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/></svg>',
+      DOWN = '<svg viewBox="0 0 24 24"><path d="M6 10l6 6 6-6"/></svg>',
+      MINUS = '<svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>',
+      PLUS = '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>';
+  function row(id, ctl) {
+    var x = page(id);
+    return '<div class="pg-row' + (id === current && !ctl ? " here" : "") + '" data-id="' + id + '" role="button" tabindex="0">' +
+      '<span class="ico">' + svg(id) + '</span><span class="nm">' + x.name + '</span>' + (ctl || "") + '</div>';
+  }
+  function renderList() {
+    var p = pins(), rest = PAGES.map(function (x) { return x.id; }).filter(function (id) { return p.indexOf(id) < 0; });
+    var el = document.getElementById("pageList"), html;
+    if (!editingTabs) {
+      html = '<div class="group">' + p.concat(rest).map(function (id) { return row(id); }).join("") + '</div>';
+    } else {
+      html = '<h3>On the tab bar <small>' + p.length + ' of ' + MAX_PINS + '</small></h3><div class="group">' +
+        p.map(function (id, i) {
+          return row(id, '<span class="ctl">' +
+            '<button data-act="up" aria-label="Move up"' + (i === 0 ? " disabled" : "") + '>' + UP + '</button>' +
+            '<button data-act="down" aria-label="Move down"' + (i === p.length - 1 ? " disabled" : "") + '>' + DOWN + '</button>' +
+            '<button data-act="rm" class="rm" aria-label="Take off the tab bar"' + (p.length === 1 ? " disabled" : "") + '>' + MINUS + '</button></span>');
+        }).join("") + '</div>' +
+        '<h3>In More only</h3><div class="group">' +
+        (rest.length ? rest.map(function (id) {
+          return row(id, '<span class="ctl"><button data-act="add" class="add" aria-label="Add to the tab bar"' + (p.length >= MAX_PINS ? " disabled" : "") + '>' + PLUS + '</button></span>');
+        }).join("") : '<div class="pg-empty">Every page is on the tab bar.</div>') + '</div>';
+    }
+    el.innerHTML = html;
+    document.getElementById("editTabs").textContent = editingTabs ? "Done" : "Edit tab bar";
+    document.getElementById("moreTitle").textContent = editingTabs ? "Tab bar" : "More";
+    document.getElementById("settings").classList.toggle("hidden", editingTabs);
+  }
+  document.getElementById("pageList").addEventListener("click", function (e) {
+    var r = e.target.closest(".pg-row"); if (!r) return;
+    var id = r.dataset.id, b = e.target.closest("button[data-act]");
+    if (b) {
+      if (b.disabled) return;
+      var p = pins(), i = p.indexOf(id), act = b.dataset.act;
+      if (act === "up" && i > 0) { p.splice(i, 1); p.splice(i - 1, 0, id); }
+      else if (act === "down" && i < p.length - 1) { p.splice(i, 1); p.splice(i + 1, 0, id); }
+      else if (act === "rm" && p.length > 1) p.splice(i, 1);
+      else if (act === "add" && p.length < MAX_PINS) p.push(id);
+      setPins(p);
+      return;
+    }
+    if (editingTabs) return;
+    closeMore();
+    var x = page(id);
+    if (x.src) { if (id !== current) go(id); } else location.href = x.href;
+  });
+  document.getElementById("editTabs").addEventListener("click", function () { editingTabs = !editingTabs; renderList(); });
+  function openMore() {
+    editingTabs = false; renderList(); paintLook();
+    document.getElementById("more").scrollTop = 0;
+    document.getElementById("moreBg").classList.add("show");
+    document.getElementById("more").classList.add("show");
+  }
+  function closeMore() {
+    document.getElementById("moreBg").classList.remove("show");
+    document.getElementById("more").classList.remove("show");
+  }
+  document.getElementById("moreBg").addEventListener("click", closeMore);
+  // drag the sheet down to close it
+  (function () {
+    var sh = document.getElementById("more"), y0 = null, dy = 0;
+    sh.addEventListener("touchstart", function (e) { y0 = sh.scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+    sh.addEventListener("touchmove", function (e) {
+      if (y0 === null) return;
+      dy = e.touches[0].clientY - y0;
+      if (dy > 0) { sh.style.transition = "none"; sh.style.transform = "translate(-50%," + dy + "px)"; }
+    }, { passive: true });
+    sh.addEventListener("touchend", function () {
+      if (y0 === null) return;
+      sh.style.transition = ""; sh.style.transform = "";
+      if (dy > 90) closeMore();
+      y0 = null;
+    });
+  })();
+  document.getElementById("signOut").addEventListener("click", function () {
+    if (!confirm("Sign out of Home Board on this phone?")) return;
+    closeMore(); db.auth.signOut();
+  });
+
+  // ================= showing pages =================
+  var boxes = {}, scrolls = {};
+  function load(p) {
+    return new Promise(function (resolve, reject) {
+      if (mods[p.id]) return resolve(mods[p.id]);
+      waiting[p.id] = resolve;
+      var s = document.createElement("script");
+      s.src = p.src + "?v=" + VERSION;
+      s.onerror = function () { s.remove(); reject(); };
+      document.head.appendChild(s);
+    });
+  }
+  function mount(p, box) {
+    box.innerHTML = "";
+    load(p).then(function (mod) {
+      mod.mount(box);
+      if (current === p.id && mod.shown) mod.shown();
+    }, function () {
+      box.innerHTML = '<div class="page-msg">Couldn’t load ' + p.name + '.<br><button>Try again</button></div>';
+      box.querySelector("button").onclick = function () { mount(p, box); };
+    });
+  }
+  function show(id) {
+    var p = page(id);
+    if (!p || !p.src) p = page("week");
+    if (current === p.id) return;
+    if (current && boxes[current]) {
+      flushDelete();
+      var old = mods[current]; if (old && old.hidden) old.hidden();
+      scrolls[current] = window.scrollY; boxes[current].hidden = true;
+    }
+    current = p.id; paintTabs();
+    document.title = p.name;
+    var box = boxes[p.id];
+    if (!box) {
+      box = boxes[p.id] = document.createElement("div");
+      box.className = "page"; box.id = "pg-" + p.id;
+      document.getElementById("pages").appendChild(box);
+      mount(p, box);
+    } else {
+      box.hidden = false;
+      var m = mods[p.id]; if (m) { if (m.shown) m.shown(); if (m.refresh) m.refresh(); }
+    }
+    window.scrollTo(0, scrolls[p.id] || 0);
+  }
+  function go(id) { history.replaceState(null, "", "#" + id); show(id); }
+  window.addEventListener("hashchange", function () { if (started) show(location.hash.slice(1)); });
+
+  // phone waking up or reopening the app: the page on screen catches up
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible") return;
+    paintLook();
+    var m = current && mods[current]; if (m && m.refresh) m.refresh();
+  });
+  window.addEventListener("pageshow", function (e) { if (e.persisted) { paintLook(); paintTabs(); } });
+
+  // View-only accounts: the database already refuses their changes; this hides editing controls.
   function checkRole() {
     db.rpc("is_editor").then(function (r) {
       var viewer = !r.error && r.data === false;
+      HB.viewer = viewer;
       document.body.classList.toggle("viewonly", viewer);
-      if (viewer) document.querySelectorAll("textarea").forEach(function (t) { t.readOnly = true; });
+      if (viewer) document.querySelectorAll("#pages textarea, #pages input").forEach(function (t) { t.readOnly = true; });
     }, function () {});
   }
 
-  var CYCLE = ["", "A", "B", "Both"];
-  var NAMES = { "": "nobody yet", A: "Ash", B: "Ben", Both: "both of us" };
-  var SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  var FIELDS = [["drop_off","Drop off"],["pick_up","Pick up"],["dinner","Dinner"]];
-
-  var data = {};     // date -> row
-  var refs = {};     // date -> { paint: {field: fn}, t: textarea, day: el }
-  var today = new Date();
-  var thisWeek, weekStart, channel = null;
-
-  function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
-  function mondayOf(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -((x.getDay() + 6) % 7)); }
-  function autosize(t) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
-  function blank() { return { drop_off: "", pick_up: "", dinner: "", notes: "" }; }
-  thisWeek = weekStart = mondayOf(today);
-
-  var toastEl = document.getElementById("toast"), toastTimer;
-  function toast(msg) {
-    toastEl.textContent = msg; toastEl.classList.add("show");
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
-  }
-
-  // ---- theme ----
-  var MOON = '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
-  var SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-  var themeBtn = document.getElementById("theme");
-  function currentTheme() {
-    var t = document.documentElement.getAttribute("data-theme");
-    if (t) return t;
-    return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
-  function applyTheme(t) {
-    document.documentElement.setAttribute("data-theme", t);
-    document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || (t === "dark" ? "#1d1e22" : "#e4e5e8"));
-    themeBtn.innerHTML = t === "dark" ? SUN : MOON;
-    themeBtn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
-  }
-  var savedTheme = null;
-  try { savedTheme = localStorage.getItem("homeboard-theme"); } catch (e) {}
-  applyTheme(savedTheme || currentTheme());
-  // ---- colour themes: palette button cycles Classic / Barbie / Espresso / Halloween ----
-  function applySkin(k) {
-    if (k) document.documentElement.setAttribute("data-skin", k); else document.documentElement.removeAttribute("data-skin");
-    applyTheme(currentTheme());
-    try { localStorage.setItem("homeboard-skin", k || ""); } catch (e) {}
-  }
-  var savedSkin = ""; try { savedSkin = localStorage.getItem("homeboard-skin") || ""; } catch (e) {}
-  applySkin(savedSkin);
-  var SKIN_ORDER = ["", "barbie", "espresso", "halloween"];
-  var SKIN_NAME = { "": "Classic", barbie: "Barbie", espresso: "Espresso", halloween: "Halloween" };
-  function nextSkin() {
-    var cur = document.documentElement.getAttribute("data-skin") || "";
-    var k = SKIN_ORDER[(SKIN_ORDER.indexOf(cur) + 1) % SKIN_ORDER.length];
-    var sb = document.getElementById("skin"); sb.classList.remove("spin"); void sb.offsetWidth; sb.classList.add("spin");
-    if (navigator.vibrate) navigator.vibrate(12);
-    applySkin(k);
-    var t = document.getElementById("skinToast"); t.textContent = SKIN_NAME[k];
-    t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
-    clearTimeout(nextSkin.t); nextSkin.t = setTimeout(function () { t.classList.remove("show"); }, 1400);
-  }
-  document.getElementById("skin").addEventListener("click", nextSkin);
-  themeBtn.addEventListener("click", function () {
-    var t = currentTheme() === "dark" ? "light" : "dark";
-    applyTheme(t);
-    try { localStorage.setItem("homeboard-theme", t); } catch (e) {}
-  });
-
-  // ---- saving ----
-  function saveField(key, field, value) {
-    data[key] = data[key] || blank();
-    data[key][field] = value;
-    var row = { date: key, updated_at: new Date().toISOString() };
-    row[field] = value;
-    return db.from("days").upsert(row, { onConflict: "date" }).then(function (res) {
-      if (res.error) toast("Couldn't save. Check your connection.");
-    });
-  }
-  var noteTimers = {};
-  function saveNoteSoon(key, value) {
-    data[key] = data[key] || blank();
-    data[key].notes = value;
-    clearTimeout(noteTimers[key]);
-    noteTimers[key] = setTimeout(function () { saveField(key, "notes", value); }, 600);
-  }
-
-  // ---- drawing ----
-  function applyRow(key) {
-    var r = refs[key]; if (!r) return;
-    var row = data[key] || blank();
-    FIELDS.forEach(function (f) { if (r.paint[f[0]]) r.paint[f[0]](CYCLE.indexOf(row[f[0]] || "") > 0 ? row[f[0]] : ""); });
-    if (document.activeElement !== r.t) { r.t.value = row.notes || ""; autosize(r.t); }
-    r.day.classList.toggle("has-note", !!(row.notes || "").trim());
-    if ((row.notes || "").trim()) autosize(r.t);
-  }
-
-  function render() {
-    var wrap = document.getElementById("days");
-    wrap.innerHTML = ""; refs = {};
-    var sun = addDays(weekStart, 6);
-    document.getElementById("title").textContent = SHORT[weekStart.getMonth()] + " " + weekStart.getDate() + " – " +
-      (sun.getMonth() !== weekStart.getMonth() ? SHORT[sun.getMonth()] + " " : "") + sun.getDate();
-
-    ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(function (label, i) {
-      var weekend = i >= 5;   // Sat & Sun: just a note, no drop off / pick up / dinner
-      var date = addDays(weekStart, i);
-      var key = iso(date);
-      var day = document.createElement("section");
-      day.className = "day" + (weekend ? " weekend" : "") + (key === iso(today) ? " today" : "");
-      var r = document.createElement("div");
-      r.className = "row";
-
-      var dn = document.createElement("button");
-      dn.className = "dname";
-      dn.setAttribute("aria-expanded", "false");
-      dn.setAttribute("aria-label", label + " " + date.getDate() + ", show notes");
-      dn.innerHTML = '<span class="dow">' + label + '</span><span class="num">' + date.getDate() + '</span><span class="dot"></span>';
-      r.appendChild(dn);
-
-      var paint = {};
-      if (weekend) {
-        var hint = document.createElement("span"); hint.className = "wk-hint"; hint.textContent = "Add a note";
-        r.appendChild(hint);
-      }
-      if (!weekend) FIELDS.forEach(function (f) {
-        var b = document.createElement("button");
-        b.className = "cell";
-        paint[f[0]] = function (v) {
-          b.dataset.v = v; if (v) b.textContent = v; else b.innerHTML = PERSON_ICON;
-          b.setAttribute("aria-label", label + " " + f[1] + ": " + NAMES[v]);
-        };
-        paint[f[0]]("");
-        b.addEventListener("click", function () {
-          if (!editing) return;
-          var v = CYCLE[(CYCLE.indexOf(b.dataset.v) + 1) % CYCLE.length];
-          paint[f[0]](v);
-          saveField(key, f[0], v);
-        });
-        r.appendChild(b);
-      });
-      day.appendChild(r);
-
-      var t = document.createElement("textarea");
-      t.rows = 1; t.placeholder = "Notes";
-      t.setAttribute("aria-label", label + " notes");
-      t.addEventListener("input", function () {
-        autosize(t);
-        day.classList.toggle("has-note", !!t.value.trim());
-        saveNoteSoon(key, t.value);
-      });
-      var panel = document.createElement("div"); panel.className = "notes-panel";
-      var inner = document.createElement("div"); inner.appendChild(t); panel.appendChild(inner);
-      day.appendChild(panel);
-      function toggleNote() {
-        if (!editing) return;
-        var open = day.classList.toggle("open");
-        dn.setAttribute("aria-expanded", String(open));
-        if (open) { autosize(t); if (!t.value) t.focus({ preventScroll: true }); } else t.blur();
-      }
-      // weekdays: tap the day name; weekend: tap anywhere on the row
-      if (weekend) r.addEventListener("click", toggleNote); else dn.addEventListener("click", toggleNote);
-
-      wrap.appendChild(day);
-      refs[key] = { paint: paint, t: t, day: day };
-      applyRow(key);
-    });
-  }
-
-  function loadWeek() {
-    var from = iso(weekStart), to = iso(addDays(weekStart, 6));
-    return db.from("days").select("*").gte("date", from).lte("date", to).then(function (res) {
-      if (res.error) { toast("Couldn't load the week."); return; }
-      res.data.forEach(function (row) { data[row.date] = row; applyRow(row.date); });
-    });
-  }
-
-  function listen() {
-    if (channel) return;
-    channel = db.channel("days-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "days" }, function (payload) {
-        var row = payload.new;
-        if (!row || !row.date) return;
-        data[row.date] = row;
-        applyRow(row.date);
-      })
-      .subscribe();
-  }
-
-  // Arrows move one week back or forward from this week, and no further
-  function weekOffset() { return Math.round((weekStart - thisWeek) / (7 * 86400000)); }
-  function paintArrows() {
-    var o = weekOffset();
-    document.getElementById("prev").disabled = o <= -1;
-    document.getElementById("next").disabled = o >= 1;
-    var t = document.getElementById("title");
-    t.classList.toggle("other", o !== 0);
-    t.setAttribute("aria-label", o === 0 ? "This week" : o < 0 ? "Last week" : "Next week");
-  }
-  function go(n) {
-    var o = Math.max(-1, Math.min(1, weekOffset() + n));
-    weekStart = addDays(thisWeek, 7 * o); render(); loadWeek(); paintArrows();
-  }
-  document.getElementById("prev").addEventListener("click", function () { go(-1); });
-  document.getElementById("next").addEventListener("click", function () { go(1); });
-
-  window.addEventListener("resize", function () { Object.keys(refs).forEach(function (k) { autosize(refs[k].t); }); });
-  // phone waking up or reopening the app: catch up on anything missed
-  document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible" && refs && Object.keys(refs).length) {
-      var now = new Date();
-      if (iso(now) !== iso(today)) { today = now; thisWeek = weekStart = mondayOf(today); render(); paintArrows(); }
-      loadWeek();
-    }
-  });
-
-  // always editable once signed in
-  var editing = true;
-  document.body.classList.add("editing");
+  // ================= sign-in: the whole app needs the household login; each phone stays signed in =================
   var started = false;
-  function START() { paintArrows();
-    if (started) { loadWeek(); return; }
-    started = true;
-    render(); loadWeek(); listen();
+  function start(session) {
+    document.body.classList.remove("checking", "locked");
+    var who = session && session.user && session.user.email;
+    document.getElementById("whoami").textContent = who ? "Signed in as " + who : "Signed in";
+    checkRole();
+    if (!started) { started = true; paintTabs(); show(location.hash.slice(1)); }
   }
-
-  // ---- sign-in gate: the whole app needs the household login; each phone stays signed in ----
   function lock() { document.body.classList.remove("checking"); document.body.classList.add("locked"); }
-  function unlock() { document.body.classList.remove("checking", "locked"); }
   document.getElementById("gateForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
@@ -690,12 +737,12 @@ body, .top, .bottom, .day, .cell, .dname .num { transition: background-color .35
       btn.disabled = false;
       if (res.error) { err.textContent = "That email or password didn't match."; return; }
       document.getElementById("password").value = "";
-      unlock(); START(); checkRole();
+      start(res.data && res.data.session);
     });
   });
   db.auth.onAuthStateChange(function (event) { if (event === "SIGNED_OUT") lock(); });
   db.auth.getSession().then(function (res) {
-    if (res.data && res.data.session) { unlock(); START(); checkRole(); } else lock();
+    if (res.data && res.data.session) start(res.data.session); else lock();
   });
 })();
 </script>
