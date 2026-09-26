@@ -342,15 +342,17 @@ body.viewonly .vo { font-size: 12px; padding: 0 9px; }
 body.viewonly .wk-nav { pointer-events: auto; }
 /* empty bubble shows a small person, same as TODOS */
 .cell svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
-/* Sat & Sun: slimmer, note-only rows */
-.day.weekend { min-height: 50px; padding: 6px 0; }
-.day.weekend .row { cursor: pointer; grid-template-columns: auto 1fr; column-gap: 14px; }
-.day.weekend .dname { flex-direction: row; align-items: center; gap: 8px; padding: 2px 0; }
-.day.weekend .dname .num { font-size: 17px; height: 28px; min-width: 28px; margin: 0; padding: 0 5px; border-radius: 14px; }
-.day.weekend .wk-hint { color: var(--muted); opacity: .55; font-size: 14px; font-weight: 600; }
+/* Sat & Sun: same rows as the weekdays, just a note instead of bubbles */
+.day.weekend .row { cursor: pointer; }
+.day.weekend .wk-hint { grid-column: 2 / -1; color: var(--muted); opacity: .55; font-size: 14px; font-weight: 600; padding-left: 6px; }
 .day.weekend.has-note .wk-hint, .day.weekend.open .wk-hint { visibility: hidden; }
-.day.first-weekend { margin-top: 12px; }
 body.viewonly .day.weekend .wk-hint { display: none; }
+/* slightly smaller rows so all seven days fit */
+.day { min-height: 56px !important; padding: 5px 0 !important; }
+.cell { width: 42px !important; height: 42px !important; border-radius: 21px !important; font-size: 18px !important; }
+.cell[data-v="Both"] { font-size: 11px !important; }
+.dname .dow { font-size: 12px !important; }
+.dname .num { font-size: 18px !important; min-width: 28px !important; height: 28px !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -510,7 +512,7 @@ body.viewonly .day.weekend .wk-hint { display: none; }
       var date = addDays(weekStart, i);
       var key = iso(date);
       var day = document.createElement("section");
-      day.className = "day" + (weekend ? " weekend" : "") + (i === 5 ? " first-weekend" : "") + (key === iso(today) ? " today" : "");
+      day.className = "day" + (weekend ? " weekend" : "") + (key === iso(today) ? " today" : "");
       var r = document.createElement("div");
       r.className = "row";
 
