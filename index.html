@@ -332,8 +332,8 @@ body.viewonly .vo { font-size: 12px; padding: 0 9px; }
 }
 .wk-nav button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 .wk-nav button:active { background: var(--chip); }
-.wk-nav button:disabled { opacity: .25; cursor: default; background: none; }
-.title .range { margin-left: 0 !important; cursor: pointer; position: relative; }
+.wk-nav button:disabled { opacity: .25; cursor: default; background: none; pointer-events: none; }
+.title .range { margin-left: 0 !important; position: relative; }
 .title .range.other { color: var(--ben); }
 .title .range.other::after {
   content: attr(aria-label); position: absolute; left: 0; right: 0; top: 100%; text-align: center;
@@ -342,6 +342,15 @@ body.viewonly .vo { font-size: 12px; padding: 0 9px; }
 body.viewonly .wk-nav { pointer-events: auto; }
 /* empty bubble shows a small person, same as TODOS */
 .cell svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
+/* Sat & Sun: slimmer, note-only rows */
+.day.weekend { min-height: 50px; padding: 6px 0; }
+.day.weekend .row { cursor: pointer; grid-template-columns: auto 1fr; column-gap: 14px; }
+.day.weekend .dname { flex-direction: row; align-items: center; gap: 8px; padding: 2px 0; }
+.day.weekend .dname .num { font-size: 17px; height: 28px; min-width: 28px; margin: 0; padding: 0 5px; border-radius: 14px; }
+.day.weekend .wk-hint { color: var(--muted); opacity: .55; font-size: 14px; font-weight: 600; }
+.day.weekend.has-note .wk-hint, .day.weekend.open .wk-hint { visibility: hidden; }
+.day.first-weekend { margin-top: 12px; }
+body.viewonly .day.weekend .wk-hint { display: none; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -483,7 +492,7 @@ body.viewonly .wk-nav { pointer-events: auto; }
   function applyRow(key) {
     var r = refs[key]; if (!r) return;
     var row = data[key] || blank();
-    FIELDS.forEach(function (f) { r.paint[f[0]](CYCLE.indexOf(row[f[0]] || "") > 0 ? row[f[0]] : ""); });
+    FIELDS.forEach(function (f) { if (r.paint[f[0]]) r.paint[f[0]](CYCLE.indexOf(row[f[0]] || "") > 0 ? row[f[0]] : ""); });
     if (document.activeElement !== r.t) { r.t.value = row.notes || ""; autosize(r.t); }
     r.day.classList.toggle("has-note", !!(row.notes || "").trim());
     if ((row.notes || "").trim()) autosize(r.t);
@@ -492,15 +501,16 @@ body.viewonly .wk-nav { pointer-events: auto; }
   function render() {
     var wrap = document.getElementById("days");
     wrap.innerHTML = ""; refs = {};
-    var fri = addDays(weekStart, 4);
+    var sun = addDays(weekStart, 6);
     document.getElementById("title").textContent = SHORT[weekStart.getMonth()] + " " + weekStart.getDate() + " – " +
-      (fri.getMonth() !== weekStart.getMonth() ? SHORT[fri.getMonth()] + " " : "") + fri.getDate();
+      (sun.getMonth() !== weekStart.getMonth() ? SHORT[sun.getMonth()] + " " : "") + sun.getDate();
 
-    ["Mon","Tue","Wed","Thu","Fri"].forEach(function (label, i) {
+    ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(function (label, i) {
+      var weekend = i >= 5;   // Sat & Sun: just a note, no drop off / pick up / dinner
       var date = addDays(weekStart, i);
       var key = iso(date);
       var day = document.createElement("section");
-      day.className = "day" + (key === iso(today) ? " today" : "");
+      day.className = "day" + (weekend ? " weekend" : "") + (i === 5 ? " first-weekend" : "") + (key === iso(today) ? " today" : "");
       var r = document.createElement("div");
       r.className = "row";
 
@@ -512,7 +522,11 @@ body.viewonly .wk-nav { pointer-events: auto; }
       r.appendChild(dn);
 
       var paint = {};
-      FIELDS.forEach(function (f) {
+      if (weekend) {
+        var hint = document.createElement("span"); hint.className = "wk-hint"; hint.textContent = "Add a note";
+        r.appendChild(hint);
+      }
+      if (!weekend) FIELDS.forEach(function (f) {
         var b = document.createElement("button");
         b.className = "cell";
         paint[f[0]] = function (v) {
@@ -541,12 +555,14 @@ body.viewonly .wk-nav { pointer-events: auto; }
       var panel = document.createElement("div"); panel.className = "notes-panel";
       var inner = document.createElement("div"); inner.appendChild(t); panel.appendChild(inner);
       day.appendChild(panel);
-      dn.addEventListener("click", function () {
+      function toggleNote() {
         if (!editing) return;
         var open = day.classList.toggle("open");
         dn.setAttribute("aria-expanded", String(open));
         if (open) { autosize(t); if (!t.value) t.focus({ preventScroll: true }); } else t.blur();
-      });
+      }
+      // weekdays: tap the day name; weekend: tap anywhere on the row
+      if (weekend) r.addEventListener("click", toggleNote); else dn.addEventListener("click", toggleNote);
 
       wrap.appendChild(day);
       refs[key] = { paint: paint, t: t, day: day };
@@ -555,7 +571,7 @@ body.viewonly .wk-nav { pointer-events: auto; }
   }
 
   function loadWeek() {
-    var from = iso(weekStart), to = iso(addDays(weekStart, 4));
+    var from = iso(weekStart), to = iso(addDays(weekStart, 6));
     return db.from("days").select("*").gte("date", from).lte("date", to).then(function (res) {
       if (res.error) { toast("Couldn't load the week."); return; }
       res.data.forEach(function (row) { data[row.date] = row; applyRow(row.date); });
@@ -590,8 +606,7 @@ body.viewonly .wk-nav { pointer-events: auto; }
   }
   document.getElementById("prev").addEventListener("click", function () { go(-1); });
   document.getElementById("next").addEventListener("click", function () { go(1); });
-  // tap the dates to jump back to this week
-  document.getElementById("title").addEventListener("click", function () { if (weekOffset() !== 0) go(-weekOffset()); });
+
   window.addEventListener("resize", function () { Object.keys(refs).forEach(function (k) { autosize(refs[k].t); }); });
   // phone waking up or reopening the app: catch up on anything missed
   document.addEventListener("visibilitychange", function () {
