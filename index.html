@@ -340,6 +340,8 @@ body.viewonly .vo { font-size: 12px; padding: 0 9px; }
   font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
 }
 body.viewonly .wk-nav { pointer-events: auto; }
+/* empty bubble shows a small person, same as TODOS */
+.cell svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -388,6 +390,7 @@ body.viewonly .wk-nav { pointer-events: auto; }
   // ---- Supabase connection (the anon key is meant to be public; the table is protected by login) ----
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
+  var PERSON_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>';   // empty bubble: tap to assign
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // Short lists shouldn't scroll: when the keyboard closes, iOS can leave the page nudged
@@ -513,7 +516,7 @@ body.viewonly .wk-nav { pointer-events: auto; }
         var b = document.createElement("button");
         b.className = "cell";
         paint[f[0]] = function (v) {
-          b.dataset.v = v; b.textContent = v;
+          b.dataset.v = v; if (v) b.textContent = v; else b.innerHTML = PERSON_ICON;
           b.setAttribute("aria-label", label + " " + f[1] + ": " + NAMES[v]);
         };
         paint[f[0]]("");
