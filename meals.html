@@ -430,6 +430,41 @@ body.viewonly #addBtn, body.viewonly #gear, body.viewonly #clearBtn { display: n
 body.viewonly #list, body.viewonly #gotList, body.viewonly #days { pointer-events: none; }
 body.viewonly .who, body.viewonly .kind, body.viewonly .dpill, body.viewonly .store, body.viewonly .check,
 body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default; }
+
+/* done/made/got check on the left, delete on the right */
+.item .check { justify-self: start; }
+.item .main { padding-left: 2px; }
+.del {
+  justify-self: center; appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+  width: 34px; height: 34px; border-radius: 17px; display: grid; place-items: center; color: var(--muted);
+}
+.del svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.del:active { background: var(--chip); color: var(--ash); }
+body.viewonly .del { visibility: hidden; }
+/* undo bar */
+.undo {
+  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 10px 10px 16px;
+  font-size: 14px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.2);
+}
+.undo.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.undo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.undo button { border: 0; border-radius: 14px; background: var(--ben); color: #fff; font: inherit; font-size: 14px; font-weight: 800; padding: 6px 14px; cursor: pointer; flex: none; }
+.cols, .item { grid-template-columns: 44px 1fr 64px !important; column-gap: 6px; }
+.cols span:first-child { text-align: left; }
+.cols span:nth-child(2) { text-align: left !important; padding-left: 2px; }
+
+/* swipe left to delete (like Mail) */
+.swipe { position: relative; overflow: hidden; }
+.swipe .item { position: relative; background: var(--bg); transition: transform .2s ease; touch-action: pan-y; }
+.swipe.dragging .item { transition: none; }
+.swipe .delbg {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 88px; border: 0; cursor: pointer;
+  background: var(--ash); color: #fff; font: inherit; font-size: 15px; font-weight: 700;
+}
+body.viewonly .swipe .delbg { display: none; }
 </style>
 </head>
 <body class="checking editing">
@@ -455,7 +490,7 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
       <button id="theme" aria-label="Switch theme"></button>
     </div>
   </header>
-  <div class="cols"><span>Idea</span><span>Day</span><span>Made</span></div>
+  <div class="cols"><span>Made</span><span>Idea</span><span>Day</span></div>
   </div>
   <div id="list"></div>
   <div class="got" id="gotHead"><h2>Made this week</h2><button id="clearBtn">Clear</button></div>
@@ -487,6 +522,7 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
   <div class="row"><button class="del" id="delBtn">Delete</button><button class="done" id="doneBtn">Done</button></div>
 </div>
 
+<div class="undo" id="undo" role="status"><span id="undoText"></span><button type="button" id="undoBtn">Undo</button></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -517,6 +553,65 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
     }, function () {});
   }
   var $ = function (id) { return document.getElementById(id); };
+
+  // Swipe a row left to reveal Delete; tap Delete (or swipe all the way) to remove it.
+  var openSwipe = null;
+  function closeSwipe() { if (openSwipe) { openSwipe.querySelector(".item").style.transform = ""; openSwipe = null; } }
+  document.addEventListener("touchstart", function (e) { if (openSwipe && !openSwipe.contains(e.target)) closeSwipe(); }, { passive: true });
+  function swipeable(el, onDelete) {
+    var wrap = document.createElement("div"); wrap.className = "swipe";
+    var bg = document.createElement("button"); bg.type = "button"; bg.className = "delbg"; bg.textContent = "Delete";
+    wrap.appendChild(bg); wrap.appendChild(el);
+    var x0 = 0, y0 = 0, dx = 0, mode = "", base = 0;
+    el.addEventListener("touchstart", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = "";
+      base = openSwipe === wrap ? -88 : 0;
+    }, { passive: true });
+    el.addEventListener("touchmove", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      var mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (!mode) { if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) mode = "x"; else if (Math.abs(my) > 8) mode = "y"; }
+      if (mode !== "x") return;
+      e.preventDefault();
+      if (openSwipe && openSwipe !== wrap) closeSwipe();
+      dx = Math.min(0, base + mx); wrap.classList.add("dragging");
+      el.style.transform = "translateX(" + Math.max(dx, -el.offsetWidth) + "px)";
+    }, { passive: false });
+    el.addEventListener("touchend", function () {
+      wrap.classList.remove("dragging");
+      if (mode !== "x") return;
+      if (dx < -el.offsetWidth * 0.6) { el.style.transform = "translateX(-100%)"; setTimeout(onDelete, 180); openSwipe = null; }
+      else if (dx < -44) { el.style.transform = "translateX(-88px)"; openSwipe = wrap; }
+      else { el.style.transform = ""; if (openSwipe === wrap) openSwipe = null; }
+    });
+    // a tap on a row that's swiped open just closes it
+    el.addEventListener("click", function (e) { if (openSwipe === wrap) { e.stopPropagation(); e.preventDefault(); closeSwipe(); } }, true);
+    bg.addEventListener("click", function () { openSwipe = null; onDelete(); });
+    return wrap;
+  }
+
+  // Delete with a few seconds to undo: the row disappears at once, the database delete
+  // happens when the undo bar goes away (or when you leave the page).
+  var pendingDel = null, undoT = null;
+  function flushDelete() {
+    clearTimeout(undoT); $("undo").classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.commit(); }
+  }
+  function deleteWithUndo(id, name, commit, restore) {
+    flushDelete();
+    pendingDel = { id: id, commit: commit, restore: restore };
+    $("undoText").textContent = "Deleted \u201c" + name + "\u201d";
+    $("undo").classList.add("show");
+    undoT = setTimeout(flushDelete, 4500);
+  }
+  function notPending(x) { return !pendingDel || x.id !== pendingDel.id; }
+  $("undoBtn").addEventListener("click", function () {
+    clearTimeout(undoT); $("undo").classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.restore(); }
+  });
+  window.addEventListener("pagehide", flushDelete);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) flushDelete(); });
 
   // After adding: bring the new row into view just under the header, with a quick highlight
   var lastAdded = null;
@@ -573,15 +668,21 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
   function row(m) {
     var el = document.createElement("div");
     el.className = "item" + (m.done ? " done" : ""); el.dataset.id = m.id;
-    el.innerHTML = '<button class="main"><div class="name">' + esc(m.name) + '</div>' +
+    el.innerHTML = '<button class="check" aria-label="Made it"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>' +
+      '<button class="main"><div class="name">' + esc(m.name) + '</div>' +
       (m.note ? '<div class="note">' + esc(m.note) + '</div>' : '') + '</button>' +
-      '<button class="dpill" aria-label="Day"></button>' +
-      '<button class="check" aria-label="Made it"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>';
+      '<button class="dpill" aria-label="Day"></button>';
     var dp = el.querySelector(".dpill"); paintDay(dp, m.day);
     dp.addEventListener("click", function () { m.day = nextDay(m.day); paintDay(dp, m.day); settleLater(m.id, function () { save(m, { day: m.day }); }); });
     el.querySelector(".main").addEventListener("click", function () { openSheet(m.id); });
     el.querySelector(".check").addEventListener("click", function () { m.done = !m.done; render(); save(m, { done: m.done }); });
-    return el;
+    return swipeable(el, function () {
+      if (String(m.id).indexOf("tmp") === 0) return;
+      meals = meals.filter(function (x) { return x !== m; }); render();
+      deleteWithUndo(m.id, m.name,
+        function () { db.from("meals").delete().eq("id", m.id).then(oops); },
+        function () { meals.push(m); render(); });
+    });
   }
   function render() {
     var list = $("list"), got = $("gotList"); list.innerHTML = ""; got.innerHTML = "";
@@ -679,7 +780,7 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
   function loadAll() {
     return db.from("meals").select("*").then(function (r) {
       if (r.error) { toast("Couldn't load meals."); return; }
-      meals = r.data || [];
+      meals = (r.data || []).filter(notPending);
       if (!openId && !settleT) render();
     });
   }
