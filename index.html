@@ -200,6 +200,162 @@ body::before {
 .undo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .undo button { border: 0; border-radius: 14px; background: var(--ben); color: #fff; font: inherit; font-size: 14px; font-weight: 800; padding: 6px 14px; cursor: pointer; flex: none; }
 
+/* ---- Recipes, House and Notes pages (shared look) ---- */
+.doc-page .title h1 { white-space: nowrap; }
+.doc-page .count { color: var(--muted); font-size: 14px; font-weight: 600; margin-left: 8px; letter-spacing: 0; }
+.doc-page header { align-items: center; }
+.doc-page .nav svg { width: 18px; height: 18px; }
+.doc-page .addBtn { background: var(--ben) !important; color: #fff !important; }
+body.viewonly .doc-page .addBtn { display: none; }
+
+.doc-page .dseg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-top: 8px; background: var(--chip); border-radius: 12px; }
+.doc-page .dseg button { border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: 14px; font-weight: 700; padding: 7px 0; cursor: pointer; }
+.doc-page .dseg button.on { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.doc-page .dseg b { font-weight: 800; color: var(--ash); margin-left: 3px; }
+
+.doc-page .dsearch { position: relative; margin-top: 8px; }
+.doc-page .dsearch svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2.2; stroke-linecap: round; }
+.doc-page .dsearch input {
+  width: 100%; border: 0; border-radius: 10px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 16px; padding: 8px 12px 8px 34px; -webkit-appearance: none; appearance: none;
+}
+.doc-page .dsearch input:focus { outline: 2px solid var(--ben); }
+.doc-page .dsearch input::placeholder { color: var(--muted); }
+.doc-page .dtags { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 8px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; scrollbar-width: none; border-bottom: 0.5px solid var(--hair); }
+.doc-page .dtags::-webkit-scrollbar { display: none; }
+.doc-page .dtags:empty { padding: 4px 0 0; }
+.doc-page .dtag, .doc-sheet .dtag {
+  flex: none; appearance: none; border: 0; cursor: pointer; font-family: inherit; white-space: nowrap;
+  font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 14px; background: var(--chip); color: var(--muted);
+}
+.doc-page .dtag.on { background: var(--ink); color: var(--bg); }
+
+.doc-page .dgroup { margin: 18px 0 0; padding-bottom: 4px; font-size: 12px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); border-bottom: 0.5px solid var(--hair); }
+.doc-page .dlist > .dgroup:first-child { margin-top: 10px; }
+.doc-page .item {
+  display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 7px 0; border-bottom: 0.5px solid var(--hair);
+}
+.doc-page .item .main { flex: 1; min-width: 0; appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 2px 0; cursor: pointer; }
+.doc-page .item .name { font-size: 17px; font-weight: 650; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-page .item .name .pinmark { width: 13px; height: 13px; stroke: var(--today); fill: var(--today); stroke-width: 1.6; vertical-align: -1px; margin-right: 5px; }
+.doc-page .item .prev { font-size: 14px; color: var(--muted); line-height: 1.3; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-page .item .meta { flex: none; font-size: 12px; font-weight: 700; color: var(--muted); padding: 4px 9px; border-radius: 12px; background: var(--chip); white-space: nowrap; }
+.doc-page .item .meta.plain { background: none; padding: 0; }
+.doc-page .item .meta.due { background: var(--ash); color: #fff; }
+.doc-page .item .meta.soon { background: var(--s3); color: #fff; }
+.doc-page .check {
+  flex: none; width: 30px; height: 30px; border-radius: 15px; border: 2px solid var(--muted);
+  background: none; cursor: pointer; display: grid; place-items: center; padding: 0; transition: background-color .15s, border-color .15s, transform .12s;
+}
+.doc-page .check:active { transform: scale(.9); }
+.doc-page .check svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.doc-page .check.did { background: var(--both); border-color: var(--both); }
+.doc-page .check.did svg { opacity: 1; }
+body.viewonly .doc-page .check { pointer-events: none; }
+.doc-page .empty { color: var(--muted); text-align: center; padding: 34px 12px; font-size: 15px; line-height: 1.5; }
+.doc-page .empty b { color: var(--ink); }
+
+.doc-page .item.flash { animation: docflash 1.4s ease-out; }
+@keyframes docflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, var(--bg)); } 100% { background: var(--bg); } }
+/* swipe left to delete */
+.doc-page .swipe { position: relative; overflow: hidden; }
+.doc-page .swipe .item { position: relative; background: var(--bg); transition: transform .2s ease; touch-action: pan-y; }
+.doc-page .swipe.dragging .item { transition: none; }
+.doc-page .swipe .delbg { position: absolute; top: 0; right: 0; bottom: 0; width: 88px; border: 0; cursor: pointer; background: var(--ash); color: #fff; font: inherit; font-size: 15px; font-weight: 700; visibility: hidden; }
+.doc-page .swipe.dragging .delbg, .doc-page .swipe.open .delbg { visibility: visible; }
+body.viewonly .doc-page .swipe .delbg { display: none; }
+
+/* ---- full-screen reader / editor ---- */
+.doc-sheet {
+  position: fixed; inset: 0; z-index: 12; background: var(--bg); color: var(--ink);
+  transform: translateY(104%); visibility: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s linear .3s, background-color .35s;
+}
+.doc-sheet.show { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s, background-color .35s; }
+.doc-sheet .dbar {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px;
+  max-width: 500px; margin: 0 auto; background: var(--bg);
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+}
+@media (display-mode: standalone) { .doc-sheet .dbar { padding-top: calc(20px + env(safe-area-inset-top, 0px)); } }
+.doc-sheet .dbar .sp { flex: 1; }
+.doc-sheet .dbar button {
+  height: 36px; min-width: 36px; border-radius: 18px; border: 0; background: var(--chip); color: var(--ink);
+  display: grid; place-items: center; cursor: pointer; font: inherit; font-size: 15px; font-weight: 700; padding: 0 14px;
+}
+.doc-sheet .dbar button.icon { padding: 0; width: 36px; }
+.doc-sheet .dbar svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.doc-sheet .dbar .dpin.on { color: var(--today); }
+.doc-sheet .dbar .dpin.on svg { fill: currentColor; }
+.doc-sheet .dbar .dedit.save { background: var(--ben); color: #fff; }
+body.viewonly .doc-sheet .dpin, body.viewonly .doc-sheet .dedit { display: none; }
+.doc-sheet .dbody { max-width: 500px; margin: 0 auto; padding: 4px 18px calc(40px + env(safe-area-inset-bottom, 0px)); }
+
+/* reading */
+.doc-sheet h2 { margin: 6px 0 8px; font-size: 27px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; }
+.doc-sheet .dmeta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.doc-sheet .dtag { cursor: default; }
+.doc-sheet h4 { margin: 22px 0 8px; font-size: 13px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+.doc-sheet .rich { font-size: 18px; line-height: 1.5; }
+.doc-sheet .rich p { margin: 0 0 8px; white-space: pre-wrap; word-wrap: break-word; }
+.doc-sheet .rich h3 { margin: 18px 0 6px; font-size: 20px; font-weight: 800; letter-spacing: -0.2px; }
+.doc-sheet .rich ul, .doc-sheet .rich ol { margin: 0 0 8px; padding-left: 24px; }
+.doc-sheet .rich li { margin-bottom: 6px; }
+.doc-sheet .rich ol.steps { padding-left: 0; list-style: none; counter-reset: st; }
+.doc-sheet .rich ol.steps li { counter-increment: st; position: relative; padding-left: 38px; margin-bottom: 14px; min-height: 26px; }
+.doc-sheet .rich ol.steps li::before {
+  content: counter(st); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 13px;
+  background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 800; display: grid; place-items: center;
+}
+.doc-sheet .rich .gap { height: 8px; }
+.doc-sheet .rich a { color: var(--ben); word-break: break-all; }
+.doc-sheet .tick { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.doc-sheet .tick i {
+  flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 6px; border: 2px solid var(--muted);
+  display: grid; place-items: center;
+}
+.doc-sheet .tick i svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 3.2; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.doc-sheet .tick.on i { background: var(--both); border-color: var(--both); }
+.doc-sheet .tick.on i svg { opacity: 1; }
+.doc-sheet .tick.on span { color: var(--muted); text-decoration: line-through; }
+body.viewonly .doc-sheet .tick.saves { cursor: default; }
+.doc-sheet .quiet { color: var(--muted); font-size: 16px; }
+.doc-sheet .duebox {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--chip); margin: 4px 0 16px;
+}
+.doc-sheet .duebox div { flex: 1; font-size: 15px; font-weight: 600; line-height: 1.35; }
+.doc-sheet .duebox div small { display: block; color: var(--muted); font-size: 13px; font-weight: 600; }
+.doc-sheet .duebox button { flex: none; border: 0; border-radius: 12px; background: var(--both); color: #fff; font: inherit; font-size: 15px; font-weight: 800; padding: 10px 14px; cursor: pointer; }
+.doc-sheet .duebox.due { background: color-mix(in srgb, var(--ash) 16%, var(--bg)); }
+.doc-sheet .duebox.soon { background: color-mix(in srgb, var(--s3) 18%, var(--bg)); }
+body.viewonly .doc-sheet .duebox button { display: none; }
+
+/* editing */
+.doc-sheet label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin: 16px 0 6px; }
+.doc-sheet label small { font-weight: 600; opacity: .8; margin-left: 4px; }
+.doc-sheet .ftitle {
+  width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; padding: 10px 12px;
+}
+.doc-sheet input:not(.ftitle), .doc-sheet textarea {
+  width: 100%; border: 0; border-radius: 10px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 16px; line-height: 1.45; padding: 10px 12px; resize: none;
+}
+.doc-sheet textarea { min-height: 96px; overflow: hidden; }
+.doc-sheet textarea.tall { min-height: 220px; }
+.doc-sheet input:focus, .doc-sheet textarea:focus { outline: 2px solid var(--ben); }
+.doc-sheet ::placeholder { color: var(--muted); opacity: .8; }
+.doc-sheet .sugg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.doc-sheet .sugg button { cursor: pointer; }
+.doc-sheet .sugg button.on { background: var(--ink); color: var(--bg); }
+.doc-sheet .rep { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.doc-sheet .rep .dtag { cursor: pointer; font-size: 14px; padding: 8px 14px; border-radius: 16px; }
+.doc-sheet .rep .dtag.on { background: var(--ink); color: var(--bg); }
+.doc-sheet .rep input { width: 76px; text-align: center; }
+.doc-sheet .rep span { color: var(--muted); font-weight: 700; }
+.doc-sheet .hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.doc-sheet .ddel { display: block; width: 100%; margin-top: 30px; border: 0; border-radius: 12px; background: var(--chip); color: var(--ash); font: inherit; font-size: 16px; font-weight: 700; padding: 13px; cursor: pointer; }
+
 /* full-page sign-in gate */
 body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
 body.locked .wrap, body.locked .bottom { display: none; }
@@ -370,7 +526,7 @@ body.locked .gate { display: flex; }
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-26b";
+  var VERSION = "2026-09-26c";
 
   // ---- Supabase connection (the anon key is meant to be public; the tables are protected by login) ----
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
@@ -385,6 +541,9 @@ body.locked .gate { display: flex; }
     meals: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 21V3c-2 1.5-3 4-3 7v3h3"/>',
     todos: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5"/>',
     plans: '<path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
+    recipes: '<path d="M12 6.5C10.5 5 8 4.5 4 4.5v14c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-14c-4 0-6.5.5-8 2z"/><path d="M12 6.5v14"/>',
+    house: '<path d="M3.5 11.5L12 4.5l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5.5h4V20"/>',
+    notes: '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8h5M9 12.5h7M9 16h5"/>',
     more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'
   };
   var PAGES = [
@@ -392,7 +551,10 @@ body.locked .gate { display: flex; }
     { id: "groceries", name: "Groceries",   src: "groceries.js" },
     { id: "meals",     name: "Meals",       src: "meals.js" },
     { id: "todos",     name: "TODOS",       src: "todos.js" },
-    { id: "plans",     name: "Plans",       src: "plans.js" }
+    { id: "plans",     name: "Plans",       src: "plans.js" },
+    { id: "recipes",   name: "Recipes",     src: "recipes.js" },
+    { id: "house",     name: "House",       src: "house.js" },
+    { id: "notes",     name: "Notes",       src: "notes.js" }
   ];
   var MAX_PINS = 5;
   function page(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return null; }
@@ -490,6 +652,422 @@ body.locked .gate { display: flex; }
     }, 60);
   }
   HB.swipeable = swipeable; HB.deleteWithUndo = deleteWithUndo; HB.notPending = notPending; HB.flushDelete = flushDelete; HB.reveal = reveal;
+
+  // ================= shared engine for the Recipes, House and Notes pages =================
+  // Each of those page files is just a few lines: HB.docPage("recipes", { title, table, kind, ... }).
+  HB.docPage = function (id, cfg) {
+    HB.register(id, { title: cfg.title, mount: function (root) { docMount(this, root, id, cfg); } });
+  };
+
+  var DI = {
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>',
+    down: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path d="M9 3.5h6l-1 6 3.5 3.5h-11L10 9.5z"/><path d="M12 13v7.5"/></svg>',
+    tick: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+  };
+  function desc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function linkify(h) { return h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
+  function dayNum(d) { var x = typeof d === "string" ? new Date(d + "T12:00:00") : d; return Math.floor(new Date(x.getFullYear(), x.getMonth(), x.getDate()) / 86400000); }
+  function isoDay(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function shortDate(s) { if (!s) return ""; var d = new Date(String(s).length === 10 ? s + "T12:00:00" : s); return MON[d.getMonth()] + " " + d.getDate() + (d.getFullYear() !== new Date().getFullYear() ? ", " + d.getFullYear() : ""); }
+  // House checklist: how many days until it's due (negative = overdue). Never done = due now.
+  function dueIn(r) { if (!r.repeat_days) return null; if (!r.last_done) return 0; return r.repeat_days - (dayNum(new Date()) - dayNum(r.last_done)); }
+  function dueLabel(n) {
+    if (n === null) return "";
+    if (n < 0) return "Overdue " + (-n) + (n === -1 ? " day" : " days");
+    if (n === 0) return "Due today";
+    if (n === 1) return "Due tomorrow";
+    if (n < 21) return "Due in " + n + " days";
+    if (n < 70) return "Due in " + Math.round(n / 7) + " wks";
+    return "Due in " + Math.round(n / 30) + " mo";
+  }
+  function dueClass(n) { return n === null ? "" : n <= 0 ? "due" : n <= 7 ? "soon" : ""; }
+  function autoGrow(t) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+  function splitTags(s) {
+    var out = [];
+    String(s || "").split(",").forEach(function (t) { t = t.trim(); if (t && out.indexOf(t) < 0) out.push(t); });
+    return out;
+  }
+
+  // Light formatting for bodies: "# heading", "- bullet", "1. numbered", "[ ] / [x] checkbox", links.
+  function richText(text, tickable) {
+    var lines = String(text || "").split("\n"), html = "", list = null, i = 0;
+    function close() { if (list) { html += "</" + list + ">"; list = null; } }
+    lines.forEach(function (raw, n) {
+      var l = raw.replace(/\s+$/, ""), m;
+      if ((m = l.match(/^\s*(?:[-*•]\s*)?\[( |x|X)\]\s?(.*)$/))) {
+        close();
+        html += '<div class="tick' + (m[1] !== " " ? " on" : "") + (tickable ? " saves" : "") + '" data-line="' + n + '"><i>' + DI.tick + '</i><span>' + linkify(desc(m[2])) + '</span></div>';
+      } else if ((m = l.match(/^\s*#{1,3}\s+(.*)$/))) { close(); html += "<h3>" + linkify(desc(m[1])) + "</h3>"; }
+      else if ((m = l.match(/^\s*[-*•]\s+(.*)$/))) { if (list !== "ul") { close(); html += "<ul>"; list = "ul"; } html += "<li>" + linkify(desc(m[1])) + "</li>"; }
+      else if ((m = l.match(/^\s*\d+[.)]\s+(.*)$/))) { if (list !== "ol") { close(); html += "<ol>"; list = "ol"; } html += "<li>" + linkify(desc(m[1])) + "</li>"; }
+      else if (!l.trim()) { close(); html += '<div class="gap"></div>'; }
+      else { close(); html += "<p>" + linkify(desc(l)) + "</p>"; }
+      i++;
+    });
+    close();
+    return html;
+  }
+
+  function docMount(mod, root, pageId, cfg) {
+    var db = HB.db, toast = HB.toast, T = cfg.table, kind = cfg.kind;
+    var rows = [], q = "", tag = "", view = "facts", openRow = null, editingDoc = false, isNew = false, started = false, wake = null;
+    var nouns = cfg.noun;   // [one, many]
+    root.classList.add("doc-page");
+    root.innerHTML =
+      '<div class="top"><header><div class="title"><h1>' + desc(cfg.title) + '<span class="count"></span></h1></div>' +
+        '<div class="nav"><span class="vo">View only</span><button class="addBtn" aria-label="Add a ' + nouns[0] + '">' + DI.plus + '</button></div></header>' +
+        (kind === "house" ? '<div class="dseg"><button data-v="facts" class="on">Facts</button><button data-v="check">Checklist</button></div>' : '') +
+        '<div class="dsearch">' + DI.search + '<input type="search" placeholder="Search ' + nouns[1] + '" autocomplete="off" enterkeyhint="search"></div>' +
+        '<div class="dtags"></div></div>' +
+      '<div class="dlist"></div>' +
+      '<div class="doc-sheet" role="dialog" aria-modal="true">' +
+        '<div class="dbar"><button class="icon dclose" aria-label="Close">' + DI.down + '</button><span class="sp"></span>' +
+        '<button class="icon dpin" aria-label="Pin to top">' + DI.pin + '</button><button class="dedit">Edit</button></div>' +
+        '<div class="dbody"></div></div>';
+    var $q = function (s) { return root.querySelector(s); };
+    var listEl = $q(".dlist"), tagsEl = $q(".dtags"), searchEl = $q(".dsearch input"), sheet = $q(".doc-sheet"), body = $q(".dbody");
+    var oops = function (res) { if (res && res.error) { toast("Couldn't save. Check your connection."); loadAll(); return true; } return false; };
+    function byId(id) { for (var i = 0; i < rows.length; i++) if (rows[i].id === id) return rows[i]; return null; }
+    function tagsOf(r) { return kind === "house" ? (r.area ? [r.area] : []) : (r.tags || []); }
+
+    // ---------- list ----------
+    function matches(r) {
+      if (kind === "house" && (view === "check") !== !!r.repeat_days) return false;
+      if (tag && tagsOf(r).indexOf(tag) < 0) return false;
+      if (!q) return true;
+      var hay = [r.name, r.body, r.ingredients, r.steps, r.note, r.area, (r.tags || []).join(" ")].join(" ").toLowerCase();
+      return q.toLowerCase().split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; });
+    }
+    function sortRows(a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      if (kind === "house" && view === "check") return dueIn(a) - dueIn(b);
+      if (kind === "note") return (a.updated_at || a.created_at) < (b.updated_at || b.created_at) ? 1 : -1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    }
+    function preview(r) {
+      if (kind === "recipe") {
+        var n = String(r.ingredients || "").split("\n").filter(function (l) { return l.trim(); }).length;
+        return [ (r.tags || []).join(", "), n ? n + " ingredient" + (n === 1 ? "" : "s") : "" ].filter(Boolean).join(" · ") || firstLine(r.note);
+      }
+      if (kind === "house" && r.repeat_days) return (r.area ? r.area + " · " : "") + "every " + r.repeat_days + " days" + (r.last_done ? " · last " + shortDate(r.last_done) : "");
+      return firstLine(r.body);
+    }
+    function firstLine(s) { var l = String(s || "").split("\n").filter(function (x) { return x.trim(); })[0] || ""; return l.replace(/^\s*(#+|[-*•]|\d+[.)]|\[[ xX]\])\s*/, ""); }
+    function rowEl(r) {
+      var el = document.createElement("div");
+      el.className = "item"; el.dataset.id = r.id;
+      var n = dueIn(r), meta = "";
+      if (kind === "house" && r.repeat_days) meta = '<span class="meta ' + dueClass(n) + '">' + dueLabel(n) + '</span>';
+      else if (kind === "note") meta = '<span class="meta plain">' + shortDate(r.updated_at || r.created_at) + '</span>';
+      el.innerHTML =
+        (kind === "house" && r.repeat_days ? '<button class="check" aria-label="Mark done today">' + DI.tick + '</button>' : '') +
+        '<button class="main"><div class="name">' + (r.pinned ? DI.pin.replace("<svg ", '<svg class="pinmark" ') : "") + desc(r.name) + '</div>' +
+        '<div class="prev">' + desc(preview(r)) + '</div></button>' + meta;
+      el.querySelector(".main").addEventListener("click", function () { openDoc(r.id); });
+      var ck = el.querySelector(".check");
+      if (ck) ck.addEventListener("click", function () { markDone(r, ck); });
+      if (HB.viewer) return el;
+      return HB.swipeable(el, function () {
+        if (String(r.id).indexOf("tmp") === 0) return;
+        rows = rows.filter(function (x) { return x !== r; }); render();
+        HB.deleteWithUndo(r.id, r.name,
+          function () { db.from(T).delete().eq("id", r.id).then(oops); },
+          function () { rows.push(r); render(); });
+      });
+    }
+    function render() {
+      var shown = rows.filter(HB.notPending);
+      // tag / area chips (only ones in use on this view)
+      var all = [];
+      shown.forEach(function (r) {
+        if (kind === "house" && (view === "check") !== !!r.repeat_days) return;
+        tagsOf(r).forEach(function (t) { if (all.indexOf(t) < 0) all.push(t); });
+      });
+      all.sort(function (a, b) { return a.localeCompare(b); });
+      if (tag && all.indexOf(tag) < 0) tag = "";
+      tagsEl.innerHTML = all.length ? ['<button class="dtag' + (tag ? "" : " on") + '" data-t="">All</button>'].concat(all.map(function (t) {
+        return '<button class="dtag' + (t === tag ? " on" : "") + '" data-t="' + desc(t) + '">' + desc(t) + '</button>';
+      })).join("") : "";
+
+      var list = shown.filter(matches).sort(sortRows);
+      listEl.innerHTML = "";
+      if (cfg.householdOnly && HB.viewer) {
+        listEl.innerHTML = '<div class="empty">' + desc(cfg.title) + ' is for the household only.</div>';
+      } else if (!list.length) {
+        listEl.innerHTML = '<div class="empty">' + (q || tag ? "Nothing matches." :
+          kind === "house" && view === "check" ? "Nothing on the checklist yet.<br>Tap <b>+</b> for things like <b>Change furnace filter</b>, every 90 days." :
+          kind === "house" ? "No house facts yet.<br>Tap <b>+</b> to save paint colours, filter sizes, model numbers…" :
+          kind === "recipe" ? "No recipes yet.<br>Tap <b>+</b> to add your first one." :
+          "No notes yet.<br>Tap <b>+</b> to write one.") + '</div>';
+      } else if (kind === "house" && view === "facts" && !tag) {
+        // facts grouped by area
+        var groups = {}, order = [];
+        list.forEach(function (r) { var g = r.pinned ? "Pinned" : (r.area || "Other"); if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(r); });
+        order.sort(function (a, b) { return a === "Pinned" ? -1 : b === "Pinned" ? 1 : a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b); });
+        order.forEach(function (g) {
+          var h = document.createElement("div"); h.className = "dgroup"; h.textContent = g; listEl.appendChild(h);
+          groups[g].forEach(function (r) { listEl.appendChild(rowEl(r)); });
+        });
+      } else list.forEach(function (r) { listEl.appendChild(rowEl(r)); });
+
+      var cnt = $q(".count"), due = 0;
+      rows.forEach(function (r) { var n = dueIn(r); if (n !== null && n <= 0) due++; });
+      if (kind === "house") {
+        cnt.textContent = due ? due + " due" : "";
+        var cb = root.querySelector('.dseg button[data-v="check"]');
+        cb.innerHTML = "Checklist" + (due ? "<b>" + due + "</b>" : "");
+      } else {
+        var total = rows.length;
+        cnt.textContent = total ? total + " " + (total === 1 ? nouns[0] : nouns[1]) : "";
+      }
+      root.querySelectorAll(".dseg button").forEach(function (b) { b.classList.toggle("on", b.dataset.v === view); });
+    }
+    tagsEl.addEventListener("click", function (e) { var b = e.target.closest(".dtag"); if (!b) return; tag = b.dataset.t; render(); });
+    searchEl.addEventListener("input", function () { q = searchEl.value.trim(); render(); });
+    searchEl.addEventListener("keydown", function (e) { if (e.key === "Enter") searchEl.blur(); });
+    root.querySelectorAll(".dseg button").forEach(function (b) {
+      b.addEventListener("click", function () { view = b.dataset.v; tag = ""; render(); window.scrollTo(0, 0); });
+    });
+
+    function markDone(r, ck) {
+      if (HB.viewer) return;
+      var today = isoDay(new Date());
+      if (r.last_done === today) { toast("Already marked done today"); return; }
+      if (ck) ck.classList.add("did");
+      r.last_done = today;
+      db.from(T).update({ last_done: today }).eq("id", r.id).then(oops);
+      toast("Done. Next due " + shortDate(isoDay(new Date(Date.now() + r.repeat_days * 86400000))));
+      setTimeout(function () { render(); if (openRow === r && !editingDoc) showDoc(); }, ck ? 700 : 0);
+    }
+
+    // ---------- reader / editor ----------
+    function openDoc(id) {
+      var r = byId(id); if (!r || String(r.id).indexOf("tmp") === 0) return;
+      openRow = r; isNew = false; editingDoc = false; showDoc(); present();
+    }
+    function newDoc() {
+      openRow = { id: null, name: "", body: "", ingredients: "", steps: "", note: "", tags: tag && kind !== "house" ? [tag] : [], area: kind === "house" ? tag : "", pinned: false,
+                  repeat_days: kind === "house" && view === "check" ? 90 : null, last_done: null };
+      isNew = true; editingDoc = true; showEditor(); present();
+      setTimeout(function () { var t = body.querySelector(".ftitle"); if (t) t.focus(); }, 320);
+    }
+    function present() {
+      sheet.scrollTop = 0; sheet.classList.add("show");
+      document.documentElement.style.overflow = "hidden";
+      if (kind === "recipe" && navigator.wakeLock) navigator.wakeLock.request("screen").then(function (w) { wake = w; }, function () {});
+    }
+    function dismiss() {
+      if (editingDoc && !saveEditor()) return;
+      sheet.classList.remove("show"); openRow = null; editingDoc = false;
+      document.documentElement.style.overflow = "";
+      if (wake) { try { wake.release(); } catch (e) {} wake = null; }
+      if (document.activeElement) document.activeElement.blur();
+      render();
+    }
+    $q(".dclose").addEventListener("click", dismiss);
+    $q(".dpin").addEventListener("click", function () {
+      var r = openRow; if (!r) return;
+      r.pinned = !r.pinned; this.classList.toggle("on", r.pinned);
+      if (r.id) db.from(T).update({ pinned: r.pinned }).eq("id", r.id).then(oops);
+      toast(r.pinned ? "Pinned to the top" : "Unpinned");
+    });
+    $q(".dedit").addEventListener("click", function () {
+      if (!editingDoc) { editingDoc = true; showEditor(); return; }
+      if (saveEditor()) { if (!openRow) return; editingDoc = false; showDoc(); }
+    });
+
+    function paintBar() {
+      var r = openRow;
+      $q(".dpin").classList.toggle("on", !!(r && r.pinned));
+      var e = $q(".dedit"); e.textContent = editingDoc ? "Done" : "Edit"; e.classList.toggle("save", editingDoc);
+    }
+    function showDoc() {
+      var r = openRow; if (!r) return;
+      paintBar();
+      var h = "<h2>" + desc(r.name) + "</h2>";
+      var chips = tagsOf(r);
+      if (chips.length) h += '<div class="dmeta">' + chips.map(function (t) { return '<span class="dtag">' + desc(t) + '</span>'; }).join("") + '</div>';
+      if (kind === "house" && r.repeat_days) {
+        var n = dueIn(r);
+        h += '<div class="duebox ' + dueClass(n) + '"><div>' + dueLabel(n) + '<small>Every ' + r.repeat_days + ' days' + (r.last_done ? ' · last done ' + shortDate(r.last_done) : ' · not done yet') + '</small></div>' +
+             '<button class="ddone">Done today</button></div>';
+      }
+      if (kind === "recipe") {
+        var ing = String(r.ingredients || "").split("\n").filter(function (l) { return l.trim(); });
+        var st = String(r.steps || "").split("\n").filter(function (l) { return l.trim(); });
+        if (ing.length) h += '<h4>Ingredients</h4><div class="rich">' + ing.map(function (l) {
+          return '<div class="tick"><i>' + DI.tick + '</i><span>' + linkify(desc(l.replace(/^\s*([-*•]|\[[ xX]\])\s*/, ""))) + '</span></div>'; }).join("") + '</div>';
+        if (st.length) h += '<h4>Steps</h4><div class="rich"><ol class="steps">' + st.map(function (l) {
+          return "<li>" + linkify(desc(l.replace(/^\s*(\d+[.)]|[-*•])\s*/, ""))) + "</li>"; }).join("") + '</ol></div>';
+        if (String(r.note || "").trim()) h += '<h4>Notes</h4><div class="rich">' + richText(r.note) + '</div>';
+        if (!ing.length && !st.length && !String(r.note || "").trim()) h += '<p class="quiet">Nothing written yet. Tap Edit to add ingredients and steps.</p>';
+      } else {
+        h += String(r.body || "").trim() ? '<div class="rich body">' + richText(r.body, true) + '</div>' : '<p class="quiet">Nothing written yet. Tap Edit to add details.</p>';
+      }
+      body.innerHTML = h;
+      var dd = body.querySelector(".ddone"); if (dd) dd.addEventListener("click", function () { markDone(r); });
+      // recipes: ingredient ticks are just for cooking (not saved). Notes / House: checkboxes save.
+      body.querySelectorAll(".tick").forEach(function (t) {
+        t.addEventListener("click", function (e) {
+          if (e.target.closest("a")) return;
+          if (!t.classList.contains("saves")) { t.classList.toggle("on"); return; }
+          if (HB.viewer) return;
+          r = openRow || r;
+          if (String(r.id).indexOf("tmp") === 0) return;   // still saving; try again in a moment
+          var lines = String(r.body || "").split("\n"), i = +t.dataset.line;
+          lines[i] = lines[i].replace(/\[( |x|X)\]/, function (m, c) { return c === " " ? "[x]" : "[ ]"; });
+          r.body = lines.join("\n"); t.classList.toggle("on");
+          db.from(T).update({ body: r.body }).eq("id", r.id).then(oops);
+        });
+      });
+    }
+
+    function allTags() {
+      var out = [];
+      rows.forEach(function (r) { tagsOf(r).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); }); });
+      (cfg.suggest || []).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); });
+      return out.sort(function (a, b) { return a.localeCompare(b); });
+    }
+    function ta(cls, val, ph, extra) { return '<textarea class="' + cls + (extra ? " " + extra : "") + '" placeholder="' + ph + '">' + desc(val) + '</textarea>'; }
+    function showEditor() {
+      var r = openRow; paintBar();
+      var h = '<input class="ftitle" placeholder="' + desc(cfg.titleHint) + '" value="' + desc(r.name) + '" autocomplete="off">';
+      if (kind === "recipe") {
+        h += '<label>Ingredients <small>one per line</small></label>' + ta("fing", r.ingredients, "2 cups flour&#10;1 tsp salt");
+        h += '<label>Steps <small>one per line</small></label>' + ta("fsteps", r.steps, "Preheat oven to 375°F&#10;Mix the dry ingredients", "tall");
+        h += '<label>Notes</label>' + ta("fnote", r.note, "Where it's from, how many it serves, tips…");
+      } else if (kind === "house") {
+        h += '<label>Area</label><input class="farea" value="' + desc(r.area) + '" placeholder="Kitchen, HVAC, Paint…" autocomplete="off">' +
+             '<div class="sugg asugg"></div>';
+        h += '<label>Details</label>' + ta("fbody", r.body, "Size, colour, model number, where it is…", "tall");
+        h += '<label>Repeats</label><div class="rep"><button type="button" class="dtag rno">No</button><button type="button" class="dtag ryes">Every</button>' +
+             '<input class="frep" type="number" inputmode="numeric" min="1" value="' + (r.repeat_days || 90) + '"><span>days</span></div>' +
+             '<div class="lastwrap"><label>Last done <small>leave empty if never</small></label><input class="flast" type="date" value="' + (r.last_done || "") + '"></div>' +
+             '<div class="hint">Repeating items go on the Checklist with a due date.</div>';
+      } else {
+        h += '<label>Note</label>' + ta("fbody", r.body, "Write anything. Tips: start a line with - for a bullet, [ ] for a checkbox, # for a heading.", "tall");
+      }
+      if (kind !== "house") h += '<label>Tags <small>comma separated</small></label><input class="ftags" value="' + desc((r.tags || []).join(", ")) + '" placeholder="' + desc(cfg.tagHint) + '" autocomplete="off"><div class="sugg tsugg"></div>';
+      if (!isNew) h += '<button type="button" class="ddel">Delete ' + nouns[0] + '</button>';
+      body.innerHTML = h;
+      body.querySelectorAll("textarea").forEach(function (t) { autoGrow(t); t.addEventListener("input", function () { autoGrow(t); }); });
+
+      var tagIn = body.querySelector(".ftags"), tbox = body.querySelector(".tsugg");
+      function paintTagSugg() {
+        if (!tbox) return;
+        var cur = splitTags(tagIn.value);
+        tbox.innerHTML = allTags().map(function (t) { return '<button type="button" class="dtag' + (cur.indexOf(t) >= 0 ? " on" : "") + '">' + desc(t) + '</button>'; }).join("");
+      }
+      if (tagIn) {
+        paintTagSugg(); tagIn.addEventListener("input", paintTagSugg);
+        tbox.addEventListener("click", function (e) {
+          var b = e.target.closest("button"); if (!b) return;
+          var cur = splitTags(tagIn.value), t = b.textContent, i = cur.indexOf(t);
+          if (i >= 0) cur.splice(i, 1); else cur.push(t);
+          tagIn.value = cur.join(", "); paintTagSugg();
+        });
+      }
+      var areaIn = body.querySelector(".farea"), abox = body.querySelector(".asugg");
+      if (areaIn) {
+        var paintArea = function () { abox.innerHTML = allTags().map(function (t) { return '<button type="button" class="dtag' + (t === areaIn.value.trim() ? " on" : "") + '">' + desc(t) + '</button>'; }).join(""); };
+        paintArea(); areaIn.addEventListener("input", paintArea);
+        abox.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; areaIn.value = b.textContent; paintArea(); });
+        var rep = !!r.repeat_days;
+        var paintRep = function () {
+          body.querySelector(".rno").classList.toggle("on", !rep); body.querySelector(".ryes").classList.toggle("on", rep);
+          body.querySelector(".frep").style.display = rep ? "" : "none"; body.querySelector(".rep span").style.display = rep ? "" : "none";
+          body.querySelector(".lastwrap").style.display = rep ? "" : "none";
+        };
+        body.querySelector(".rno").addEventListener("click", function () { rep = false; paintRep(); });
+        body.querySelector(".ryes").addEventListener("click", function () { rep = true; paintRep(); });
+        body.repOn = function () { return rep; };
+        paintRep();
+      }
+      var del = body.querySelector(".ddel");
+      if (del) del.addEventListener("click", function () {
+        var r0 = openRow;
+        editingDoc = false; openRow = null; sheet.classList.remove("show"); document.documentElement.style.overflow = "";
+        rows = rows.filter(function (x) { return x !== r0; }); render();
+        HB.deleteWithUndo(r0.id, r0.name,
+          function () { db.from(T).delete().eq("id", r0.id).then(oops); },
+          function () { rows.push(r0); render(); });
+      });
+    }
+    // returns false if the sheet should stay open
+    function saveEditor() {
+      var r = openRow; if (!r) return true;
+      var v = function (s) { var el = body.querySelector(s); return el ? el.value : null; };
+      var ch = { name: (v(".ftitle") || "").trim() };
+      if (kind === "recipe") { ch.ingredients = v(".fing").replace(/\s+$/, ""); ch.steps = v(".fsteps").replace(/\s+$/, ""); ch.note = v(".fnote").replace(/\s+$/, ""); }
+      else ch.body = v(".fbody").replace(/\s+$/, "");
+      if (kind === "house") {
+        ch.area = v(".farea").trim();
+        var on = body.repOn && body.repOn(), days = parseInt(v(".frep"), 10);
+        ch.repeat_days = on && days > 0 ? days : null;
+        ch.last_done = on ? (v(".flast") || null) : null;
+      } else ch.tags = splitTags(v(".ftags"));
+      var empty = !ch.name && !(ch.body || ch.ingredients || ch.steps || ch.note);
+      if (isNew) {
+        if (empty) { openRow = null; editingDoc = false; closeSheetOnly(); return true; }
+        if (!ch.name) ch.name = (firstLine(ch.body || ch.ingredients || ch.note) || "Untitled").slice(0, 60);
+        ch.pinned = !!r.pinned;
+        var temp = Object.assign({ id: "tmp" + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ch);
+        rows.push(temp); isNew = false; openRow = temp;
+        if (kind === "house") view = temp.repeat_days ? "check" : "facts";
+        db.from(T).insert(ch).select().single().then(function (res) {
+          if (oops(res)) return;
+          var i = rows.indexOf(temp);
+          if (rows.some(function (x) { return x.id === res.data.id; })) { if (i >= 0) rows.splice(i, 1); }
+          else if (i >= 0) rows[i] = res.data; else rows.push(res.data);
+          if (openRow === temp) { openRow = res.data; if (!editingDoc) showDoc(); }
+          render(); if (!openRow) HB.reveal(root, res.data.id);
+          lastNew = res.data.id;
+        });
+        lastNew = temp.id;
+        return true;
+      }
+      if (!ch.name) ch.name = r.name;
+      var norm = function (k, x) { return x != null ? x : k === "tags" ? [] : k === "repeat_days" || k === "last_done" ? null : ""; };
+      var changed = Object.keys(ch).some(function (k) { return JSON.stringify(norm(k, ch[k])) !== JSON.stringify(norm(k, r[k])); });
+      if (changed) {
+        Object.assign(r, ch, { updated_at: new Date().toISOString() });
+        if (kind === "house") view = r.repeat_days ? "check" : "facts";
+        db.from(T).update(ch).eq("id", r.id).then(oops);
+      }
+      return true;
+    }
+    function closeSheetOnly() { sheet.classList.remove("show"); document.documentElement.style.overflow = ""; if (document.activeElement) document.activeElement.blur(); render(); }
+    var lastNew = null;
+    // after the sheet closes on a brand-new item, show where it landed
+    sheet.addEventListener("transitionend", function (e) {
+      if (e.target === sheet && !sheet.classList.contains("show") && lastNew) { var id = lastNew; lastNew = null; if (byId(id)) HB.reveal(root, id); }
+    });
+    $q(".addBtn").addEventListener("click", newDoc);
+
+    // ---------- load + live sync ----------
+    function loadAll() {
+      return db.from(T).select("*").then(function (res) {
+        if (res.error) { toast("Couldn't load " + cfg.title + "."); return; }
+        var temps = rows.filter(function (r) { return String(r.id).indexOf("tmp") === 0; });
+        rows = res.data.concat(temps);
+        if (openRow && openRow.id) { var fresh = byId(openRow.id); if (fresh && !editingDoc) { openRow = fresh; showDoc(); } else if (fresh) openRow = fresh; }
+        if (!editingDoc) render();
+      });
+    }
+    var reloadT;
+    function soon() { clearTimeout(reloadT); reloadT = setTimeout(loadAll, 250); }
+    db.channel(pageId + "-live").on("postgres_changes", { event: "*", schema: "public", table: T }, soon).subscribe();
+    started = true;
+    render(); loadAll();
+    // house due dates move with the calendar: redraw once a minute
+    if (kind === "house") setInterval(function () { if (!editingDoc) render(); }, 60000);
+
+    mod.refresh = function () { if (started) loadAll(); };
+    mod.shown = function () { render(); };
+  }
 
   // Short pages shouldn't scroll: when the keyboard closes, iOS can leave the page nudged up.
   function snapBack() {
