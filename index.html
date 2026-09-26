@@ -19,7 +19,8 @@
     try { t = localStorage.getItem("homeboard-theme"); } catch (e) {}
     if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", t);
-    document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#1d1e22" : "#e4e5e8");
+    try { var k = localStorage.getItem("homeboard-skin"); if (k) document.documentElement.setAttribute("data-skin", k); } catch (e) {}
+    setTimeout(function () { document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()); }, 0);
   })();
 </script>
 <title>Weekly Plan</title>
@@ -78,6 +79,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   display: grid; place-items: center;
 }
 .nav .theme svg { width: 18px; height: 18px; }
+#skin svg { stroke-width: 2; } #skin circle { fill: currentColor; stroke: none; }
 .nav svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
 .top {
@@ -353,6 +355,28 @@ body.viewonly .day.weekend .wk-hint { display: none; }
 .cell[data-v="Both"] { font-size: 11px !important; }
 .dname .dow { font-size: 12px !important; }
 .dname .num { font-size: 18px !important; min-width: 28px !important; height: 28px !important; }
+/* ---- colour themes (palette button on Weekly Plan; applies on every page) ---- */
+:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; }
+:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; }
+:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; }
+:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; }
+:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; }
+:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; }
+body, .top, .bottom, .day, .cell, .dname .num { transition: background-color .35s ease, color .35s ease; }
+.tabs a.on { color: var(--today) !important; }
+.tabs a.on::after { background: var(--today) !important; }
+#skin.spin { animation: moonspin .6s cubic-bezier(.3,1.4,.5,1); }
+@keyframes moonspin { 0% { transform: rotate(0) scale(1); } 60% { transform: rotate(300deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+#skin, #theme { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.skin-toast {
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 41;
+  transform: translate(-50%, 10px) scale(.96); opacity: 0; pointer-events: none;
+  background: var(--today); color: var(--bg); font-size: 15px; font-weight: 800; letter-spacing: .2px;
+  padding: 9px 18px; border-radius: 20px; box-shadow: 0 6px 22px rgba(0,0,0,.18);
+  transition: opacity .2s, transform .25s cubic-bezier(.3,1.4,.5,1);
+}
+.skin-toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -375,6 +399,7 @@ body.viewonly .day.weekend .wk-hint { display: none; }
     <div class="title"><h1>Weekly Plan<span class="wk-nav"><!-- last week / this week / next week only --><button id="prev" aria-label="Last week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><span class="range" id="title"></span><button id="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></span></h1></div>
     <div class="nav">
       <span class="vo">View only</span>
+      <button id="skin" class="theme" aria-label="Change colour theme"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.8-1.7H16a5 5 0 0 0 5-5C21 6.5 17 3 12 3z"/><circle cx="7.5" cy="11.5" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15" cy="7.8" r="1.2"/></svg></button>
       <button id="theme" class="theme" aria-label="Switch theme"></button>
     </div>
   </header>
@@ -394,6 +419,7 @@ body.viewonly .day.weekend .wk-hint { display: none; }
 </div>
 
 
+<div class="skin-toast" id="skinToast" aria-live="polite"></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -459,13 +485,34 @@ body.viewonly .day.weekend .wk-hint { display: none; }
   }
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
-    document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#1d1e22" : "#e4e5e8");
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || (t === "dark" ? "#1d1e22" : "#e4e5e8"));
     themeBtn.innerHTML = t === "dark" ? SUN : MOON;
     themeBtn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
   }
   var savedTheme = null;
   try { savedTheme = localStorage.getItem("homeboard-theme"); } catch (e) {}
   applyTheme(savedTheme || currentTheme());
+  // ---- colour themes: palette button cycles Classic / Barbie / Espresso / Halloween ----
+  function applySkin(k) {
+    if (k) document.documentElement.setAttribute("data-skin", k); else document.documentElement.removeAttribute("data-skin");
+    applyTheme(currentTheme());
+    try { localStorage.setItem("homeboard-skin", k || ""); } catch (e) {}
+  }
+  var savedSkin = ""; try { savedSkin = localStorage.getItem("homeboard-skin") || ""; } catch (e) {}
+  applySkin(savedSkin);
+  var SKIN_ORDER = ["", "barbie", "espresso", "halloween"];
+  var SKIN_NAME = { "": "Classic", barbie: "Barbie", espresso: "Espresso", halloween: "Halloween" };
+  function nextSkin() {
+    var cur = document.documentElement.getAttribute("data-skin") || "";
+    var k = SKIN_ORDER[(SKIN_ORDER.indexOf(cur) + 1) % SKIN_ORDER.length];
+    var sb = document.getElementById("skin"); sb.classList.remove("spin"); void sb.offsetWidth; sb.classList.add("spin");
+    if (navigator.vibrate) navigator.vibrate(12);
+    applySkin(k);
+    var t = document.getElementById("skinToast"); t.textContent = SKIN_NAME[k];
+    t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+    clearTimeout(nextSkin.t); nextSkin.t = setTimeout(function () { t.classList.remove("show"); }, 1400);
+  }
+  document.getElementById("skin").addEventListener("click", nextSkin);
   themeBtn.addEventListener("click", function () {
     var t = currentTheme() === "dark" ? "light" : "dark";
     applyTheme(t);

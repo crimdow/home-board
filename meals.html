@@ -19,7 +19,8 @@
     try { t = localStorage.getItem("homeboard-theme"); } catch (e) {}
     if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", t);
-    document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#1d1e22" : "#e4e5e8");
+    try { var k = localStorage.getItem("homeboard-skin"); if (k) document.documentElement.setAttribute("data-skin", k); } catch (e) {}
+    setTimeout(function () { document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()); }, 0);
   })();
 </script>
 <title>Meals</title>
@@ -467,6 +468,16 @@ body.viewonly .del { visibility: hidden; }
 body.viewonly .swipe .delbg { display: none; }
 .swipe .delbg { visibility: hidden; }
 .swipe.dragging .delbg, .swipe.open .delbg { visibility: visible; }
+/* ---- colour themes (picked with the palette button on Weekly Plan) ---- */
+:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; --sheet: #fdf1f6; }
+:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; --sheet: #331c2d; }
+:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; --sheet: #f6eee4; }
+:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; --sheet: #2a1f19; }
+:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; --sheet: #f9f2e9; }
+:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; --sheet: #211e26; }
+body, .top, .bottom { transition: background-color .35s ease, color .35s ease; }
+.tabs a.on { color: var(--today) !important; }
+.tabs a.on::after { background: var(--today) !important; }
 </style>
 </head>
 <body class="checking editing">
@@ -807,7 +818,7 @@ body.viewonly .swipe .delbg { display: none; }
   }
   function applyTheme(t) {
     document.documentElement.setAttribute("data-theme", t);
-    document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#1d1e22" : "#e4e5e8");
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || (t === "dark" ? "#1d1e22" : "#e4e5e8"));
     $("theme").innerHTML = t === "dark" ? SUN : MOON;
   }
   var savedTheme = null;
