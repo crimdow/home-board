@@ -395,6 +395,10 @@ body::before {
 .tabs a.on svg { stroke-width: 2.2 !important; }
 .tabs a.on::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; background: var(--ink); margin: 4px auto 0; }
 .tabs a:not(.on)::after { content: ""; display: block; height: 5px; margin-top: 4px; }
+
+/* new-row highlight */
+.item.flash { animation: rowflash 1.4s ease-out; }
+@keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, transparent); } 100% { background: transparent; } }
 </style>
 </head>
 <body class="checking editing">
@@ -471,6 +475,20 @@ body::before {
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var $ = function (id) { return document.getElementById(id); };
 
+  // After adding: bring the new row into view just under the header, with a quick highlight
+  var lastAdded = null;
+  function reveal(id) {
+    setTimeout(function () {
+      var el = document.querySelector('[data-id="' + id + '"]'); if (!el) return;
+      var top = document.querySelector(".top"), off = top ? top.getBoundingClientRect().bottom : 0;
+      var vh = window.visualViewport ? visualViewport.height : window.innerHeight;
+      var q = document.getElementById("quickSheet"), qh = q && q.classList.contains("show") ? q.offsetHeight : 0;
+      var r = el.getBoundingClientRect();
+      if (r.top < off || r.bottom > vh - qh - 8) window.scrollTo(0, Math.max(0, r.top + window.scrollY - off - 8));
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    }, 60);
+  }
+
   var stores = [];   // [{id, name, position}]
   var items = [];    // [{id, name, store_id, note, done, created_at}]
   var editing = true, openId = null;   // always editable once signed in
@@ -536,7 +554,7 @@ body::before {
   // ---- list ----
   function row(it) {
     var el = document.createElement("div");
-    el.className = "item" + (it.done ? " done" : "");
+    el.className = "item" + (it.done ? " done" : ""); el.dataset.id = it.id;
     el.innerHTML =
       '<button class="main"><div class="name">' + esc(it.name) + '</div>' +
       (it.note ? '<div class="note">' + esc(it.note) + '</div>' : '') + '</button>' +
@@ -597,7 +615,7 @@ body::before {
     db.from("grocery_items").insert(row).select().single().then(function (res) {
       if (oops(res)) return;
       if (!items.some(function (i) { return i.id === res.data.id; })) items.push(res.data);
-      render();
+      render(); reveal(res.data.id);
     });
     render();
   });

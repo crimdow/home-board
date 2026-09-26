@@ -463,6 +463,32 @@ body::before {
 .tabs a.on svg { stroke-width: 2.2 !important; }
 .tabs a.on::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; background: var(--ink); margin: 4px auto 0; }
 .tabs a:not(.on)::after { content: ""; display: block; height: 5px; margin-top: 4px; }
+
+/* new-row highlight */
+.item.flash { animation: rowflash 1.4s ease-out; }
+@keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, transparent); } 100% { background: transparent; } }
+/* add to calendar */
+.sheet .cal-btn {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
+  border: 0; border-radius: 16px; background: var(--chip); color: var(--ink);
+  font: inherit; font-size: 14px; font-weight: 700; padding: 8px 14px; cursor: pointer;
+}
+.sheet .cal-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.sheet .cal-btn[hidden] { display: none; }
+.when { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* date buttons in the plan sheet */
+.datebtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.dbtn {
+  position: relative; display: inline-flex; align-items: center; gap: 7px; overflow: hidden;
+  border: 0; border-radius: 16px; background: var(--chip); color: var(--ink);
+  font: inherit; font-size: 14px; font-weight: 700; padding: 8px 14px; cursor: pointer;
+}
+.dbtn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.dbtn:disabled { opacity: .4; cursor: default; }
+.sheet .datepick input[type=date] {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; padding: 0; margin: 0;
+  opacity: 0; border: 0; background: none; cursor: pointer; font-size: 16px;
+}
 </style>
 </head>
 <body class="checking editing">
@@ -512,9 +538,13 @@ body::before {
 <div class="sheet" id="sheet">
   <label for="fName">Plan</label>
   <input id="fName" autocomplete="off">
-  <label for="fDate">Date</label>
-  <input id="fDate" type="date">
-  <button type="button" class="clear-date" id="clearDate">No date yet (keep as an idea)</button>
+  <label>Date</label>
+  <div class="datebtns">
+    <!-- the real date input sits invisibly over the button, so a tap opens the iPhone date picker -->
+    <span class="dbtn datepick"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg><span id="dateLabel">Set date</span><input id="fDate" type="date" aria-label="Date"></span>
+    <button type="button" class="dbtn" id="clearDate">Remove date</button>
+  </div>
+  <button type="button" class="cal-btn" id="calBtn"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4M12 13v4M10 15h4"/></svg>Add to calendar</button>
   <label for="fNote">Note</label>
   <textarea id="fNote" placeholder="Time, where, who's coming, tickets…"></textarea>
   <div class="row"><button class="del" id="delBtn">Delete</button><button class="done" id="doneBtn">Done</button></div>
@@ -527,6 +557,20 @@ body::before {
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var $ = function (id) { return document.getElementById(id); };
+
+  // After adding: bring the new row into view just under the header, with a quick highlight
+  var lastAdded = null;
+  function reveal(id) {
+    setTimeout(function () {
+      var el = document.querySelector('[data-id="' + id + '"]'); if (!el) return;
+      var top = document.querySelector(".top"), off = top ? top.getBoundingClientRect().bottom : 0;
+      var vh = window.visualViewport ? visualViewport.height : window.innerHeight;
+      var q = document.getElementById("quickSheet"), qh = q && q.classList.contains("show") ? q.offsetHeight : 0;
+      var r = el.getBoundingClientRect();
+      if (r.top < off || r.bottom > vh - qh - 8) window.scrollTo(0, Math.max(0, r.top + window.scrollY - off - 8));
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    }, 60);
+  }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove("show"); }, 2000); }
   function oops(res) { if (res && res.error) { toast("Couldn't save. Check your connection."); loadAll(); return true; } return false; }
@@ -617,7 +661,7 @@ body::before {
   });
 
   function tileRow(p) {
-    var el = document.createElement("div"); el.className = "item up";
+    var el = document.createElement("div"); el.className = "item up"; el.dataset.id = p.id;
     var d = parse(p.date), sl = soonLabel(p.date);
     el.innerHTML = '<button class="tile" aria-label="Change date" style="background:' + heat(p.date) + '">' +
       '<span class="d">' + DOW[d.getDay()] + '</span><span class="n">' + d.getDate() + '</span></button>' +
@@ -629,11 +673,19 @@ body::before {
     return el;
   }
   function ideaRow(p) {
-    var el = document.createElement("div"); el.className = "item";
+    var el = document.createElement("div"); el.className = "item"; el.dataset.id = p.id;
     el.innerHTML = '<button class="main"><div class="name">' + esc(p.name) + '</div>' +
       (p.note ? '<div class="note">' + esc(p.note) + '</div>' : '') + '</button><button class="when" aria-label="When"></button>';
     var w = el.querySelector(".when"); paintWhen(w, p.date);
+    // tap = step through weekend days; press and hold = pick any date
+    var holdT = null, held = false;
+    w.addEventListener("touchstart", function () { held = false; holdT = setTimeout(function () { held = true; openSheet(p.id, true); }, 500); }, { passive: true });
+    ["touchmove", "touchcancel"].forEach(function (ev) { w.addEventListener(ev, function () { clearTimeout(holdT); }, { passive: true }); });
+    // after a long press, swallow the finger-lift so it doesn't "tap" the backdrop and close the sheet
+    w.addEventListener("touchend", function (e) { clearTimeout(holdT); if (held) e.preventDefault(); }, { passive: false });
+    w.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     w.addEventListener("click", function () {
+      if (held) { held = false; return; }
       p.date = nextStop(p.date) || null; paintWhen(w, p.date);
       settleLater(p.id, function () { save(p, { date: p.date }); }, function () { if (p.date) toast(p.name + " → " + w.textContent); });
     });
@@ -659,7 +711,7 @@ body::before {
     }
     var horizon = add(today, 7 * 8);   // about two months ahead
     var soon = upcoming.filter(function (p) { return parse(p.date) <= horizon; });
-    var lastMonth = today.getMonth();
+    var lastMonth = -1;   // always label the first month too
     soon.forEach(function (p) {
       var m = parse(p.date).getMonth();
       if (m !== lastMonth) { var h = document.createElement("div"); h.className = "month"; h.textContent = FULLMON[m]; $("list").appendChild(h); lastMonth = m; }
@@ -679,16 +731,17 @@ body::before {
   $("quickSheet").addEventListener("submit", function (e) {
     e.preventDefault();
     var v = $("quickName").value.trim();
-    if (!v) { closeQuick(); return; }
+    if (!v) { closeQuick(); if (lastAdded) setTimeout(function () { reveal(lastAdded); }, 350); return; }
     var date = quickWhen || null;
     var temp = { id: "tmp" + Date.now() + Math.random(), name: v, note: "", date: date, created_at: new Date().toISOString() };
-    plans.push(temp); render();
+    plans.push(temp); render(); lastAdded = temp.id; reveal(temp.id);
     $("quickName").value = ""; paintQuick(); $("quickName").focus();
     db.from("plans").insert({ name: v, date: date }).select().single().then(function (res) {
       if (oops(res)) return;
+      if (lastAdded === temp.id) lastAdded = res.data.id;
       var i = plans.indexOf(temp);
       if (byId(res.data.id)) { if (i >= 0) plans.splice(i, 1); } else if (i >= 0) plans[i] = res.data; else plans.push(res.data);
-      render();
+      render(); if (lastAdded === res.data.id) reveal(res.data.id);
     });
   });
 
@@ -697,9 +750,57 @@ body::before {
     var p = byId(id); if (!p || String(p.id).indexOf("tmp") === 0) return;
     openId = id; $("fName").value = p.name; $("fNote").value = p.note || ""; $("fDate").value = p.date || "";
     showSheet();
+    paintCal();
     if (toDate) { $("fDate").focus(); try { $("fDate").showPicker(); } catch (e) {} }
   }
-  $("clearDate").addEventListener("click", function () { $("fDate").value = ""; });
+  $("clearDate").addEventListener("click", function () { $("fDate").value = ""; paintCal(); });
+  // "Set date" shows the chosen date once picked; "Remove date" is greyed out until there is one
+  function paintCal() {
+    var v = $("fDate").value;
+    if (v) { var d = parse(v); $("dateLabel").textContent = DOW[d.getDay()] + ", " + MON[d.getMonth()] + " " + d.getDate(); }
+    else $("dateLabel").textContent = "Set date";
+    $("clearDate").disabled = !v;
+    $("calBtn").hidden = !v;
+  }
+  $("fDate").addEventListener("input", paintCal); $("fDate").addEventListener("change", paintCal);
+
+  // ---- add to calendar: build a standard .ics event from the plan ----
+  // A time in the name or note ("2pm", "6:30 pm") makes it a 2-hour event; otherwise all-day.
+  function icsText(v) { return String(v || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
+  function stamp(d) { return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "T" + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0") + "00"; }
+  function buildIcs(name, note, date, uid) {
+    var d = parse(date), ymd = date.replace(/-/g, "");
+    var t = (name + " " + note).match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)\b/i);
+    var now = new Date(), utc = now.toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+    var L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Home Board//Plans//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+             "BEGIN:VEVENT", "UID:" + uid + "@home-board", "DTSTAMP:" + utc];
+    if (t) {
+      var h = (+t[1] % 12) + (/p/i.test(t[3]) ? 12 : 0), start = new Date(d); start.setHours(h, +(t[2] || 0), 0, 0);
+      var end = new Date(start.getTime() + 2 * 3600000);
+      L.push("DTSTART:" + stamp(start), "DTEND:" + stamp(end));
+    } else {
+      L.push("DTSTART;VALUE=DATE:" + ymd, "DTEND;VALUE=DATE:" + iso(add(d, 1)).replace(/-/g, ""));
+    }
+    L.push("SUMMARY:" + icsText(name));
+    if (note) L.push("DESCRIPTION:" + icsText(note));
+    L.push("END:VEVENT", "END:VCALENDAR");
+    return L.join("\r\n");
+  }
+  $("calBtn").addEventListener("click", function () {
+    var p = byId(openId); if (!p || !$("fDate").value) return;
+    var name = $("fName").value.trim() || p.name, note = $("fNote").value.trim();
+    var ics = buildIcs(name, note, $("fDate").value, p.id);
+    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (ios) {
+      // iPhone: open the event so Calendar offers "Add to Calendar"
+      var url = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
+      var w = window.open(url, "_blank"); if (!w) location.href = url;
+      return;
+    }
+    var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = (name.replace(/[^\w\- ]+/g, "").trim() || "plan") + ".ics";
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  });
   function closeSheet(keep) {
     var p = byId(openId);
     if (p && keep) {

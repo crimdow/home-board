@@ -441,6 +441,10 @@ body::before {
 .tabs a.on svg { stroke-width: 2.2 !important; }
 .tabs a.on::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; background: var(--ink); margin: 4px auto 0; }
 .tabs a:not(.on)::after { content: ""; display: block; height: 5px; margin-top: 4px; }
+
+/* new-row highlight */
+.item.flash { animation: rowflash 1.4s ease-out; }
+@keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, transparent); } 100% { background: transparent; } }
 </style>
 </head>
 <body class="checking editing">
@@ -507,6 +511,20 @@ body::before {
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var $ = function (id) { return document.getElementById(id); };
+
+  // After adding: bring the new row into view just under the header, with a quick highlight
+  var lastAdded = null;
+  function reveal(id) {
+    setTimeout(function () {
+      var el = document.querySelector('[data-id="' + id + '"]'); if (!el) return;
+      var top = document.querySelector(".top"), off = top ? top.getBoundingClientRect().bottom : 0;
+      var vh = window.visualViewport ? visualViewport.height : window.innerHeight;
+      var q = document.getElementById("quickSheet"), qh = q && q.classList.contains("show") ? q.offsetHeight : 0;
+      var r = el.getBoundingClientRect();
+      if (r.top < off || r.bottom > vh - qh - 8) window.scrollTo(0, Math.max(0, r.top + window.scrollY - off - 8));
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    }, 60);
+  }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove("show"); }, 2000); }
   function oops(res) { if (res && res.error) { toast("Couldn't save. Check your connection."); loadAll(); return true; } return false; }
@@ -582,7 +600,7 @@ body::before {
   function row(t) {
     var el = document.createElement("div");
     var done = isDone(t);
-    el.className = "item" + (done ? " done" : "");
+    el.className = "item" + (done ? " done" : ""); el.dataset.id = t.id;
     el.innerHTML = '<button class="main"><div class="name">' + esc(t.name) + '</div>' +
       (t.note ? '<div class="note">' + esc(t.note) + '</div>' : '') +
       (done && backLabel(t) ? '<div class="back">' + backLabel(t) + '</div>' : '') + '</button>' +
@@ -636,15 +654,16 @@ body::before {
   $("quickSheet").addEventListener("submit", function (e) {
     e.preventDefault();
     var v = $("quickName").value.trim();
-    if (!v) { closeQuick(); return; }
+    if (!v) { closeQuick(); if (lastAdded) setTimeout(function () { reveal(lastAdded); }, 350); return; }
     var temp = { id: "tmp" + Date.now() + Math.random(), name: v, note: "", kind: quickKind, who: "", done_at: null, created_at: new Date().toISOString() };
-    todos.push(temp); render();
+    todos.push(temp); render(); lastAdded = temp.id; reveal(temp.id);
     $("quickName").value = ""; paintQuick(); $("quickName").focus();
     db.from("todos").insert({ name: v, kind: quickKind }).select().single().then(function (res) {
       if (oops(res)) return;
+      if (lastAdded === temp.id) lastAdded = res.data.id;
       var i = todos.indexOf(temp);
       if (byId(res.data.id)) { if (i >= 0) todos.splice(i, 1); } else if (i >= 0) todos[i] = res.data; else todos.push(res.data);
-      render();
+      render(); if (lastAdded === res.data.id) reveal(res.data.id);
     });
   });
 
