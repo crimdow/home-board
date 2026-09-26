@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Home Board</title>
+<script>
+  // Safety net: GitHub Pages shows this page for any address that doesn't exist
+  // (old folder links like /todos/, cached pages, "meals 2.html", typos...).
+  // Work out which Home Board page was meant and go straight there.
+  (function () {
+    var path = location.pathname.toLowerCase();
+    var parts = location.pathname.split("/").filter(Boolean);
+    // the site lives under /<repo>/ on github.io (e.g. /home-board/); keep that prefix
+    var base = "/" + (location.hostname.endsWith("github.io") && parts.length ? parts[0] + "/" : "");
+    var pages = ["groceries", "meals", "todos", "plans"];
+    var target = "";
+    for (var i = 0; i < pages.length; i++) {
+      if (path.indexOf(pages[i]) >= 0) { target = pages[i] + ".html"; break; }
+    }
+    location.replace(base + target + location.hash);
+  })();
+</script>
+<style>
+  html, body { margin: 0; height: 100%; background: #e4e5e8; }
+  @media (prefers-color-scheme: dark) { html, body { background: #1d1e22; } }
+</style>
+</head>
+<body></body>
+</html>
