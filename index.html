@@ -22,7 +22,7 @@
     document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "dark" ? "#1d1e22" : "#e4e5e8");
   })();
 </script>
-<title>Home Board</title>
+<title>Weekly Plan</title>
 <style>
 :root {
   box-sizing: border-box;
@@ -70,6 +70,7 @@ body {
 header { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 0; }
 .title h1 { margin: 0; font-size: 24px; white-space: nowrap; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
 .title p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+.title .range { color: var(--muted); font-size: 14px; font-weight: 600; margin-left: 8px; letter-spacing: 0; }
 .nav { display: flex; gap: 8px; }
 .nav button {
   width: 36px; height: 36px; border-radius: 50%; border: 0;
@@ -329,7 +330,7 @@ body::before {
 <div class="wrap" id="boardView">
   <div class="top">
   <header>
-    <div class="title"><h1 id="title"></h1></div>
+    <div class="title"><h1>Weekly Plan<span class="range" id="title"></span></h1></div>
     <div class="nav">
       <button id="theme" class="theme" aria-label="Switch theme"></button>
       <!-- Week arrows: turned off for now. To bring back, uncomment these two buttons AND the two "prev"/"next" listener lines in the script.
