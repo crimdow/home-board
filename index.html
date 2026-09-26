@@ -311,6 +311,14 @@ body::before {
 .tabs a.on svg { stroke-width: 2.2 !important; }
 .tabs a.on::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; background: var(--ink); margin: 4px auto 0; }
 .tabs a:not(.on)::after { content: ""; display: block; height: 5px; margin-top: 4px; }
+
+/* view-only accounts: no editing controls, nothing tappable in the lists */
+.vo { display: none; align-items: center; height: 36px; padding: 0 12px; border-radius: 18px; background: var(--chip); color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
+body.viewonly .vo { display: inline-flex; }
+body.viewonly #addBtn, body.viewonly #gear, body.viewonly #clearBtn { display: none !important; }
+body.viewonly #list, body.viewonly #gotList, body.viewonly #days { pointer-events: none; }
+body.viewonly .who, body.viewonly .kind, body.viewonly .dpill, body.viewonly .store, body.viewonly .check,
+body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -332,6 +340,7 @@ body::before {
   <header>
     <div class="title"><h1>Weekly Plan<span class="range" id="title"></span></h1></div>
     <div class="nav">
+      <span class="vo">View only</span>
       <button id="theme" class="theme" aria-label="Switch theme"></button>
       <!-- Week arrows: turned off for now. To bring back, uncomment these two buttons AND the two "prev"/"next" listener lines in the script.
       <button id="prev" aria-label="Previous week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -363,6 +372,16 @@ body::before {
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // View-only accounts: the database already refuses their changes; this just hides the
+  // editing controls so nothing looks tappable. Household logins are "editors".
+  function checkRole() {
+    db.rpc("is_editor").then(function (r) {
+      var viewer = !r.error && r.data === false;
+      document.body.classList.toggle("viewonly", viewer);
+      if (viewer) document.querySelectorAll("textarea").forEach(function (t) { t.readOnly = true; });
+    }, function () {});
+  }
 
   var CYCLE = ["", "A", "B", "Both"];
   var NAMES = { "": "nobody yet", A: "Ash", B: "Ben", Both: "both of us" };
@@ -562,12 +581,12 @@ body::before {
       btn.disabled = false;
       if (res.error) { err.textContent = "That email or password didn't match."; return; }
       document.getElementById("password").value = "";
-      unlock(); START();
+      unlock(); START(); checkRole();
     });
   });
   db.auth.onAuthStateChange(function (event) { if (event === "SIGNED_OUT") lock(); });
   db.auth.getSession().then(function (res) {
-    if (res.data && res.data.session) { unlock(); START(); } else lock();
+    if (res.data && res.data.session) { unlock(); START(); checkRole(); } else lock();
   });
 })();
 </script>

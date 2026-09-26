@@ -422,6 +422,14 @@ body::before {
 /* new-row highlight */
 .item.flash { animation: rowflash 1.4s ease-out; }
 @keyframes rowflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, transparent); } 100% { background: transparent; } }
+
+/* view-only accounts: no editing controls, nothing tappable in the lists */
+.vo { display: none; align-items: center; height: 36px; padding: 0 12px; border-radius: 18px; background: var(--chip); color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
+body.viewonly .vo { display: inline-flex; }
+body.viewonly #addBtn, body.viewonly #gear, body.viewonly #clearBtn { display: none !important; }
+body.viewonly #list, body.viewonly #gotList, body.viewonly #days { pointer-events: none; }
+body.viewonly .who, body.viewonly .kind, body.viewonly .dpill, body.viewonly .store, body.viewonly .check,
+body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default; }
 </style>
 </head>
 <body class="checking editing">
@@ -443,6 +451,7 @@ body::before {
     <div class="nav">
       <button id="addBtn" aria-label="Add an idea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       <button id="hideBtn" aria-label="Hide meals you've made"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <span class="vo">View only</span>
       <button id="theme" aria-label="Switch theme"></button>
     </div>
   </header>
@@ -486,6 +495,16 @@ body::before {
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // View-only accounts: the database already refuses their changes; this just hides the
+  // editing controls so nothing looks tappable. Household logins are "editors".
+  function checkRole() {
+    db.rpc("is_editor").then(function (r) {
+      var viewer = !r.error && r.data === false;
+      document.body.classList.toggle("viewonly", viewer);
+      if (viewer) document.querySelectorAll("textarea").forEach(function (t) { t.readOnly = true; });
+    }, function () {});
+  }
   var $ = function (id) { return document.getElementById(id); };
 
   // After adding: bring the new row into view just under the header, with a quick highlight
@@ -700,12 +719,12 @@ body::before {
       btn.disabled = false;
       if (res.error) { err.textContent = "That email or password didn't match."; return; }
       document.getElementById("password").value = "";
-      unlock(); START();
+      unlock(); START(); checkRole();
     });
   });
   db.auth.onAuthStateChange(function (event) { if (event === "SIGNED_OUT") lock(); });
   db.auth.getSession().then(function (res) {
-    if (res.data && res.data.session) { unlock(); START(); } else lock();
+    if (res.data && res.data.session) { unlock(); START(); checkRole(); } else lock();
   });
 
 })();
