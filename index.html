@@ -319,6 +319,27 @@ body.viewonly #addBtn, body.viewonly #gear, body.viewonly #clearBtn { display: n
 body.viewonly #list, body.viewonly #gotList, body.viewonly #days { pointer-events: none; }
 body.viewonly .who, body.viewonly .kind, body.viewonly .dpill, body.viewonly .store, body.viewonly .check,
 body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default; }
+/* week arrows sit right beside the dates */
+.wk-nav { display: inline-flex; align-items: center; margin-left: 2px; vertical-align: middle; position: relative; top: -1px; white-space: nowrap; }
+.title h1 { white-space: normal !important; }
+header { align-items: flex-start !important; gap: 8px; }
+.title { min-width: 0; }
+.title .range { font-size: 13px !important; }
+body.viewonly .vo { font-size: 12px; padding: 0 9px; }
+.wk-nav button {
+  appearance: none; border: 0; background: none; color: var(--muted); cursor: pointer;
+  width: 22px; height: 30px; padding: 0; display: grid; place-items: center; border-radius: 8px;
+}
+.wk-nav button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.wk-nav button:active { background: var(--chip); }
+.wk-nav button:disabled { opacity: .25; cursor: default; background: none; }
+.title .range { margin-left: 0 !important; cursor: pointer; position: relative; }
+.title .range.other { color: var(--ben); }
+.title .range.other::after {
+  content: attr(aria-label); position: absolute; left: 0; right: 0; top: 100%; text-align: center;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap;
+}
+body.viewonly .wk-nav { pointer-events: auto; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
@@ -338,14 +359,10 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
 <div class="wrap" id="boardView">
   <div class="top">
   <header>
-    <div class="title"><h1>Weekly Plan<span class="range" id="title"></span></h1></div>
+    <div class="title"><h1>Weekly Plan<span class="wk-nav"><!-- last week / this week / next week only --><button id="prev" aria-label="Last week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><span class="range" id="title"></span><button id="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></span></h1></div>
     <div class="nav">
       <span class="vo">View only</span>
       <button id="theme" class="theme" aria-label="Switch theme"></button>
-      <!-- Week arrows: turned off for now. To bring back, uncomment these two buttons AND the two "prev"/"next" listener lines in the script.
-      <button id="prev" aria-label="Previous week"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <button id="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-      -->
     </div>
   </header>
   <div class="cols"><span></span><span>Drop off</span><span>Pick up</span><span>Dinner</span></div>
@@ -554,16 +571,30 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
       .subscribe();
   }
 
-  function go(n) { weekStart = addDays(weekStart, 7 * n); render(); loadWeek(); }
-  // Week arrows turned off for now (see the commented-out buttons in the header):
-  // document.getElementById("prev").addEventListener("click", function () { go(-1); });
-  // document.getElementById("next").addEventListener("click", function () { go(1); });
+  // Arrows move one week back or forward from this week, and no further
+  function weekOffset() { return Math.round((weekStart - thisWeek) / (7 * 86400000)); }
+  function paintArrows() {
+    var o = weekOffset();
+    document.getElementById("prev").disabled = o <= -1;
+    document.getElementById("next").disabled = o >= 1;
+    var t = document.getElementById("title");
+    t.classList.toggle("other", o !== 0);
+    t.setAttribute("aria-label", o === 0 ? "This week" : o < 0 ? "Last week" : "Next week");
+  }
+  function go(n) {
+    var o = Math.max(-1, Math.min(1, weekOffset() + n));
+    weekStart = addDays(thisWeek, 7 * o); render(); loadWeek(); paintArrows();
+  }
+  document.getElementById("prev").addEventListener("click", function () { go(-1); });
+  document.getElementById("next").addEventListener("click", function () { go(1); });
+  // tap the dates to jump back to this week
+  document.getElementById("title").addEventListener("click", function () { if (weekOffset() !== 0) go(-weekOffset()); });
   window.addEventListener("resize", function () { Object.keys(refs).forEach(function (k) { autosize(refs[k].t); }); });
   // phone waking up or reopening the app: catch up on anything missed
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible" && refs && Object.keys(refs).length) {
       var now = new Date();
-      if (iso(now) !== iso(today)) { today = now; thisWeek = weekStart = mondayOf(today); render(); }
+      if (iso(now) !== iso(today)) { today = now; thisWeek = weekStart = mondayOf(today); render(); paintArrows(); }
       loadWeek();
     }
   });
@@ -572,7 +603,7 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
   var editing = true;
   document.body.classList.add("editing");
   var started = false;
-  function START() {
+  function START() { paintArrows();
     if (started) { loadWeek(); return; }
     started = true;
     render(); loadWeek(); listen();
