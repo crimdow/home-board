@@ -56,7 +56,7 @@ body {
   -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
 }
 .wrap {
-  max-width: 500px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column;
+  max-width: 500px; margin: 0 auto; display: flex; flex-direction: column;   /* no forced full height: short lists don't scroll */
   padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(84px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
 }
 header { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 0; }
@@ -570,6 +570,17 @@ body.viewonly .when, body.viewonly .tile, body.viewonly .cell { cursor: default;
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
   var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
   var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Short lists shouldn't scroll: when the keyboard closes, iOS can leave the page nudged
+  // upward. If everything fits on screen, put it back at the top.
+  function snapBack() {
+    setTimeout(function () {
+      if (document.documentElement.scrollHeight <= window.innerHeight + 2 && window.scrollY !== 0) window.scrollTo(0, 0);
+    }, 150);
+  }
+  document.addEventListener("focusout", snapBack);
+  window.addEventListener("resize", snapBack);
+  if (window.visualViewport) visualViewport.addEventListener("resize", snapBack);
 
   // View-only accounts: the database already refuses their changes; this just hides the
   // editing controls so nothing looks tappable. Household logins are "editors".
