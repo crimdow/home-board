@@ -180,7 +180,7 @@ body.editing #gear { display: grid; }
 }
 .tabs { display: flex; justify-content: center; padding-top: 4px; }
 .tabs a {
-  flex: 0 1 150px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  flex: 0 1 120px; display: flex; flex-direction: column; align-items: center; gap: 2px;
   color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 0;
 }
 .tabs a.on { color: var(--ink); }
@@ -387,6 +387,14 @@ body::before {
 @media (display-mode: standalone) {
   .top { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
 }
+
+/* icon-only tab bar (5 pages) */
+.tabs { padding-top: 2px; }
+.tabs a { flex: 0 1 76px !important; padding: 8px 0 6px !important; }
+.tabs svg { width: 29px !important; height: 29px !important; stroke-width: 1.8 !important; }
+.tabs a.on svg { stroke-width: 2.2 !important; }
+.tabs a.on::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; background: var(--ink); margin: 4px auto 0; }
+.tabs a:not(.on)::after { content: ""; display: block; height: 5px; margin-top: 4px; }
 </style>
 </head>
 <body class="checking editing">
@@ -426,12 +434,11 @@ body::before {
 
 <div class="bottom">
   <nav class="tabs">
-    <a href="../">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Week
-    </a>
-    <a href="./" class="on">
-      <svg viewBox="0 0 24 24"><path d="M3 4h2.5l2.2 11h10.6l2-8H6.6"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/></svg>Groceries
-    </a>
+    <a href="../" aria-label="Week" title="Week"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></a>
+    <a href="./" class="on" aria-label="Groceries" title="Groceries"><svg viewBox="0 0 24 24"><path d="M3 4h2.5l2.2 11h10.6l2-8H6.6"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/></svg></a>
+    <a href="../meals/" aria-label="Meals" title="Meals"><svg viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 21V3c-2 1.5-3 4-3 7v3h3"/></svg></a>
+    <a href="../todos/" aria-label="TODOS" title="TODOS"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5"/></svg></a>
+    <a href="../plans/" aria-label="Plans" title="Plans"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></svg></a>
   </nav>
 </div>
 
@@ -512,6 +519,20 @@ body::before {
   });
   $("hideBtn").addEventListener("click", function () { hideGot = !hideGot; saveFilters(); render(); });
 
+
+  // Tap-through pills: repaint the pill now, but hold the list still (and the save) until
+  // the taps stop, so you can cycle past options without the row jumping away.
+  var SETTLE_MS = 1500, settleT = null, pendingSaves = {};
+  function settleLater(key, saveFn) {
+    pendingSaves[key] = saveFn;
+    clearTimeout(settleT);
+    settleT = setTimeout(function () {
+      settleT = null;
+      var fns = pendingSaves; pendingSaves = {};
+      Object.keys(fns).forEach(function (k) { fns[k](); });
+      render();
+    }, SETTLE_MS);
+  }
   // ---- list ----
   function row(it) {
     var el = document.createElement("div");
@@ -526,8 +547,8 @@ body::before {
     el.querySelector(".main").addEventListener("click", function () { if (editing) openSheet(it.id); });
     st.addEventListener("click", function () {
       if (!editing) return;
-      it.store_id = nextStore(it.store_id) || null; render();
-      db.from("grocery_items").update({ store_id: it.store_id }).eq("id", it.id).then(oops);
+      it.store_id = nextStore(it.store_id) || null; paintPill(st, it.store_id);
+      settleLater(it.id, function () { db.from("grocery_items").update({ store_id: it.store_id }).eq("id", it.id).then(oops); });
     });
     el.querySelector(".check").addEventListener("click", function () {
       if (!editing) return;
@@ -677,7 +698,7 @@ body::before {
     ]).then(function (r) {
       if (r[0].error || r[1].error) { toast("Couldn't load the list."); return; }
       stores = r[0].data; items = r[1].data;
-      if (!openId) render();
+      if (!openId && !settleT) render();
       if ($("storeSheet").classList.contains("show") && !$("storeSheet").contains(document.activeElement)) renderStores();
     });
   }
