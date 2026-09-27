@@ -375,6 +375,37 @@ body.viewonly .doc-sheet .duebox button { display: none; }
 .doc-sheet .hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
 .doc-sheet .ddel { display: block; width: 100%; margin-top: 30px; border: 0; border-radius: 12px; background: var(--chip); color: var(--ash); font: inherit; font-size: 16px; font-weight: 700; padding: 13px; cursor: pointer; }
 
+/* ---- Family settings (inside the More menu) ---- */
+#famView h3 small { display: block; margin: 2px 0 0; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
+#famView .fam-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; }
+#famView .fam-row + .fam-row, #famView .fam-row + .fam-add { border-top: 0.5px solid var(--hair); }
+#famView input:not([type]) , #famView .fam-row input.fam-name, #famView .fam-row input.fam-init, #famView .fam-row input.fam-cname, #famView .fam-row input.fam-tlabel {
+  border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; padding: 8px 10px; min-width: 0;
+}
+#famView input:focus { outline: 2px solid var(--ben); }
+#famView input:disabled { opacity: .45; }
+#famView .fam-init { width: 46px; text-align: center; text-transform: uppercase; flex: none; }
+#famView .fam-name, #famView .fam-cname { flex: 1; }
+#famView .fam-tlabel { width: 84px; flex: none; }
+#famView .fam-lbl { flex: 1; font-size: 16px; font-weight: 600; }
+#famView .fam-dot { flex: none; width: 30px; height: 30px; border-radius: 15px; border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--hair); cursor: pointer; padding: 0; }
+#famView .fam-x { flex: none; width: 34px; height: 34px; border-radius: 17px; border: 0; background: var(--chip); color: var(--ash); font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer; }
+#famView .fam-add { display: block; width: 100%; border: 0; background: none; color: var(--ben); font: inherit; font-size: 16px; font-weight: 700; text-align: left; padding: 14px 12px; cursor: pointer; }
+#famView .fam-gap { margin-top: 10px; }
+#famView .fam-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 10px 4px 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+#famView .fam-legend span { display: inline-flex; align-items: center; gap: 6px; }
+#famView .fam-legend i { font-style: normal; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 13px; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+#famView .fam-note { margin: 14px 4px 0; color: var(--muted); font-size: 13px; }
+/* iOS-style switch */
+.fam-sw { position: relative; flex: none; width: 50px; height: 30px; }
+.fam-sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.fam-sw i { position: absolute; inset: 0; border-radius: 15px; background: var(--chip); transition: background-color .2s; }
+.fam-sw i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.fam-sw input:checked + i { background: var(--both); }
+.fam-sw input:checked + i::after { transform: translateX(20px); }
+/* the Family row: editors in a household only */
+body.viewonly #famGroup, body.no-household #famGroup { display: none; }
+
 /* full-page sign-in gate */
 body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
 body.locked .wrap, body.locked .bottom { display: none; }
@@ -504,13 +535,9 @@ body.locked .gate { display: flex; }
 
 @media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
 </style>
-<script>
-  // Which database? The copy on GitHub Pages still uses Supabase; the copy on our own server uses PocketBase.
-  // (Both load the same pages; pb-client.js makes PocketBase look like Supabase to them.)
-  document.write(/github\.io$/.test(location.hostname)
-    ? '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"><\/script>'
-    : '<script src="pocketbase.umd.js"><\/script><script src="pb-client.js"><\/script>');
-</script>
+<!-- the database: PocketBase on our own server (pb-client.js gives the pages the same db.from(...) calls as before) -->
+<script src="pocketbase.umd.js"></script>
+<script src="pb-client.js"></script>
 </head>
 <body class="checking editing">
 
@@ -533,7 +560,10 @@ body.locked .gate { display: flex; }
   <div class="grab"></div>
   <div class="sh-head"><h2 id="moreTitle">More</h2><button class="linkbtn" id="editTabs">Edit tab bar</button></div>
   <div id="pageList"></div>
+  <div id="famView" class="hidden"></div>
   <div id="settings">
+    <div id="famGroup"><h3>Family</h3>
+    <div class="group"><div class="pg-row" id="famRow" role="button" tabindex="0"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.6c2.4.2 4 1.8 4.5 4.4"/></svg></span><span class="nm">Family settings</span><span class="tag">People, columns</span></div></div></div>
     <h3>Appearance</h3>
     <div class="seg" id="modeSeg">
       <button data-m="light">Light</button><button data-m="dark">Dark</button><button data-m="auto">Auto</button>
@@ -552,31 +582,29 @@ body.locked .gate { display: flex; }
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-27a";
+  var VERSION = "2026-09-27d";
 
-  // ---- Supabase connection (the anon key is meant to be public; the tables are protected by login) ----
-  var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
-  var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU";
-  var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ---- database connection ----
+  var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
 
   // ---- every page in the app ----
   // src = page file loaded inside this app. href = older stand-alone page (not moved over yet).
   var ICON = {
-    week: '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    week: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 4.5v15"/>',
     groceries: '<path d="M3 4h2.5l2.2 11h10.6l2-8H6.6"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/>',
     meals: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 21V3c-2 1.5-3 4-3 7v3h3"/>',
     todos: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5"/>',
-    plans: '<path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.4l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
+    plans: '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.3"/>',
     recipes: '<path d="M12 6.5C10.5 5 8 4.5 4 4.5v14c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-14c-4 0-6.5.5-8 2z"/><path d="M12 6.5v14"/>',
     house: '<path d="M3.5 11.5L12 4.5l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5.5h4V20"/>',
     notes: '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8h5M9 12.5h7M9 16h5"/>',
     more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'
   };
   var PAGES = [
-    { id: "week",      name: "Weekly Plan", src: "week.js" },
+    { id: "week",      name: "At a Glance", src: "week.js" },
     { id: "groceries", name: "Groceries",   src: "groceries.js" },
     { id: "meals",     name: "Meals",       src: "meals.js" },
-    { id: "todos",     name: "TODOS",       src: "todos.js" },
+    { id: "todos",     name: "Tasks",       src: "todos.js" },
     { id: "plans",     name: "Plans",       src: "plans.js" },
     { id: "recipes",   name: "Recipes",     src: "recipes.js" },
     { id: "house",     name: "House",       src: "house.js" },
@@ -1095,6 +1123,194 @@ body.locked .gate { display: flex; }
     mod.shown = function () { render(); };
   }
 
+  // ================= Family settings: who can be assigned, and the At a Glance columns =================
+  // Saved on the household (so everyone in the family sees the same), cached on the phone for a fast start.
+  // Colours are theme colour names, so they follow light/dark and the colour themes.
+  var PALETTE = ["ash", "ben", "both", "s3", "s4", "s5", "s6"];
+  var MAX_PEOPLE = 6;
+  var FAMILY_DEFAULT = {
+    people: [
+      { id: "A", initial: "A", name: "Ash", color: "ash" },
+      { id: "B", initial: "B", name: "Ben", color: "ben" }
+    ],
+    together: { on: true, label: "Both", color: "both" },
+    columns: [
+      { key: "drop_off", name: "Drop off", on: true },
+      { key: "pick_up", name: "Pick up", on: true },
+      { key: "dinner", name: "Dinner", on: true }
+    ],
+    weekendColumns: false
+  };
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function normFamily(s) {
+    var d = clone(FAMILY_DEFAULT);
+    s = s && typeof s === "object" ? clone(s) : {};
+    if (!Array.isArray(s.people)) s.people = d.people;
+    s.people = s.people.filter(function (p) { return p && p.id; }).slice(0, MAX_PEOPLE);
+    s.together = Object.assign(d.together, s.together || {});
+    var cols = Array.isArray(s.columns) ? s.columns : [];
+    s.columns = d.columns.map(function (c) { return Object.assign(c, cols.filter(function (x) { return x && x.key === c.key; })[0] || {}); });
+    s.weekendColumns = !!s.weekendColumns;
+    return s;
+  }
+  var family = null, familyId = "", familyListeners = [], famSaveT = null, famOpen = false;
+  try { family = normFamily(JSON.parse(read("hb-family"))); } catch (e) { family = normFamily(null); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  HB.esc = esc;
+  HB.family = function () { return family; };
+  HB.onFamily = function (fn) { familyListeners.push(fn); };
+  // the tap-through order for a "who" bubble: nobody, each person, then the together option
+  HB.whoCycle = function () {
+    var c = [""].concat(family.people.map(function (p) { return p.id; }));
+    if (family.together.on) c.push("Both");
+    return c;
+  };
+  HB.whoInfo = function (v) {
+    if (!v) return null;
+    if (v === "Both") return { id: v, short: family.together.label || "Both", name: family.together.label || "Both", color: family.together.color };
+    var p = family.people.filter(function (x) { return x.id === v; })[0];
+    if (!p) return { id: v, short: "?", name: "someone no longer listed", color: "muted" };
+    return { id: v, short: (p.initial || p.name.charAt(0) || "?").toUpperCase(), name: p.name || p.initial, color: p.color };
+  };
+  HB.colorVar = function (c) { return "var(--" + (PALETTE.indexOf(c) >= 0 ? c : "muted") + ")"; };
+  function emitFamily() {
+    store("hb-family", JSON.stringify(family));
+    familyListeners.forEach(function (fn) { try { fn(family); } catch (e) {} });
+  }
+  function loadFamily(session) {
+    familyId = (session && session.user && session.user.household) || "";
+    document.body.classList.toggle("no-household", !familyId);
+    if (!familyId) return;
+    db.from("households").select("*").eq("id", familyId).then(function (r) {
+      if (r.error || !r.data || !r.data[0]) return;
+      family = normFamily(r.data[0].settings); emitFamily();
+      if (famOpen) renderFamily();
+    });
+    if (loadFamily.live) return;
+    loadFamily.live = true;
+    db.channel("households-live").on("postgres_changes", { event: "*", schema: "public", table: "households" }, function (p) {
+      var row = p.new;
+      if (!row || row.id !== familyId || famSaveT) return;   // ignore our own save in flight
+      family = normFamily(row.settings); emitFamily();
+      if (famOpen && !document.getElementById("famView").contains(document.activeElement)) renderFamily();
+    }).subscribe();
+  }
+  function saveFamily() {
+    emitFamily();
+    clearTimeout(famSaveT);
+    famSaveT = setTimeout(function () {
+      if (!familyId) { famSaveT = null; toast("This login isn't in a household yet."); return; }
+      db.from("households").update({ settings: family }).eq("id", familyId).then(function (r) {
+        famSaveT = null;
+        if (r.error) toast("Couldn't save the family settings.");
+      });
+    }, 500);
+  }
+
+  // ---- the settings screen (inside the More menu) ----
+  var PEOPLE_ICON = '<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.6c2.4.2 4 1.8 4.5 4.4"/></svg>';
+  function sw(cls, on, label) {
+    return '<label class="fam-sw"><input type="checkbox" class="' + cls + '"' + (on ? " checked" : "") + ' aria-label="' + esc(label) + '"><i></i></label>';
+  }
+  function renderFamily() {
+    var f = family, el = document.getElementById("famView");
+    el.innerHTML =
+      '<h3>People <small>who you can assign on At a Glance and Tasks</small></h3>' +
+      '<div class="group">' + f.people.map(function (p, i) {
+        return '<div class="fam-row" data-i="' + i + '">' +
+          '<button type="button" class="fam-dot" style="background:' + HB.colorVar(p.color) + '" aria-label="Change colour"></button>' +
+          '<input class="fam-init" maxlength="2" value="' + esc(p.initial) + '" placeholder="?" aria-label="Initial" autocomplete="off" autocapitalize="characters">' +
+          '<input class="fam-name" value="' + esc(p.name) + '" placeholder="Name" aria-label="Name" autocomplete="off">' +
+          '<button type="button" class="fam-x" aria-label="Remove ' + esc(p.name) + '">×</button></div>';
+      }).join("") +
+      (f.people.length < MAX_PEOPLE ? '<button type="button" class="fam-add">+ Add person</button>' : '') + '</div>' +
+      '<div class="group fam-gap"><div class="fam-row">' + sw("fam-tog", f.together.on, "Together option") +
+        '<span class="fam-lbl">Together</span>' +
+        '<input class="fam-tlabel" maxlength="6" value="' + esc(f.together.label) + '" aria-label="Together label" autocomplete="off"' + (f.together.on ? "" : " disabled") + '>' +
+        '<button type="button" class="fam-dot fam-tdot" style="background:' + HB.colorVar(f.together.color) + '" aria-label="Change colour"></button></div></div>' +
+      '<div class="fam-legend">' + legendHtml() + '</div>' +
+      '<h3>At a Glance columns <small>switch all off for just the days and notes</small></h3>' +
+      '<div class="group">' + f.columns.map(function (c, i) {
+        return '<div class="fam-row" data-c="' + i + '">' + sw("fam-con", c.on, "Show column " + (i + 1)) +
+          '<input class="fam-cname" value="' + esc(c.name) + '" maxlength="14" placeholder="Column ' + (i + 1) + '" aria-label="Column ' + (i + 1) + ' name" autocomplete="off"></div>';
+      }).join("") +
+        '<div class="fam-row">' + sw("fam-wknd", f.weekendColumns, "Columns on Saturday and Sunday") + '<span class="fam-lbl">Columns on Saturday &amp; Sunday</span></div></div>' +
+      '<p class="fam-note">Changes save by themselves and show up on everyone’s phone in the family.</p>';
+  }
+  // the preview: exactly the choices a bubble taps through
+  function legendHtml() {
+    return HB.whoCycle().slice(1).map(function (v) {
+      var w = HB.whoInfo(v);
+      return '<span><i style="background:' + HB.colorVar(w.color) + '">' + esc(w.short) + '</i>' + esc(w.name) + '</span>';
+    }).join("");
+  }
+  function refreshLegend() { var l = document.querySelector("#famView .fam-legend"); if (l) l.innerHTML = legendHtml(); }
+  function newPersonId() {
+    var id;
+    do { id = Math.random().toString(36).slice(2, 6); } while (family.people.some(function (p) { return p.id === id; }) || id === "Both");
+    return id;
+  }
+  function nextColor(cur) { return PALETTE[(PALETTE.indexOf(cur) + 1) % PALETTE.length]; }
+  (function () {
+    var v = document.getElementById("famView");
+    v.addEventListener("click", function (e) {
+      var row = e.target.closest(".fam-row"), i = row && row.dataset.i !== undefined ? +row.dataset.i : -1;
+      if (e.target.closest(".fam-add")) {
+        var used = family.people.map(function (p) { return p.color; });
+        var color = PALETTE.filter(function (c) { return used.indexOf(c) < 0 && c !== "both"; })[0] || "s3";
+        family.people.push({ id: newPersonId(), initial: "", name: "", color: color });
+        saveFamily(); renderFamily();
+        var ins = v.querySelectorAll(".fam-name"); ins[ins.length - 1].focus();
+        return;
+      }
+      if (e.target.closest(".fam-tdot")) { family.together.color = nextColor(family.together.color); saveFamily(); renderFamily(); return; }
+      if (e.target.closest(".fam-dot") && i >= 0) { family.people[i].color = nextColor(family.people[i].color); saveFamily(); renderFamily(); return; }
+      if (e.target.closest(".fam-x") && i >= 0) {
+        var p = family.people[i];
+        if (!confirm("Remove " + (p.name || "this person") + "? Anything already assigned to them will show as “?” until you reassign it.")) return;
+        family.people.splice(i, 1); saveFamily(); renderFamily();
+      }
+    });
+    v.addEventListener("change", function (e) {
+      var t = e.target, row = t.closest(".fam-row");
+      if (t.classList.contains("fam-tog")) { family.together.on = t.checked; saveFamily(); renderFamily(); return; }
+      if (t.classList.contains("fam-wknd")) { family.weekendColumns = t.checked; saveFamily(); return; }
+      if (t.classList.contains("fam-con")) { family.columns[+row.dataset.c].on = t.checked; saveFamily(); return; }
+      // typed fields: save, but don't redraw (you may already be tapping into the next box)
+      if (t.classList.contains("fam-cname")) { var c = family.columns[+row.dataset.c]; c.name = t.value.trim() || c.name; t.value = c.name; saveFamily(); return; }
+      if (t.classList.contains("fam-tlabel")) { family.together.label = t.value.trim() || "Both"; t.value = family.together.label; saveFamily(); refreshLegend(); return; }
+      if (row && row.dataset.i !== undefined) {
+        var p = family.people[+row.dataset.i];
+        if (t.classList.contains("fam-name")) {
+          p.name = t.value.trim();
+          if (!p.initial && p.name) p.initial = p.name.charAt(0).toUpperCase();
+        }
+        if (t.classList.contains("fam-init")) p.initial = t.value.trim().toUpperCase();
+        row.querySelector(".fam-init").value = p.initial;
+        saveFamily(); refreshLegend();
+      }
+    });
+    // Enter moves on instead of doing nothing
+    v.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.tagName === "INPUT") e.target.blur(); });
+  })();
+  function openFamily() {
+    if (HB.viewer) return;
+    famOpen = true; renderFamily();
+    document.getElementById("pageList").classList.add("hidden");
+    document.getElementById("settings").classList.add("hidden");
+    document.getElementById("famView").classList.remove("hidden");
+    document.getElementById("moreTitle").textContent = "Family settings";
+    document.getElementById("editTabs").textContent = "Done";
+    document.getElementById("more").scrollTop = 0;
+  }
+  function closeFamily() {
+    if (document.activeElement) document.activeElement.blur();
+    famOpen = false;
+    document.getElementById("famView").classList.add("hidden");
+    document.getElementById("pageList").classList.remove("hidden");
+    document.getElementById("settings").classList.remove("hidden");
+  }
+
   // Short pages shouldn't scroll: when the keyboard closes, iOS can leave the page nudged up.
   function snapBack() {
     setTimeout(function () {
@@ -1240,8 +1456,13 @@ body.locked .gate { display: flex; }
     var x = page(id);
     if (x.src) { if (id !== current) go(id); } else location.href = x.href;
   });
-  document.getElementById("editTabs").addEventListener("click", function () { editingTabs = !editingTabs; renderList(); });
+  document.getElementById("editTabs").addEventListener("click", function () {
+    if (famOpen) { closeFamily(); renderList(); return; }
+    editingTabs = !editingTabs; renderList();
+  });
+  document.getElementById("famRow").addEventListener("click", openFamily);
   function openMore() {
+    if (famOpen) closeFamily();
     editingTabs = false; renderList(); paintLook();
     document.getElementById("more").scrollTop = 0;
     document.getElementById("moreBg").classList.add("show");
@@ -1347,6 +1568,7 @@ body.locked .gate { display: flex; }
     var who = session && session.user && session.user.email;
     document.getElementById("whoami").textContent = who ? "Signed in as " + who : "Signed in";
     checkRole();
+    loadFamily(session);
     if (!started) { started = true; paintTabs(); show(location.hash.slice(1)); }
   }
   function lock() { document.body.classList.remove("checking"); document.body.classList.add("locked"); }

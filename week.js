@@ -1,8 +1,8 @@
-/* Home Board: Weekly Plan page.
-   Loaded by index.html, which provides HB.db (Supabase), HB.toast and the sign-in.
+/* Home Board: At a Glance page (the week).
+   Loaded by index.html, which provides HB.db (the database), HB.toast and the sign-in.
    Everything below only draws and saves the week. */
 HB.register("week", {
-  title: "Weekly Plan",
+  title: "At a Glance",
 
   css: `
 #pg-week header { align-items: center; }
@@ -55,9 +55,9 @@ HB.register("week", {
   transition: transform .12s ease, background-color .35s ease;
 }
 #pg-week .cell:active { transform: scale(.92); }
-#pg-week .cell[data-v="A"] { background: var(--ash); color: #fff; }
-#pg-week .cell[data-v="B"] { background: var(--ben); color: #fff; }
-#pg-week .cell[data-v="Both"] { background: var(--both); color: #fff; font-size: 11px; letter-spacing: -0.2px; }
+#pg-week .cell.filled { color: #fff; }
+#pg-week .cell.long { font-size: 11px; letter-spacing: -0.2px; }
+#pg-week .cols[hidden] { display: none; }
 #pg-week .cell:focus-visible, #pg-week textarea:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; }
 #pg-week .cell svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
 
@@ -91,14 +91,14 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
   mount: function (root) {
     var db = HB.db, toast = HB.toast;
     var PERSON_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>';   // empty bubble: tap to assign
-    var CYCLE = ["", "A", "B", "Both"];
-    var NAMES = { "": "nobody yet", A: "Ash", B: "Ben", Both: "both of us" };
     var SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    var FIELDS = [["drop_off","Drop off"],["pick_up","Pick up"],["dinner","Dinner"]];
+    // the columns and people come from Family settings (☰ → Family settings)
+    var FIELDS = [];
+    function readFields() { FIELDS = HB.family().columns.filter(function (c) { return c.on; }).map(function (c) { return [c.key, c.name]; }); }
 
     root.innerHTML =
       '<div class="top"><header>' +
-        '<div class="title"><h1>Weekly Plan</h1></div>' +
+        '<div class="title"><h1>At a Glance</h1></div>' +
         '<div class="nav"><span class="vo">View only</span>' +
           // last week / this week / next week only
           '<span class="wk-nav">' +
@@ -107,7 +107,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
             '<button class="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>' +
           '</span></div>' +
       '</header>' +
-      '<div class="cols"><span></span><span>Drop off</span><span>Pick up</span><span>Dinner</span></div></div>' +
+      '<div class="cols"></div></div>' +
       '<div class="days"></div>';
     var daysEl = root.querySelector(".days"), rangeEl = root.querySelector(".range");
     var prevBtn = root.querySelector(".prev"), nextBtn = root.querySelector(".next");
@@ -145,26 +145,35 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     function applyRow(key) {
       var r = refs[key]; if (!r) return;
       var row = data[key] || blank();
-      FIELDS.forEach(function (f) { if (r.paint[f[0]]) r.paint[f[0]](CYCLE.indexOf(row[f[0]] || "") > 0 ? row[f[0]] : ""); });
+      FIELDS.forEach(function (f) { if (r.paint[f[0]]) r.paint[f[0]](row[f[0]] || ""); });
       if (document.activeElement !== r.t) { r.t.value = row.notes || ""; autosize(r.t); }
       r.day.classList.toggle("has-note", !!(row.notes || "").trim());
       if ((row.notes || "").trim()) autosize(r.t);
     }
 
     function render() {
+      readFields();
       daysEl.innerHTML = ""; refs = {};
+      var grid = "56px" + (FIELDS.length ? " repeat(" + FIELDS.length + ", 1fr)" : " 1fr");
+      var colsEl = root.querySelector(".cols");
+      colsEl.hidden = !FIELDS.length;
+      colsEl.style.gridTemplateColumns = grid;
+      colsEl.innerHTML = "<span></span>" + FIELDS.map(function (f) { return "<span>" + HB.esc(f[1]) + "</span>"; }).join("");
+      var weekendCols = HB.family().weekendColumns;
       var sun = addDays(weekStart, 6);
       rangeEl.textContent = SHORT[weekStart.getMonth()] + " " + weekStart.getDate() + " – " +
         (sun.getMonth() !== weekStart.getMonth() ? SHORT[sun.getMonth()] + " " : "") + sun.getDate();
 
       ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(function (label, i) {
-        var weekend = i >= 5;   // Sat & Sun: just a note, no drop off / pick up / dinner
+        // a note-only row: no columns switched on, or Sat & Sun when "show on weekends" is off
+        var weekend = !FIELDS.length || (i >= 5 && !weekendCols);
         var date = addDays(weekStart, i);
         var key = iso(date);
         var day = document.createElement("section");
         day.className = "day" + (weekend ? " weekend" : "") + (key === iso(today) ? " today" : "");
         var r = document.createElement("div");
         r.className = "row";
+        r.style.gridTemplateColumns = grid;
 
         var dn = document.createElement("button");
         dn.className = "dname";
@@ -181,12 +190,18 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
           var b = document.createElement("button");
           b.className = "cell";
           paint[f[0]] = function (v) {
-            b.dataset.v = v; if (v) b.textContent = v; else b.innerHTML = PERSON_ICON;
-            b.setAttribute("aria-label", label + " " + f[1] + ": " + NAMES[v]);
+            var who = HB.whoInfo(v);
+            b.dataset.v = v || "";
+            b.classList.toggle("filled", !!who);
+            b.classList.toggle("long", !!who && who.short.length > 2);
+            b.style.background = who ? HB.colorVar(who.color) : "";
+            if (who) b.textContent = who.short; else b.innerHTML = PERSON_ICON;
+            b.setAttribute("aria-label", label + " " + f[1] + ": " + (who ? who.name : "nobody yet"));
           };
           paint[f[0]]("");
           b.addEventListener("click", function () {
-            var v = CYCLE[(CYCLE.indexOf(b.dataset.v) + 1) % CYCLE.length];
+            var cycle = HB.whoCycle();
+            var v = cycle[(Math.max(0, cycle.indexOf(b.dataset.v)) + 1) % cycle.length];
             paint[f[0]](v);
             saveField(key, f[0], v);
           });
@@ -264,6 +279,9 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       loadWeek();
     };
     this.shown = function () { Object.keys(refs).forEach(function (k) { autosize(refs[k].t); }); };
+
+    // Family settings changed (here or on another phone): redraw with the new people / columns
+    HB.onFamily(function () { render(); });
 
     render(); paintArrows(); loadWeek();
   }
