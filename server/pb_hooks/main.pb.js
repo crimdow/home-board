@@ -43,18 +43,18 @@ routerAdd("GET", "/cal/{file}", (e) => {
              "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H"];
   plans.forEach((p) => {
     const name = p.getString("name"), note = p.getString("note"), date = p.getString("date");
-    // a time in the name or note ("2pm", "6:30 pm") makes it a 2-hour event; otherwise all-day
-    const t = (name + " " + note).match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)\b/i);
+    const start = p.getString("start_time"), end = p.getString("end_time"), loc = p.getString("location");
     L.push("BEGIN:VEVENT", "UID:" + p.id + "@home-board", "DTSTAMP:" + stampOf(p.getString("created_at")));
-    if (t) {
-      const h = (Number(t[1]) % 12) + (/p/i.test(t[3]) ? 12 : 0), mi = Number(t[2] || 0);
-      const endH = h + 2;
-      const endDate = endH >= 24 ? nextDay(date) : date;
-      L.push("DTSTART:" + ymd(date) + "T" + pad(h) + pad(mi) + "00", "DTEND:" + ymd(endDate) + "T" + pad(endH % 24) + pad(mi) + "00");
+    if (/^\d\d:\d\d$/.test(start)) {
+      // a timed plan; no end = 1 hour; an end earlier than the start runs past midnight
+      let stop = /^\d\d:\d\d$/.test(end) ? end : pad(Math.min(23, Number(start.slice(0, 2)) + 1)) + start.slice(2);
+      const endDate = stop <= start ? nextDay(date) : date;
+      L.push("DTSTART:" + ymd(date) + "T" + start.replace(":", "") + "00", "DTEND:" + ymd(endDate) + "T" + stop.replace(":", "") + "00");
     } else {
       L.push("DTSTART;VALUE=DATE:" + ymd(date), "DTEND;VALUE=DATE:" + ymd(nextDay(date)));
     }
     L.push("SUMMARY:" + esc(name));
+    if (loc) L.push("LOCATION:" + esc(loc));
     if (note) L.push("DESCRIPTION:" + esc(note));
     L.push("END:VEVENT");
   });
