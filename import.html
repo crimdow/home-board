@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Home Board: import</title>
+<style>
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #e4e5e8; color: #2b2e33; }
+  @media (prefers-color-scheme: dark) { body { background: #1d1e22; color: #e4e4e2; } input { background: #2a2b30 !important; color: #e4e4e2; } }
+  main { max-width: 480px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 26px; margin: 0 0 8px; }
+  p { line-height: 1.5; color: #7a7f88; }
+  input { display: block; width: 100%; box-sizing: border-box; border: 0; border-radius: 12px; background: #d9dbdf; font: inherit; font-size: 17px; padding: 13px; margin-top: 10px; }
+  button { width: 100%; border: 0; border-radius: 12px; background: #4f7bd4; color: #fff; font: inherit; font-size: 17px; font-weight: 700; padding: 14px; margin-top: 12px; }
+  button.danger { background: #d45b6c; }
+  button:disabled { opacity: .5; }
+  pre { white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+  .hidden { display: none; }
+</style>
+<script src="pocketbase.umd.js"></script>
+</head>
+<body>
+<main>
+  <h1>Import Home Board</h1>
+  <p>Loads <b>home-board-export.json</b> (from the old app's export page) into this server. Sign in with a household login.</p>
+  <form id="login" class="hidden">
+    <input id="email" type="email" placeholder="Email" autocomplete="username">
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+    <button type="submit">Sign in</button>
+  </form>
+  <div id="step" class="hidden">
+    <input id="file" type="file" accept=".json,application/json">
+    <button id="go" class="danger" disabled>Import (replaces everything on this server)</button>
+  </div>
+  <pre id="log"></pre>
+</main>
+<script>
+(function () {
+  var pb = new PocketBase(location.origin); pb.autoCancellation(false);
+  var ORDER = ["grocery_stores", "grocery_items", "days", "meals", "todos", "plans", "recipes", "house_items", "notes"];
+  var log = document.getElementById("log"), data = null;
+  function say(t) { log.textContent += t + "\n"; }
+  function $(id) { return document.getElementById(id); }
+  function ready() {
+    var rec = pb.authStore.record;
+    if (!pb.authStore.isValid || !rec) { $("login").classList.remove("hidden"); $("step").classList.add("hidden"); return; }
+    if (rec.role !== "editor") { log.textContent = rec.email + " isn't a household (editor) login. Sign in as Ben or Ash."; pb.authStore.clear(); $("login").classList.remove("hidden"); return; }
+    $("login").classList.add("hidden"); $("step").classList.remove("hidden");
+    log.textContent = "Signed in as " + rec.email + ".\n";
+  }
+  $("login").addEventListener("submit", function (e) {
+    e.preventDefault();
+    pb.collection("users").authWithPassword($("email").value.trim(), $("password").value).then(ready, function () { log.textContent = "That email or password didn't match."; });
+  });
+  $("file").addEventListener("change", function () {
+    var f = $("file").files[0]; if (!f) return;
+    f.text().then(function (t) {
+      try { data = JSON.parse(t); } catch (e) { say("That isn't a Home Board export file."); return; }
+      if (!data.tables) { say("That isn't a Home Board export file."); data = null; return; }
+      say("File from " + (data.exported_at || "?") + ":");
+      ORDER.forEach(function (k) { if (data.tables[k]) say("  " + k + ": " + data.tables[k].length); });
+      $("go").disabled = false;
+    });
+  });
+
+  // old database value -> PocketBase value (empty instead of null; lists stay lists)
+  function clean(row, map) {
+    var out = {};
+    Object.keys(row).forEach(function (k) {
+      if (k === "id") return;
+      var v = row[k];
+      if (k === "store_id") v = v && map[v] ? map[v] : "";
+      if (v === null || v === undefined) v = k === "repeat_days" ? 0 : (k === "tags" || k === "photos") ? [] : k === "done" || k === "pinned" ? false : "";
+      out[k] = v;
+    });
+    if (!out.created_at) out.created_at = new Date().toISOString();
+    if (!out.updated_at) out.updated_at = out.created_at;
+    return out;
+  }
+  $("go").addEventListener("click", function () {
+    if (!data || !confirm("Replace everything on this server with the file's data?")) return;
+    $("go").disabled = true; log.textContent = "";
+    var storeMap = {};
+    ORDER.reduce(function (p, name) {
+      return p.then(function () {
+        var rows = data.tables[name]; if (!rows) { say(name + ": not in file, left as is"); return; }
+        var col = pb.collection(name);
+        return col.getFullList().then(function (old) {
+          return old.reduce(function (q, r) { return q.then(function () { return col.delete(r.id); }); }, Promise.resolve());
+        }).then(function () {
+          var n = 0;
+          return rows.reduce(function (q, row) {
+            return q.then(function () {
+              return col.create(clean(row, storeMap)).then(function (rec) {
+                if (name === "grocery_stores") storeMap[row.id] = rec.id;
+                n++;
+              });
+            });
+          }, Promise.resolve()).then(function () { say(name + ": " + n + " imported"); });
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      say("\nAll done. Open the app on this server to check it.");
+    }, function (e) {
+      say("\nStopped: " + ((e && e.response && JSON.stringify(e.response)) || e));
+      $("go").disabled = false;
+    });
+  });
+  ready();
+})();
+</script>
+</body>
+</html>

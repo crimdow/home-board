@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Home Board: export</title>
+<style>
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #e4e5e8; color: #2b2e33; }
+  @media (prefers-color-scheme: dark) { body { background: #1d1e22; color: #e4e4e2; } }
+  main { max-width: 480px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 26px; margin: 0 0 8px; }
+  p { line-height: 1.5; color: #7a7f88; }
+  button { width: 100%; border: 0; border-radius: 12px; background: #4f7bd4; color: #fff; font: inherit; font-size: 17px; font-weight: 700; padding: 14px; margin-top: 12px; }
+  button:disabled { opacity: .5; }
+  pre { white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+  input { display: block; width: 100%; box-sizing: border-box; border: 0; border-radius: 12px; background: #d9dbdf; font: inherit; font-size: 17px; padding: 13px; margin-top: 10px; }
+  @media (prefers-color-scheme: dark) { input { background: #2a2b30; color: #e4e4e2; } }
+  .hidden { display: none; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<main>
+  <h1>Export Home Board</h1>
+  <p>Saves everything from the current database into one file, <b>home-board-export.json</b>, for moving to the new server. It only reads; nothing is changed.</p>
+  <form id="login" class="hidden">
+    <input id="email" type="email" placeholder="Email" autocomplete="username">
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+    <button type="submit">Sign in</button>
+  </form>
+  <button id="go" class="hidden">Download my data</button>
+  <pre id="log"></pre>
+</main>
+<script>
+(function () {
+  var db = window.supabase.createClient("https://rkvfdveuqueavjsredtm.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmZkdmV1cXVlYXZqc3JlZHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxOTY2OTcsImV4cCI6MjEwNTc3MjY5N30.yDt5ivDzLFoBRvrzzuSmT4EEMnIcsjx3XWkvQ6iTfeU");
+  var TABLES = ["days", "grocery_stores", "grocery_items", "meals", "todos", "plans", "recipes", "house_items", "notes"];
+  var log = document.getElementById("log"), btn = document.getElementById("go");
+  function say(t) { log.textContent += t + "\n"; }
+  function ready() {
+    db.auth.getSession().then(function (s) {
+      var on = !!s.data.session;
+      document.getElementById("login").classList.toggle("hidden", on);
+      btn.classList.toggle("hidden", !on);
+    });
+  }
+  document.getElementById("login").addEventListener("submit", function (e) {
+    e.preventDefault();
+    db.auth.signInWithPassword({ email: document.getElementById("email").value.trim(), password: document.getElementById("password").value })
+      .then(function (r) { if (r.error) log.textContent = "That email or password didn't match."; else { log.textContent = ""; ready(); } });
+  });
+  ready();
+  btn.addEventListener("click", function () {
+    btn.disabled = true; log.textContent = "";
+    db.auth.getSession().then(function (s) {
+      if (!s.data.session) { say("Please sign in first."); btn.disabled = false; return; }
+      var out = { exported_at: new Date().toISOString(), tables: {} };
+      return TABLES.reduce(function (p, t) {
+        return p.then(function () {
+          return db.from(t).select("*").then(function (r) {
+            if (r.error) { say(t + ": skipped (" + r.error.message + ")"); return; }
+            out.tables[t] = r.data; say(t + ": " + r.data.length + " rows");
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        var blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = "home-board-export.json";
+        document.body.appendChild(a); a.click(); a.remove();
+        say("\nDone. The file is in your Downloads (on iPhone: Files app → Downloads).");
+        btn.disabled = false;
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

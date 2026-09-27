@@ -8,7 +8,7 @@
 <script>
   // Safety net: GitHub Pages shows this page for any address that doesn't exist
   // (old folder links like /todos/, cached pages, "meals 2.html", typos...).
-  // Work out which Home Board page was meant and go straight there.
+  // Work out which Home Board page was meant and open it inside the app.
   (function () {
     var path = location.pathname.toLowerCase();
     var parts = location.pathname.split("/").filter(Boolean);
@@ -17,9 +17,9 @@
     var pages = ["groceries", "meals", "todos", "plans"];
     var target = "";
     for (var i = 0; i < pages.length; i++) {
-      if (path.indexOf(pages[i]) >= 0) { target = pages[i] + ".html"; break; }
+      if (path.indexOf(pages[i]) >= 0) { target = "#" + pages[i]; break; }
     }
-    location.replace(base + target + location.hash);
+    location.replace(base + (target || location.hash));
   })();
 </script>
 <style>

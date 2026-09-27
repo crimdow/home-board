@@ -504,7 +504,13 @@ body.locked .gate { display: flex; }
 
 @media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+  // Which database? The copy on GitHub Pages still uses Supabase; the copy on our own server uses PocketBase.
+  // (Both load the same pages; pb-client.js makes PocketBase look like Supabase to them.)
+  document.write(/github\.io$/.test(location.hostname)
+    ? '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"><\/script>'
+    : '<script src="pocketbase.umd.js"><\/script><script src="pb-client.js"><\/script>');
+</script>
 </head>
 <body class="checking editing">
 
@@ -546,7 +552,7 @@ body.locked .gate { display: flex; }
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-26d";
+  var VERSION = "2026-09-27a";
 
   // ---- Supabase connection (the anon key is meant to be public; the tables are protected by login) ----
   var SUPABASE_URL = "https://rkvfdveuqueavjsredtm.supabase.co";
