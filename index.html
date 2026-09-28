@@ -634,7 +634,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-28f";
+  var VERSION = "2026-09-28g";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -780,6 +780,26 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     el.setAttribute("data-1p-ignore", "");              // 1Password
     el.setAttribute("data-bwignore", "");               // Bitwarden
   }
+  // Keyboard toolbar: while typing in an add bar, take every other box out of the ⌃ ⌄ order,
+  // so the arrows don't jump into hidden date boxes or fields behind the bar. Tapping still works.
+  var parked = [];
+  document.addEventListener("focusin", function (e) {
+    var t = e.target;
+    if (!t || t.id !== "quickText") return;
+    document.querySelectorAll("input, textarea, select").forEach(function (el) {
+      if (el === t || el.dataset.parked) return;
+      el.dataset.parked = el.hasAttribute("tabindex") ? el.getAttribute("tabindex") : "none";
+      el.setAttribute("tabindex", "-1"); parked.push(el);
+    });
+  });
+  document.addEventListener("focusout", function (e) {
+    if (!e.target || e.target.id !== "quickText") return;
+    parked.forEach(function (el) {
+      var v = el.dataset.parked; delete el.dataset.parked;
+      if (v === "none") el.removeAttribute("tabindex"); else el.setAttribute("tabindex", v);
+    });
+    parked = [];
+  });
   function noAutofillIn(root) { root.querySelectorAll("input, textarea").forEach(noAutofill); }
   ["pages", "more"].forEach(function (id) {
     var box = document.getElementById(id); noAutofillIn(box);
