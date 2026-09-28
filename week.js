@@ -44,7 +44,9 @@ HB.register("week", {
 #pg-week .home svg .hs { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 #pg-week .home svg .hf { fill: currentColor; }
 #pg-week .home svg text { fill: currentColor; font: 800 10px/1 -apple-system, system-ui, sans-serif; text-anchor: middle; }
-#pg-week .home.empty { color: var(--muted); opacity: .28; }
+#pg-week .home.empty { color: var(--muted); opacity: .45; }
+/* an unmarked house only shows while that day is open (tap the date) */
+#pg-week .day:not(.open) .home.empty { display: none; }
 #pg-week .home[hidden] { display: none; }
 body.viewonly #pg-week .home.empty { display: none; }
 body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill */
@@ -203,7 +205,8 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 
       ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(function (label, i) {
         // a note-only row: no columns switched on, or Sat & Sun when "show on weekends" is off
-        var weekend = !FIELDS.length || (i >= 5 && !weekendCols);
+        var satSun = i >= 5 && !weekendCols;
+        var weekend = !FIELDS.length || satSun;
         var date = addDays(weekStart, i);
         var key = iso(date);
         var day = document.createElement("section");
@@ -221,7 +224,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
         dc.appendChild(dn);
         var hb = document.createElement("button");
         hb.type = "button"; hb.className = "home";
-        hb.hidden = !HB.family().homeTag;
+        hb.hidden = !HB.family().homeTag || satSun;   // weekdays only (or every day when columns show on weekends)
         var paintHome = function (v) {
           var who = v ? homeInfo(v) : null;
           hb.dataset.v = v || "";
@@ -286,7 +289,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
         if (weekend) r.addEventListener("click", toggleNote); else dn.addEventListener("click", toggleNote);
 
         daysEl.appendChild(day);
-        refs[key] = { paint: paint, paintHome: paintHome, t: t, day: day };
+        refs[key] = { paint: paint, paintHome: satSun ? null : paintHome, t: t, day: day };
         applyRow(key);
       });
     }
