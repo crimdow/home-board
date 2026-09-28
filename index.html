@@ -634,7 +634,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-28e";
+  var VERSION = "2026-09-28f";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -762,6 +762,31 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     }, 60);
   }
   HB.closeSwipe = closeSwipe;
+
+  // ---- no AutoFill in the app's own boxes ----
+  // iPhones offer contacts / addresses / passwords for text boxes they think look like a form.
+  // Every box inside the app (not the sign-in screen) is marked as "not a form field" for Safari
+  // and password managers, and gets a meaningless name so nothing matches it.
+  var afN = 0;
+  function noAutofill(el) {
+    if (el.dataset.noaf) return;
+    var t = (el.getAttribute("type") || "text").toLowerCase();
+    if (["text", "search", "url", "tel", "number", ""].indexOf(t) < 0 && el.tagName !== "TEXTAREA") return;
+    el.dataset.noaf = "1";
+    el.setAttribute("autocomplete", "off");
+    el.setAttribute("name", "hb-box-" + (++afN));
+    el.setAttribute("data-form-type", "other");        // Dashlane and friends
+    el.setAttribute("data-lpignore", "true");           // LastPass
+    el.setAttribute("data-1p-ignore", "");              // 1Password
+    el.setAttribute("data-bwignore", "");               // Bitwarden
+  }
+  function noAutofillIn(root) { root.querySelectorAll("input, textarea").forEach(noAutofill); }
+  ["pages", "more"].forEach(function (id) {
+    var box = document.getElementById(id); noAutofillIn(box);
+    new MutationObserver(function (list) {
+      list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) { if (/^(INPUT|TEXTAREA)$/.test(n.tagName)) noAutofill(n); else noAutofillIn(n); } }); });
+    }).observe(box, { childList: true, subtree: true });
+  });
   HB.swipeable = swipeable; HB.deleteWithUndo = deleteWithUndo; HB.notPending = notPending; HB.flushDelete = flushDelete; HB.reveal = reveal;
 
   // ================= shared engine for the Recipes, House and Notes pages =================
@@ -1284,7 +1309,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         return '<div class="fam-row" data-i="' + i + '">' +
           '<button type="button" class="fam-dot" style="background:' + HB.colorVar(p.color) + '" aria-label="Change colour"></button>' +
           '<input class="fam-init" maxlength="2" value="' + esc(p.initial) + '" placeholder="?" aria-label="Initial" autocomplete="off" autocapitalize="characters">' +
-          '<input class="fam-name" value="' + esc(p.name) + '" placeholder="Name" aria-label="Name" autocomplete="off">' +
+          '<input class="fam-name" value="' + esc(p.name) + '" placeholder="Who" aria-label="Person" autocomplete="off">' +
           '<button type="button" class="fam-x" aria-label="Remove ' + esc(p.name) + '">×</button></div>';
       }).join("") +
       (f.people.length < MAX_PEOPLE ? '<button type="button" class="fam-add">+ Add person</button>' : '') + '</div>' +
