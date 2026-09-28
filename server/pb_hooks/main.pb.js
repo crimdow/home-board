@@ -14,7 +14,7 @@ cronAdd("home-board-tidy", "30 6 * * *", () => {
 
   const oldDays = $app.findRecordsByFilter("days", "date < {:d}", "", 1000, 0, { d: iso(keepFrom) });
   oldDays.forEach((r) => $app.delete(r));
-  const oldPlans = $app.findRecordsByFilter("plans", "date != '' && date < {:d}", "", 1000, 0, { d: iso(weekAgo) });
+  const oldPlans = $app.findRecordsByFilter("plans", "date != '' && idea = false && date < {:d}", "", 1000, 0, { d: iso(weekAgo) });
   oldPlans.forEach((r) => $app.delete(r));
   const oldInvites = $app.findRecordsByFilter("invites", "expires_at < {:n}", "", 1000, 0, { n: new Date(Date.now() - 30 * 86400000).toISOString() });
   oldInvites.forEach((r) => $app.delete(r));
@@ -40,7 +40,7 @@ routerAdd("GET", "/cal/{file}", (e) => {
   function stampOf(s) { const d = new Date(s || Date.now()); return isNaN(d) ? "20260101T000000Z" : d.toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z"); }
 
   const from = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
-  const plans = $app.findRecordsByFilter("plans", "household = {:h} && date != '' && date >= {:f}", "date", 2000, 0, { h: household, f: from });
+  const plans = $app.findRecordsByFilter("plans", "household = {:h} && date != '' && idea = false && date >= {:f}", "date", 2000, 0, { h: household, f: from });
   const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Home Board//Plans//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
              "X-WR-CALNAME:Home Board Plans", "X-WR-TIMEZONE:America/New_York",
              "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H"];
