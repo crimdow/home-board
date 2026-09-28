@@ -634,7 +634,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-28d";
+  var VERSION = "2026-09-28e";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -690,15 +690,19 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   var openSwipe = null;
   function closeSwipe() { if (openSwipe) { var w = openSwipe; w.querySelector(".item").style.transform = ""; openSwipe = null; setTimeout(function () { if (openSwipe !== w) w.classList.remove("open"); }, 220); } }
   document.addEventListener("touchstart", function (e) { if (openSwipe && !openSwipe.contains(e.target)) closeSwipe(); }, { passive: true });
-  function swipeable(el, onDelete) {
+  // extra (optional): another button shown beside Delete, e.g. Plans' "To Calendar"
+  function swipeable(el, onDelete, extra) {
     var wrap = document.createElement("div"); wrap.className = "swipe";
     var bg = document.createElement("button"); bg.type = "button"; bg.className = "delbg"; bg.textContent = "Delete";
-    wrap.appendChild(bg); wrap.appendChild(el);
+    wrap.appendChild(bg);
+    var W = 88;
+    if (extra) { wrap.appendChild(extra); W = 88 + (extra.offsetWidth || 96); }
+    wrap.appendChild(el);
     var x0 = 0, y0 = 0, dx = 0, mode = "", base = 0;
     el.addEventListener("touchstart", function (e) {
       if (document.body.classList.contains("viewonly")) return;
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = "";
-      base = openSwipe === wrap ? -88 : 0;
+      base = openSwipe === wrap ? -W : 0;
     }, { passive: true });
     el.addEventListener("touchmove", function (e) {
       if (document.body.classList.contains("viewonly")) return;
@@ -714,7 +718,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       wrap.classList.remove("dragging");
       if (mode !== "x") return;
       if (dx < -el.offsetWidth * 0.6) { wrap.classList.add("open"); el.style.transform = "translateX(-100%)"; setTimeout(onDelete, 180); openSwipe = null; }
-      else if (dx < -44) { el.style.transform = "translateX(-88px)"; openSwipe = wrap; wrap.classList.add("open"); }
+      else if (dx < -44) { el.style.transform = "translateX(-" + W + "px)"; openSwipe = wrap; wrap.classList.add("open"); }
       else { el.style.transform = ""; if (openSwipe === wrap) openSwipe = null; setTimeout(function () { if (openSwipe !== wrap) wrap.classList.remove("open"); }, 220); }
     });
     // a tap on a row that's swiped open just closes it
@@ -757,6 +761,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
     }, 60);
   }
+  HB.closeSwipe = closeSwipe;
   HB.swipeable = swipeable; HB.deleteWithUndo = deleteWithUndo; HB.notPending = notPending; HB.flushDelete = flushDelete; HB.reveal = reveal;
 
   // ================= shared engine for the Recipes, House and Notes pages =================
