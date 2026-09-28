@@ -21,7 +21,7 @@ HB.register("week", {
 #pg-week .wk-nav.other { background: color-mix(in srgb, var(--ben) 16%, var(--chip)); }
 
 #pg-week .cols {
-  display: grid; grid-template-columns: 56px repeat(3, 1fr);
+  display: grid; grid-template-columns: 62px repeat(3, 1fr);
   padding: 8px 0 6px; border-bottom: 0.5px solid var(--hair);
   font-size: 13px; font-weight: 700; color: var(--muted); text-align: center;
 }
@@ -31,7 +31,24 @@ HB.register("week", {
   display: flex; flex-direction: column; justify-content: center;
   transition: background-color .35s ease;
 }
-#pg-week .row { display: grid; grid-template-columns: 56px repeat(3, 1fr); align-items: center; }
+#pg-week .row { display: grid; grid-template-columns: 62px repeat(3, 1fr); align-items: center; }
+/* who's home: a little house beside the date (faint outline = nobody marked) */
+#pg-week .dcell { position: relative; align-self: stretch; display: flex; align-items: center; }
+#pg-week .home {
+  position: absolute; right: 0; bottom: 3px; width: 30px; height: 30px; padding: 0;
+  appearance: none; border: 0; background: none; cursor: pointer; display: grid; place-items: center;
+  -webkit-tap-highlight-color: transparent; transition: transform .12s ease;
+}
+#pg-week .home:active { transform: scale(.88); }
+#pg-week .home svg { width: 26px; height: 26px; overflow: visible; }
+#pg-week .home svg .hs { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#pg-week .home svg .hf { fill: currentColor; }
+#pg-week .home svg text { fill: currentColor; font: 800 10px/1 -apple-system, system-ui, sans-serif; text-anchor: middle; }
+#pg-week .home.empty { color: var(--muted); opacity: .28; }
+#pg-week .home[hidden] { display: none; }
+body.viewonly #pg-week .home.empty { display: none; }
+body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill */
+body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill */
 #pg-week .dname {
   display: flex; flex-direction: column; align-items: flex-start;
   appearance: none; border: 0; background: none; color: inherit; font: inherit; cursor: pointer;
@@ -59,7 +76,8 @@ HB.register("week", {
 #pg-week .cell.long { font-size: 11px; letter-spacing: -0.2px; }
 #pg-week .cols[hidden] { display: none; }
 #pg-week .cell:focus-visible, #pg-week textarea:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; }
-#pg-week .cell svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
+#pg-week .cell svg.both-ic { width: 26px; height: 26px; fill: currentColor; stroke: none; }
+#pg-week .cell svg:not(.both-ic) { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
 
 #pg-week .notes-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .2s ease; }
 #pg-week .notes-panel > div { overflow: hidden; }
@@ -120,7 +138,25 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
     function mondayOf(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -((x.getDay() + 6) % 7)); }
     function autosize(t) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
-    function blank() { return { drop_off: "", pick_up: "", dinner: "", notes: "" }; }
+    function blank() { return { drop_off: "", pick_up: "", dinner: "", home: "", notes: "" }; }
+    // the house: outline + the person's initial, or two little people for "both"
+    function houseSvg(who) {
+      var inner = "";
+      if (who && who.id === "Both") inner =
+        '<g class="hf" transform="translate(6.2 9.4) scale(.48)"><circle cx="8.3" cy="8.6" r="2.9"/><circle cx="15.7" cy="8.6" r="2.9"/>' +
+        '<path d="M2.8 19c.4-3.6 2.6-5.6 5.5-5.6s5.1 2 5.5 5.6zM10.7 19c.4-3.6 2.6-5.6 5-5.6 2.9 0 5.1 2 5.5 5.6z"/></g>';
+      else if (who) inner = '<text x="12" y="' + (who.short.length > 1 ? "17.8" : "18.4") + '"' + (who.short.length > 1 ? ' style="font-size:7px"' : "") + '>' + HB.esc(who.short) + '</text>';
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="hs" d="M3 11.2 12 4l9 7.2"/><path class="hs" d="M5.2 9.6V20.2h13.6V9.6"/>' + inner + '</svg>';
+    }
+    function homeCycle() {
+      var c = [""].concat(HB.family().people.map(function (p) { return p.id; }));
+      c.push("Both");   // "both home" always makes sense, even with the Together option off
+      return c;
+    }
+    function homeInfo(v) {
+      if (v === "Both") { var t = HB.family().together; return { id: "Both", short: "", name: "everyone", color: t.color }; }
+      return HB.whoInfo(v);
+    }
     var thisWeek = mondayOf(today), weekStart = thisWeek;
 
     // ---- saving ----
@@ -146,6 +182,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       var r = refs[key]; if (!r) return;
       var row = data[key] || blank();
       FIELDS.forEach(function (f) { if (r.paint[f[0]]) r.paint[f[0]](row[f[0]] || ""); });
+      if (r.paintHome) r.paintHome(row.home || "");
       if (document.activeElement !== r.t) { r.t.value = row.notes || ""; autosize(r.t); }
       r.day.classList.toggle("has-note", !!(row.notes || "").trim());
       if ((row.notes || "").trim()) autosize(r.t);
@@ -154,7 +191,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     function render() {
       readFields();
       daysEl.innerHTML = ""; refs = {};
-      var grid = "56px" + (FIELDS.length ? " repeat(" + FIELDS.length + ", 1fr)" : " 1fr");
+      var grid = "62px" + (FIELDS.length ? " repeat(" + FIELDS.length + ", 1fr)" : " 1fr");
       var colsEl = root.querySelector(".cols");
       colsEl.hidden = !FIELDS.length;
       colsEl.style.gridTemplateColumns = grid;
@@ -180,7 +217,26 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
         dn.setAttribute("aria-expanded", "false");
         dn.setAttribute("aria-label", label + " " + date.getDate() + ", show notes");
         dn.innerHTML = '<span class="dow">' + label + '</span><span class="num">' + date.getDate() + '</span>';
-        r.appendChild(dn);
+        var dc = document.createElement("div"); dc.className = "dcell";
+        dc.appendChild(dn);
+        var hb = document.createElement("button");
+        hb.type = "button"; hb.className = "home";
+        hb.hidden = !HB.family().homeTag;
+        var paintHome = function (v) {
+          var who = v ? homeInfo(v) : null;
+          hb.dataset.v = v || "";
+          hb.classList.toggle("empty", !who);
+          hb.style.color = who ? HB.colorVar(who.color) : "";
+          hb.innerHTML = houseSvg(who);
+          hb.setAttribute("aria-label", label + ": " + (who ? who.name + " home" : "nobody marked home"));
+        };
+        hb.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var c = homeCycle(), v = c[(Math.max(0, c.indexOf(hb.dataset.v)) + 1) % c.length];
+          paintHome(v); saveField(key, "home", v);
+        });
+        dc.appendChild(hb);
+        r.appendChild(dc);
 
         var paint = {};
         if (weekend) {
@@ -193,9 +249,9 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
             var who = HB.whoInfo(v);
             b.dataset.v = v || "";
             b.classList.toggle("filled", !!who);
-            b.classList.toggle("long", !!who && who.short.length > 2);
+            b.classList.toggle("long", !!who && who.id !== "Both" && who.short.length > 2);
             b.style.background = who ? HB.colorVar(who.color) : "";
-            if (who) b.textContent = who.short; else b.innerHTML = PERSON_ICON;
+            b.innerHTML = who ? HB.whoHtml(who) : PERSON_ICON;
             b.setAttribute("aria-label", label + " " + f[1] + ": " + (who ? who.name : "nobody yet"));
           };
           paint[f[0]]("");
@@ -230,7 +286,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
         if (weekend) r.addEventListener("click", toggleNote); else dn.addEventListener("click", toggleNote);
 
         daysEl.appendChild(day);
-        refs[key] = { paint: paint, t: t, day: day };
+        refs[key] = { paint: paint, paintHome: paintHome, t: t, day: day };
         applyRow(key);
       });
     }

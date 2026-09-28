@@ -426,6 +426,10 @@ body.viewonly #famGroup, body.no-household #famGroup { display: none; }
 #adminView h3 small { display: block; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
 body:not(.site-admin) #adminGroup { display: none; }
 #more .inv-seg { grid-template-columns: 1fr 1fr; }
+#famView .fam-lbl small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
+/* the "both" icon: white on the coloured bubble, sized to the bubble's text */
+.both-ic { width: 1.35em; height: 1.35em; fill: currentColor; stroke: none !important; display: block; margin: auto; }
+#famView .fam-legend i .both-ic { width: 16px; height: 16px; }
 
 /* full-page sign-in gate */
 body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
@@ -630,7 +634,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-27e";
+  var VERSION = "2026-09-27f";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1187,7 +1191,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       { key: "pick_up", name: "Pick up", on: true },
       { key: "dinner", name: "Dinner", on: true }
     ],
-    weekendColumns: false
+    weekendColumns: false,
+    homeTag: true
   };
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function normFamily(s) {
@@ -1199,6 +1204,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var cols = Array.isArray(s.columns) ? s.columns : [];
     s.columns = d.columns.map(function (c) { return Object.assign(c, cols.filter(function (x) { return x && x.key === c.key; })[0] || {}); });
     s.weekendColumns = !!s.weekendColumns;
+    s.homeTag = s.homeTag !== false;
     return s;
   }
   var family = null, familyId = "", familyListeners = [], famSaveT = null, famOpen = false;
@@ -1220,6 +1226,11 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     if (!p) return { id: v, short: "?", name: "someone no longer listed", color: "muted" };
     return { id: v, short: (p.initial || p.name.charAt(0) || "?").toUpperCase(), name: p.name || p.initial, color: p.color };
   };
+  // "both / everyone" is drawn as two little people wherever it shows
+  var BOTH_ICON = '<svg class="both-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.3" cy="8.6" r="2.9"/><circle cx="15.7" cy="8.6" r="2.9"/>' +
+    '<path d="M2.8 19c.4-3.6 2.6-5.6 5.5-5.6s5.1 2 5.5 5.6zM10.7 19c.4-3.6 2.6-5.6 5-5.6 2.9 0 5.1 2 5.5 5.6z"/></svg>';
+  HB.bothIcon = BOTH_ICON;
+  HB.whoHtml = function (who) { return !who ? "" : who.id === "Both" ? BOTH_ICON : esc(who.short); };
   HB.colorVar = function (c) { return "var(--" + (PALETTE.indexOf(c) >= 0 ? c : "muted") + ")"; };
   function emitFamily() {
     store("hb-family", JSON.stringify(family));
@@ -1282,7 +1293,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         return '<div class="fam-row" data-c="' + i + '">' + sw("fam-con", c.on, "Show column " + (i + 1)) +
           '<input class="fam-cname" value="' + esc(c.name) + '" maxlength="14" placeholder="Column ' + (i + 1) + '" aria-label="Column ' + (i + 1) + ' name" autocomplete="off"></div>';
       }).join("") +
-        '<div class="fam-row">' + sw("fam-wknd", f.weekendColumns, "Columns on Saturday and Sunday") + '<span class="fam-lbl">Columns on Saturday &amp; Sunday</span></div></div>' +
+        '<div class="fam-row">' + sw("fam-wknd", f.weekendColumns, "Columns on Saturday and Sunday") + '<span class="fam-lbl">Columns on Saturday &amp; Sunday</span></div>' +
+        '<div class="fam-row">' + sw("fam-home", f.homeTag, "Who's home") + '<span class="fam-lbl">Who’s home <small>tap the house by a date</small></span></div></div>' +
       '<p class="fam-note">Changes save by themselves and show up on everyone’s phone in the family.</p>' +
       membersHtml();
     renderMembers();
@@ -1291,7 +1303,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   function legendHtml() {
     return HB.whoCycle().slice(1).map(function (v) {
       var w = HB.whoInfo(v);
-      return '<span><i style="background:' + HB.colorVar(w.color) + '">' + esc(w.short) + '</i>' + esc(w.name) + '</span>';
+      return '<span><i style="background:' + HB.colorVar(w.color) + '">' + HB.whoHtml(w) + '</i>' + esc(w.name) + '</span>';
     }).join("");
   }
   function refreshLegend() { var l = document.querySelector("#famView .fam-legend"); if (l) l.innerHTML = legendHtml(); }
@@ -1325,6 +1337,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       var t = e.target, row = t.closest(".fam-row");
       if (t.classList.contains("fam-tog")) { family.together.on = t.checked; saveFamily(); renderFamily(); return; }
       if (t.classList.contains("fam-wknd")) { family.weekendColumns = t.checked; saveFamily(); return; }
+      if (t.classList.contains("fam-home")) { family.homeTag = t.checked; saveFamily(); return; }
       if (t.classList.contains("fam-con")) { family.columns[+row.dataset.c].on = t.checked; saveFamily(); return; }
       // typed fields: save, but don't redraw (you may already be tapping into the next box)
       if (t.classList.contains("fam-cname")) { var c = family.columns[+row.dataset.c]; c.name = t.value.trim() || c.name; t.value = c.name; saveFamily(); return; }
