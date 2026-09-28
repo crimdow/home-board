@@ -128,7 +128,7 @@
     // ---------- sign-in ----------
     function session() {
       var rec = pb.authStore.record;
-      return pb.authStore.isValid && rec ? { user: { id: rec.id, email: rec.email, role: rec.role, household: rec.household || "" } } : null;
+      return pb.authStore.isValid && rec ? { user: { id: rec.id, email: rec.email, role: rec.role, household: rec.household || "", site_admin: !!rec.site_admin } } : null;
     }
     var listeners = [];
     pb.authStore.onChange(function (token) {

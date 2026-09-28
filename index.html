@@ -406,6 +406,27 @@ body.viewonly .doc-sheet .duebox button { display: none; }
 /* the Family row: editors in a household only */
 body.viewonly #famGroup, body.no-household #famGroup { display: none; }
 
+/* members, invites, site admin */
+#famView .mem-row, #adminView .fam-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; }
+#adminView .fam-row + .fam-row { border-top: 0.5px solid var(--hair); }
+.mem-email { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mem-email small { color: var(--muted); font-weight: 600; }
+.mem-role { flex: none; font-size: 12px; font-weight: 800; padding: 4px 9px; border-radius: 10px; background: var(--chip); color: var(--muted); }
+.mem-role.editor { color: var(--ben); }
+#famView .inv-seg { flex: 1; margin: 0; }
+.inv-make, .adm-new { flex: none; border: 0; border-radius: 12px; background: var(--accent, var(--ink)); color: var(--on-accent, var(--bg)); font: inherit; font-size: 15px; font-weight: 700; padding: 10px 14px; cursor: pointer; }
+.adm-new { display: block; width: 100%; margin-top: 12px; padding: 13px; }
+.inv-box { background: var(--card, var(--field)); border-radius: 14px; padding: 12px; margin: 8px 0; box-shadow: 0 0 0 0.5px var(--hair); }
+.inv-url { font-size: 13px; font-weight: 600; word-break: break-all; user-select: all; -webkit-user-select: all; }
+.inv-note { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 600; }
+.inv-btns { display: flex; gap: 8px; margin-top: 10px; }
+.inv-btns button { flex: 1; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-size: 15px; font-weight: 700; padding: 10px; cursor: pointer; }
+.inv-del { border: 0; background: none; color: var(--ash); font: inherit; font-size: 14px; font-weight: 700; padding: 0 4px 6px; cursor: pointer; }
+#adminView .fam-note { margin: 14px 4px 0; color: var(--muted); font-size: 13px; }
+#adminView h3 small { display: block; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
+body:not(.site-admin) #adminGroup { display: none; }
+#more .inv-seg { grid-template-columns: 1fr 1fr; }
+
 /* full-page sign-in gate */
 body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
 body.locked .wrap, body.locked .bottom { display: none; }
@@ -532,6 +553,13 @@ body.locked .gate { display: flex; }
 }
 .gate button:disabled { opacity: .5; }
 .gate .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0; }
+/* invite links and "no household" share the sign-in screen */
+body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, body.joining #noHouse, body:not(.homeless) #noHouse { display: none; }
+#joinFields { display: flex; flex-direction: column; gap: 12px; }
+#joinFields.hidden { display: none; }
+.gate .join-sub { margin: -6px 0 4px; color: var(--muted); font-size: 15px; }
+.gate .join-link { color: var(--muted); font-size: 14px; font-weight: 600; }
+
 
 @media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
 </style>
@@ -548,6 +576,23 @@ body.locked .gate { display: flex; }
     <p class="err" id="loginErr"></p>
     <button type="submit" id="loginBtn">Sign in</button>
   </form>
+  <form id="joinForm" autocomplete="on">
+    <p class="hello" id="joinTitle">Checking your invite…</p>
+    <p class="join-sub" id="joinRole"></p>
+    <div id="joinFields" class="hidden">
+      <input id="jEmail" type="email" placeholder="Your email" autocomplete="username" required>
+      <input id="jPass" type="password" placeholder="Make a password (8+ characters)" autocomplete="new-password" minlength="8" required>
+      <input id="jPass2" type="password" placeholder="Password again" autocomplete="new-password" minlength="8" required>
+      <button type="submit" id="joinBtn">Join</button>
+    </div>
+    <p class="err" id="joinErr"></p>
+    <a href="#" class="join-link" id="joinHaveLogin">I already have a Home Board login</a>
+  </form>
+  <form id="noHouse">
+    <p class="hello">Not in a household yet</p>
+    <p class="join-sub">This login isn’t part of a Home Board household. Ask someone in your family for an invite link, then open it on this phone.</p>
+    <button type="button" id="noHouseOut">Sign out</button>
+  </form>
 </div>
 
 <!-- each page draws itself into its own box in here -->
@@ -561,9 +606,12 @@ body.locked .gate { display: flex; }
   <div class="sh-head"><h2 id="moreTitle">More</h2><button class="linkbtn" id="editTabs">Edit tab bar</button></div>
   <div id="pageList"></div>
   <div id="famView" class="hidden"></div>
+  <div id="adminView" class="hidden"></div>
   <div id="settings">
     <div id="famGroup"><h3>Family</h3>
     <div class="group"><div class="pg-row" id="famRow" role="button" tabindex="0"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.6c2.4.2 4 1.8 4.5 4.4"/></svg></span><span class="nm">Family settings</span><span class="tag">People, columns</span></div></div></div>
+    <div id="adminGroup"><h3>Site</h3>
+    <div class="group"><div class="pg-row" id="adminRow" role="button" tabindex="0"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9v10h12V9"/><path d="M10 19v-5h4v5"/></svg></span><span class="nm">Site admin</span><span class="tag">Households</span></div></div></div>
     <h3>Appearance</h3>
     <div class="seg" id="modeSeg">
       <button data-m="light">Light</button><button data-m="dark">Dark</button><button data-m="auto">Auto</button>
@@ -582,7 +630,7 @@ body.locked .gate { display: flex; }
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-27d";
+  var VERSION = "2026-09-27e";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1235,7 +1283,9 @@ body.locked .gate { display: flex; }
           '<input class="fam-cname" value="' + esc(c.name) + '" maxlength="14" placeholder="Column ' + (i + 1) + '" aria-label="Column ' + (i + 1) + ' name" autocomplete="off"></div>';
       }).join("") +
         '<div class="fam-row">' + sw("fam-wknd", f.weekendColumns, "Columns on Saturday and Sunday") + '<span class="fam-lbl">Columns on Saturday &amp; Sunday</span></div></div>' +
-      '<p class="fam-note">Changes save by themselves and show up on everyone’s phone in the family.</p>';
+      '<p class="fam-note">Changes save by themselves and show up on everyone’s phone in the family.</p>' +
+      membersHtml();
+    renderMembers();
   }
   // the preview: exactly the choices a bubble taps through
   function legendHtml() {
@@ -1296,20 +1346,171 @@ body.locked .gate { display: flex; }
   function openFamily() {
     if (HB.viewer) return;
     famOpen = true; renderFamily();
+    openSub("famView", "Family settings");
+  }
+  // ================= members, invites, joining, and site admin =================
+  function api(method, path, body) {
+    return db.pb.send(path, { method: method, body: body });
+  }
+  function apiError(e) { return (e && e.response && e.response.message) || "Something went wrong. Check your connection."; }
+  function inviteUrl(code) { return location.origin + "/#join=" + code; }
+  function shortDate(iso) { var d = new Date(iso); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()] + " " + d.getDate(); }
+  // a ready-to-send invite: the link plus Share (iPhone share sheet) and Copy
+  function linkBox(code, note) {
+    return '<div class="inv-box" data-code="' + esc(code) + '"><div class="inv-url">' + esc(inviteUrl(code)) + '</div>' +
+      (note ? '<div class="inv-note">' + esc(note) + '</div>' : '') +
+      '<div class="inv-btns">' + (navigator.share ? '<button type="button" class="inv-share">Share</button>' : '') +
+      '<button type="button" class="inv-copy">Copy link</button></div></div>';
+  }
+  function linkBoxClick(e) {
+    var box = e.target.closest(".inv-box"); if (!box) return false;
+    var url = inviteUrl(box.dataset.code);
+    if (e.target.closest(".inv-share")) { navigator.share({ title: "Join our Home Board", text: "Here's your Home Board invite:", url: url }).catch(function () {}); return true; }
+    if (e.target.closest(".inv-copy")) {
+      var ok = function () { toast("Invite link copied"); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, function () { prompt("Copy this link:", url); });
+      else prompt("Copy this link:", url);
+      return true;
+    }
+    return false;
+  }
+
+  // ---- in Family settings: who's in the household, and invite links ----
+  var inviteRole = "editor";
+  function renderMembers() {
+    var box = document.getElementById("famMembers"); if (!box) return;
+    Promise.all([api("GET", "/api/hb/members"), api("GET", "/api/hb/invites")]).then(function (r) {
+      var members = r[0], invites = r[1];
+      box.innerHTML = members.map(function (m) {
+        return '<div class="fam-row mem-row"><span class="mem-email">' + esc(m.email) + (m.me ? ' <small>(you)</small>' : '') + '</span>' +
+          '<span class="mem-role ' + m.role + '">' + (m.role === "editor" ? "Editor" : "Viewer") + '</span>' +
+          (m.me ? '' : '<button type="button" class="fam-x mem-rm" data-id="' + m.id + '" data-email="' + esc(m.email) + '" aria-label="Remove">×</button>') + '</div>';
+      }).join("");
+      var pend = document.getElementById("famInvites");
+      pend.innerHTML = invites.length ? '<h3>Waiting to be used</h3>' + invites.map(function (i) {
+        return '<div class="inv-pend">' + linkBox(i.code, (i.role === "editor" ? "Editor" : "Viewer") + " · works once · until " + shortDate(i.expires_at)) +
+          '<button type="button" class="inv-del" data-id="' + i.id + '">Cancel invite</button></div>';
+      }).join("") : "";
+    }, function (e) { box.innerHTML = '<div class="pg-empty">' + esc(apiError(e)) + '</div>'; });
+  }
+  function membersHtml() {
+    return '<h3>Members</h3><div class="group" id="famMembers"><div class="pg-empty">Loading…</div></div>' +
+      '<h3>Invite someone <small>they make their own login from the link</small></h3>' +
+      '<div class="group"><div class="fam-row"><div class="seg inv-seg"><button type="button" data-r="editor"' + (inviteRole === "editor" ? ' class="on"' : '') + '>Editor</button>' +
+      '<button type="button" data-r="viewer"' + (inviteRole === "viewer" ? ' class="on"' : '') + '>Viewer</button></div>' +
+      '<button type="button" class="inv-make">Create link</button></div></div>' +
+      '<div id="famInvites"></div>';
+  }
+  document.getElementById("famView").addEventListener("click", function (e) {
+    if (linkBoxClick(e)) return;
+    var seg = e.target.closest(".inv-seg button");
+    if (seg) { inviteRole = seg.dataset.r; document.querySelectorAll(".inv-seg button").forEach(function (b) { b.classList.toggle("on", b === seg); }); return; }
+    if (e.target.closest(".inv-make")) {
+      api("POST", "/api/hb/invites", { role: inviteRole }).then(function () { toast("Invite link ready"); renderMembers(); }, function (err) { toast(apiError(err)); });
+      return;
+    }
+    var del = e.target.closest(".inv-del");
+    if (del) { api("DELETE", "/api/hb/invites/" + del.dataset.id).then(renderMembers, function (err) { toast(apiError(err)); }); return; }
+    var rm = e.target.closest(".mem-rm");
+    if (rm) {
+      if (!confirm("Remove " + rm.dataset.email + " from your household? They won't see your board anymore.")) return;
+      api("POST", "/api/hb/members/" + rm.dataset.id + "/remove").then(renderMembers, function (err) { toast(apiError(err)); });
+    }
+  });
+
+  // ---- site admin (households) ----
+  var isSiteAdmin = false;
+  function renderAdmin() {
+    var v = document.getElementById("adminView");
+    v.innerHTML = '<h3>Households</h3><div class="group" id="admList"><div class="pg-empty">Loading…</div></div>' +
+      '<button type="button" class="adm-new">+ New household</button><div id="admLink"></div>' +
+      '<p class="fam-note">A new household gets its own boards and settings. Send the first person the invite link; they can invite the rest of their family from Family settings.</p>';
+    api("GET", "/api/hb/households").then(function (list) {
+      document.getElementById("admList").innerHTML = list.map(function (h) {
+        return '<div class="fam-row"><span class="mem-email">' + esc(h.name) + ' <small>' + h.members + (h.members === 1 ? " person" : " people") + '</small></span>' +
+          '<button type="button" class="inv-make adm-inv" data-id="' + h.id + '" data-name="' + esc(h.name) + '">Invite link</button></div>';
+      }).join("");
+    }, function (e) { document.getElementById("admList").innerHTML = '<div class="pg-empty">' + esc(apiError(e)) + '</div>'; });
+  }
+  document.getElementById("adminView").addEventListener("click", function (e) {
+    if (linkBoxClick(e)) return;
+    var out = document.getElementById("admLink");
+    if (e.target.closest(".adm-new")) {
+      var name = prompt("Name for the new household (e.g. The Smiths):");
+      if (!name || !name.trim()) return;
+      api("POST", "/api/hb/households", { name: name.trim() }).then(function (h) {
+        renderAdmin();
+        setTimeout(function () { document.getElementById("admLink").innerHTML = '<h3>Invite for ' + esc(h.name) + '</h3>' + linkBox(h.invite.code, "Editor · works once · until " + shortDate(h.invite.expires_at)); }, 50);
+      }, function (err) { toast(apiError(err)); });
+      return;
+    }
+    var inv = e.target.closest(".adm-inv");
+    if (inv) {
+      api("POST", "/api/hb/households/" + inv.dataset.id + "/invite").then(function (i) {
+        out.innerHTML = '<h3>Invite for ' + esc(inv.dataset.name) + '</h3>' + linkBox(i.code, "Editor · works once · until " + shortDate(i.expires_at));
+      }, function (err) { toast(apiError(err)); });
+    }
+  });
+
+  // ---- sub-screens of the More menu (Family settings, Site admin) ----
+  var subOpen = "";
+  function openSub(id, title) {
+    subOpen = id;
     document.getElementById("pageList").classList.add("hidden");
     document.getElementById("settings").classList.add("hidden");
-    document.getElementById("famView").classList.remove("hidden");
-    document.getElementById("moreTitle").textContent = "Family settings";
+    document.getElementById(id).classList.remove("hidden");
+    document.getElementById("moreTitle").textContent = title;
     document.getElementById("editTabs").textContent = "Done";
     document.getElementById("more").scrollTop = 0;
   }
-  function closeFamily() {
+  function closeSub() {
     if (document.activeElement) document.activeElement.blur();
-    famOpen = false;
-    document.getElementById("famView").classList.add("hidden");
+    if (subOpen) document.getElementById(subOpen).classList.add("hidden");
+    subOpen = ""; famOpen = false;
     document.getElementById("pageList").classList.remove("hidden");
     document.getElementById("settings").classList.remove("hidden");
   }
+  document.getElementById("adminRow").addEventListener("click", function () { renderAdmin(); openSub("adminView", "Site admin"); });
+
+  // ---- joining a household from an invite link (home.jermins.com/#join=code) ----
+  function joinCode() { var m = location.hash.match(/^#join=([a-z0-9]+)$/); return m ? m[1] : ""; }
+  function showJoin(code) {
+    document.body.classList.remove("checking"); document.body.classList.add("locked", "joining");
+    var t = document.getElementById("joinTitle"), err = document.getElementById("joinErr");
+    t.textContent = "Checking your invite…"; err.textContent = "";
+    fetch("/api/hb/join/" + code).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (r) {
+      if (!r.ok) { t.textContent = "Invite not valid"; err.textContent = r.j.message || ""; document.getElementById("joinFields").classList.add("hidden"); return; }
+      t.textContent = "Join " + r.j.household;
+      document.getElementById("joinRole").textContent = r.j.role === "editor" ? "You'll be able to add and change things." : "You'll be able to see the boards.";
+      document.getElementById("joinFields").classList.remove("hidden");
+    }, function () { t.textContent = "Couldn't check the invite"; err.textContent = "Check your connection and reload."; });
+  }
+  document.getElementById("joinForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var email = document.getElementById("jEmail").value.trim(), pw = document.getElementById("jPass").value, pw2 = document.getElementById("jPass2").value;
+    var err = document.getElementById("joinErr"), btn = document.getElementById("joinBtn");
+    if (pw !== pw2) { err.textContent = "The two passwords don't match."; return; }
+    btn.disabled = true; err.textContent = "";
+    fetch("/api/hb/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: joinCode(), email: email, password: pw }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (r) {
+        if (!r.ok) { btn.disabled = false; err.textContent = r.j.message || "Couldn't join."; return; }
+        return db.auth.signInWithPassword({ email: email, password: pw }).then(function (res) {
+          btn.disabled = false;
+          if (res.error) { err.textContent = "Joined. Now sign in with that email and password."; return; }
+          history.replaceState(null, "", location.pathname);
+          document.body.classList.remove("joining");
+          toast("Welcome to your Home Board");
+          start(res.data && res.data.session);
+        });
+      }, function () { btn.disabled = false; err.textContent = "Check your connection and try again."; });
+  });
+  document.getElementById("joinHaveLogin").addEventListener("click", function (e) {
+    e.preventDefault();
+    history.replaceState(null, "", location.pathname);
+    document.body.classList.remove("joining");
+    db.auth.getSession().then(function (res) { if (res.data && res.data.session) start(res.data.session); });
+  });
 
   // Short pages shouldn't scroll: when the keyboard closes, iOS can leave the page nudged up.
   function snapBack() {
@@ -1457,12 +1658,12 @@ body.locked .gate { display: flex; }
     if (x.src) { if (id !== current) go(id); } else location.href = x.href;
   });
   document.getElementById("editTabs").addEventListener("click", function () {
-    if (famOpen) { closeFamily(); renderList(); return; }
+    if (subOpen) { closeSub(); renderList(); return; }
     editingTabs = !editingTabs; renderList();
   });
   document.getElementById("famRow").addEventListener("click", openFamily);
   function openMore() {
-    if (famOpen) closeFamily();
+    if (subOpen) closeSub();
     editingTabs = false; renderList(); paintLook();
     document.getElementById("more").scrollTop = 0;
     document.getElementById("moreBg").classList.add("show");
@@ -1541,7 +1742,10 @@ body.locked .gate { display: flex; }
     window.scrollTo(0, scrolls[p.id] || 0);
   }
   function go(id) { history.replaceState(null, "", "#" + id); show(id); }
-  window.addEventListener("hashchange", function () { if (started) show(location.hash.slice(1)); });
+  window.addEventListener("hashchange", function () {
+    if (joinCode()) { showJoin(joinCode()); return; }
+    if (started) show(location.hash.slice(1));
+  });
 
   // phone waking up or reopening the app: the page on screen catches up
   document.addEventListener("visibilitychange", function () {
@@ -1569,9 +1773,15 @@ body.locked .gate { display: flex; }
     document.getElementById("whoami").textContent = who ? "Signed in as " + who : "Signed in";
     checkRole();
     loadFamily(session);
+    isSiteAdmin = !!(session && session.user && session.user.site_admin);
+    document.body.classList.toggle("site-admin", isSiteAdmin);
+    var noHouse = !(session && session.user && session.user.household);
+    document.body.classList.toggle("homeless", noHouse);
+    if (noHouse) { document.body.classList.add("locked"); return; }
     if (!started) { started = true; paintTabs(); show(location.hash.slice(1)); }
   }
-  function lock() { document.body.classList.remove("checking"); document.body.classList.add("locked"); }
+  function lock() { document.body.classList.remove("checking", "homeless"); document.body.classList.add("locked"); }
+  document.getElementById("noHouseOut").addEventListener("click", function () { db.auth.signOut(); });
   document.getElementById("gateForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
@@ -1587,7 +1797,8 @@ body.locked .gate { display: flex; }
     });
   });
   db.auth.onAuthStateChange(function (event) { if (event === "SIGNED_OUT") lock(); });
-  db.auth.getSession().then(function (res) {
+  if (joinCode()) showJoin(joinCode());
+  else db.auth.getSession().then(function (res) {
     if (res.data && res.data.session) start(res.data.session); else lock();
   });
 })();
