@@ -1,5 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
-// Passwords: at least 6 characters (was 8) for every login table on this server (Home Board, hearts).
+// Passwords: at least 6 characters (was 8) for every login table on this server (Home Board's users, and any other app's logins on this server).
 // The PocketBase admin (superuser) accounts keep their stronger rule.
 migrate((app) => {
   app.findAllCollections("auth").forEach((c) => {
