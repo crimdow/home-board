@@ -73,6 +73,15 @@ module.exports = {
     return r;
   },
 
+  // the users table's other sign-in field besides email (e.g. "username", added for the hearts app), or ""
+  loginField(app) {
+    try {
+      const ids = app.findCollectionByNameOrId("users").passwordAuth.identityFields || [];
+      for (let i = 0; i < ids.length; i++) if (ids[i] !== "email") return ids[i];
+    } catch (err) {}
+    return "";
+  },
+
   inviteJson(r) {
     return { id: r.id, code: r.getString("code"), role: r.getString("role"), expires_at: r.getString("expires_at") };
   },

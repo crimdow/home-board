@@ -138,7 +138,7 @@ routerAdd("GET", "/api/hb/join/{code}", (e) => {
   const inv = lib.liveInvite($app, e.request.pathValue("code"));
   if (!inv) throw new NotFoundError("This invite link has expired or was already used.");
   const h = $app.findRecordById("households", inv.getString("household"));
-  return e.json(200, { household: h.getString("name"), role: inv.getString("role") });
+  return e.json(200, { household: h.getString("name"), role: inv.getString("role"), loginField: lib.loginField($app) });
 });
 
 routerAdd("POST", "/api/hb/join", (e) => {
@@ -157,9 +157,18 @@ routerAdd("POST", "/api/hb/join", (e) => {
       if (!u.validatePassword(password)) throw new BadRequestError("That email already has a login. Use its password to join.");
       if (u.getString("household")) throw new BadRequestError("That login already belongs to a household.");
     } else {
-      if (password.length < 8) throw new BadRequestError("Passwords need at least 8 characters.");
+      if (password.length < 6) throw new BadRequestError("Passwords need at least 6 characters.");
       u = new Record(tx.findCollectionByNameOrId("users"));
       u.setEmail(email);
+      // optional username (or whatever the other sign-in field is called)
+      const field = lib.loginField(tx), login = String(body.login || "").trim().toLowerCase();
+      if (field && login) {
+        if (!/^[a-z0-9._-]{3,30}$/.test(login)) throw new BadRequestError("Usernames are 3–30 letters, numbers, dots, dashes or underscores.");
+        let taken = null;
+        try { taken = tx.findFirstRecordByFilter("users", field + " = {:v}", { v: login }); } catch (err) {}
+        if (taken) throw new BadRequestError("That username is taken. Try another.");
+        u.set(field, login);
+      }
       u.setPassword(password);
       u.setVerified(true);
     }
