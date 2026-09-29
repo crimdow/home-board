@@ -641,7 +641,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-29e";
+  var VERSION = "2026-09-29g";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1281,8 +1281,6 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     if (!Array.isArray(s.calendars) || !s.calendars.length) s.calendars = defaultCalendars(s.people);
     s.calendars = s.calendars.filter(function (c) { return c && c.id; }).slice(0, MAX_CALS);
     if (!s.calendars.some(function (c) { return c.fun; })) s.calendars[s.calendars.length - 1].fun = true;
-    var funSeen = false;
-    s.calendars.forEach(function (c) { if (c.fun) { if (funSeen) c.fun = false; funSeen = true; } });   // exactly one Fun calendar
     if (!Array.isArray(s.taskTypes) || !s.taskTypes.length) s.taskTypes = clone(TASK_TYPES_DEFAULT);
     s.taskTypes = s.taskTypes.filter(function (t) { return t && t.id; }).slice(0, MAX_TYPES);
     s.taskTypes.forEach(function (t) { if (["daily", "weekly", "none"].indexOf(t.repeat) < 0) t.repeat = "none"; });
@@ -1423,11 +1421,11 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         return '<div class="fam-row cal-row" data-cal="' + i + '">' +
           '<button type="button" class="fam-dot cal-dot" style="background:' + HB.colorVar(HB.calColor(cal)) + '" aria-label="Change colour">' + calDotInner(cal) + '</button>' +
           '<input class="fam-name cal-name" value="' + esc(cal.name) + '" maxlength="16" placeholder="Calendar" aria-label="Calendar name" autocomplete="off">' +
-          '<button type="button" class="cal-fun' + (cal.fun ? ' on' : '') + '" aria-label="' + (cal.fun ? "The Fun calendar" : "Make this the Fun calendar") + '">★</button>' +
+          '<button type="button" class="cal-fun' + (cal.fun ? ' on' : '') + '" aria-label="' + (cal.fun ? "Fun calendar (tap to unstar)" : "Star as a Fun calendar") + '">★</button>' +
           (c.length > 1 ? '<button type="button" class="fam-x cal-x" aria-label="Remove ' + esc(cal.name) + '">×</button>' : '') + '</div>';
       }).join("") +
       (c.length < MAX_CALS ? '<button type="button" class="fam-add cal-add">+ Add calendar</button>' : '') + '</div>' +
-      '<p class="fam-note cal-note">★ marks the Fun calendar: Plans’ “Fun” switch shows just that one.</p>';
+      '<p class="fam-note cal-note">★ marks the Fun calendars: Plans’ “Fun” switch shows just those.</p>';
   }
   function newCalId() {
     var id;
@@ -1463,11 +1461,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (ci >= 0) {
         var cal = cals[ci];
         if (e.target.closest(".cal-dot")) { var ch = calChoices(); cal.color = ch[(ch.indexOf(cal.color) + 1) % ch.length]; saveFamily(); renderFamily(); return; }
-        if (e.target.closest(".cal-fun")) { cals.forEach(function (c) { c.fun = c === cal; }); saveFamily(); renderFamily(); return; }
+        if (e.target.closest(".cal-fun")) {
+          if (cal.fun && cals.filter(function (c) { return c.fun; }).length === 1) { toast("Keep at least one calendar starred for Fun."); return; }
+          cal.fun = !cal.fun; saveFamily(); renderFamily(); return;
+        }
         if (e.target.closest(".cal-x")) {
           if (!confirm("Remove the " + (cal.name || "this") + " calendar? Its plans move to " + (cal.fun ? cals.filter(function (c) { return c !== cal; })[0].name : HB.calOf("").name) + ".")) return;
           cals.splice(ci, 1);
-          if (cal.fun) cals[0].fun = true;
+          if (!cals.some(function (c) { return c.fun; })) cals[0].fun = true;
           saveFamily(); renderFamily(); return;
         }
         return;

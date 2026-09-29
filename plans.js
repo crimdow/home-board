@@ -82,7 +82,7 @@ HB.register("plans", {
     function calBg(p) { return HB.colorVar(HB.calColor(calOf(p))); }
     var filter = "all";
     try { filter = localStorage.getItem("hb-plan-filter") === "fun" ? "fun" : "all"; } catch (e) {}
-    function shown(p) { return filter === "all" || calOf(p).id === HB.funCalendar().id; }
+    function shown(p) { return filter === "all" || !!calOf(p).fun; }   // Fun = any starred calendar
     root.querySelectorAll("#pFilter button").forEach(function (b) {
       b.addEventListener("click", function () {
         filter = b.dataset.f; try { localStorage.setItem("hb-plan-filter", filter); } catch (e) {}
