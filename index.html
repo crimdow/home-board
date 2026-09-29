@@ -431,6 +431,12 @@ body:not(.site-admin) #adminGroup { display: none; }
 /* the "both" icon: white on the coloured bubble, sized to the bubble's text */
 .both-ic { width: 1.35em; height: 1.35em; fill: currentColor; stroke: none !important; display: block; margin: auto; }
 #famView .fam-legend i .both-ic { width: 16px; height: 16px; }
+/* Calendars (Plans) */
+#famView .cal-dot { display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800; }
+#famView .cal-dot .both-ic { width: 17px; height: 17px; }
+#famView .cal-fun { flex: none; width: 34px; height: 34px; border-radius: 17px; border: 0; background: var(--chip); color: var(--muted); opacity: .45; font-size: 17px; line-height: 1; cursor: pointer; }
+#famView .cal-fun.on { opacity: 1; color: #e9a800; background: color-mix(in srgb, #e9b000 18%, var(--chip)); }
+#famView .cal-note { margin-top: 8px; }
 
 /* full-page sign-in gate */
 body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
@@ -635,7 +641,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-28k";
+  var VERSION = "2026-09-29a";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1244,7 +1250,23 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     ],
     weekendColumns: false,
     homeTag: true
+    // calendars (Plans) and taskTypes (Tasks) are filled in by normFamily
   };
+  var MAX_CALS = 6, MAX_TYPES = 8;
+  // Task types: how each kind of task behaves once it's ticked off
+  var TASK_TYPES_DEFAULT = [
+    { id: "daily", name: "Daily", color: "s3", repeat: "daily" },
+    { id: "weekly", name: "Weekly", color: "s5", repeat: "weekly" },
+    { id: "project", name: "Project", color: "s4", repeat: "none" },
+    { id: "someday", name: "Someday", color: "s6", repeat: "none" }
+  ];
+  // Calendars for Plans: one per person (same colour as their bubble), one for the kids, and Family (the "fun" one)
+  function defaultCalendars(people) {
+    var cals = [{ id: "kids", name: "Kids", color: "s3" }];
+    people.forEach(function (p) { cals.push({ id: "p-" + p.id, name: p.name || p.initial || "Person", color: "p:" + p.id }); });
+    cals.push({ id: "family", name: "Family", color: "together", fun: true });
+    return cals;
+  }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function normFamily(s) {
     var d = clone(FAMILY_DEFAULT);
@@ -1256,6 +1278,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     s.columns = d.columns.map(function (c) { return Object.assign(c, cols.filter(function (x) { return x && x.key === c.key; })[0] || {}); });
     s.weekendColumns = !!s.weekendColumns;
     s.homeTag = s.homeTag !== false;
+    if (!Array.isArray(s.calendars) || !s.calendars.length) s.calendars = defaultCalendars(s.people);
+    s.calendars = s.calendars.filter(function (c) { return c && c.id; }).slice(0, MAX_CALS);
+    if (!s.calendars.some(function (c) { return c.fun; })) s.calendars[s.calendars.length - 1].fun = true;
+    var funSeen = false;
+    s.calendars.forEach(function (c) { if (c.fun) { if (funSeen) c.fun = false; funSeen = true; } });   // exactly one Fun calendar
+    if (!Array.isArray(s.taskTypes) || !s.taskTypes.length) s.taskTypes = clone(TASK_TYPES_DEFAULT);
+    s.taskTypes = s.taskTypes.filter(function (t) { return t && t.id; }).slice(0, MAX_TYPES);
+    s.taskTypes.forEach(function (t) { if (["daily", "weekly", "none"].indexOf(t.repeat) < 0) t.repeat = "none"; });
     return s;
   }
   var family = null, familyId = "", familyListeners = [], famSaveT = null, famOpen = false;
@@ -1282,6 +1312,29 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     '<path d="M2.8 19c.4-3.6 2.6-5.6 5.5-5.6s5.1 2 5.5 5.6zM10.7 19c.4-3.6 2.6-5.6 5-5.6 2.9 0 5.1 2 5.5 5.6z"/></svg>';
   HB.bothIcon = BOTH_ICON;
   HB.whoHtml = function (who) { return !who ? "" : who.id === "Both" ? BOTH_ICON : esc(who.short); };
+  // ---- calendars (Plans) ----
+  HB.calendars = function () { return family.calendars; };
+  HB.funCalendar = function () { return family.calendars.filter(function (c) { return c.fun; })[0] || family.calendars[0]; };
+  // a plan's calendar; unknown / empty (older plans) = the Family calendar, or the Fun one
+  HB.calOf = function (id) {
+    var c = family.calendars;
+    return c.filter(function (x) { return x.id === id; })[0] || c.filter(function (x) { return x.id === "family"; })[0] || HB.funCalendar();
+  };
+  // a calendar's colour follows its person (or the Together colour), so it matches everywhere
+  HB.calColor = function (cal) {
+    var col = cal && cal.color || "muted";
+    if (col === "together") return family.together.color;
+    if (col.indexOf("p:") === 0) {
+      var p = family.people.filter(function (x) { return x.id === col.slice(2); })[0];
+      return p ? p.color : "muted";
+    }
+    return col;
+  };
+  HB.setCalendars = function (list) { family.calendars = list; saveFamily(); };
+  // ---- task types (Tasks) ----
+  HB.taskTypes = function () { return family.taskTypes; };
+  HB.setTaskTypes = function (list) { family.taskTypes = list; saveFamily(); };
+  HB.PALETTE = PALETTE;
   HB.colorVar = function (c) { return "var(--" + (PALETTE.indexOf(c) >= 0 ? c : "muted") + ")"; };
   function emitFamily() {
     store("hb-family", JSON.stringify(family));
@@ -1339,6 +1392,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         '<input class="fam-tlabel" maxlength="6" value="' + esc(f.together.label) + '" aria-label="Together label" autocomplete="off"' + (f.together.on ? "" : " disabled") + '>' +
         '<button type="button" class="fam-dot fam-tdot" style="background:' + HB.colorVar(f.together.color) + '" aria-label="Change colour"></button></div></div>' +
       '<div class="fam-legend">' + legendHtml() + '</div>' +
+      calendarsHtml() +
       '<h3>At a Glance columns <small>switch all off for just the days and notes</small></h3>' +
       '<div class="group">' + f.columns.map(function (c, i) {
         return '<div class="fam-row" data-c="' + i + '">' + sw("fam-con", c.on, "Show column " + (i + 1)) +
@@ -1349,6 +1403,36 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       '<p class="fam-note">Changes save by themselves and show up on everyone’s phone in the family.</p>' +
       membersHtml();
     renderMembers();
+  }
+  // ---- Calendars section: name, colour (a person's, Together, or its own), and which one is "Fun" ----
+  function calChoices() {
+    return family.people.map(function (p) { return "p:" + p.id; }).concat(["together"], PALETTE.filter(function (c) { return c !== "both"; }));
+  }
+  function calDotInner(cal) {
+    if (cal.color === "together") return HB.bothIcon;
+    if (cal.color.indexOf("p:") === 0) {
+      var p = family.people.filter(function (x) { return x.id === cal.color.slice(2); })[0];
+      return esc(p ? (p.initial || p.name.charAt(0) || "?").toUpperCase() : "?");
+    }
+    return "";
+  }
+  function calendarsHtml() {
+    var c = family.calendars;
+    return '<h3>Calendars <small>for Plans · tap a colour to match a person</small></h3>' +
+      '<div class="group">' + c.map(function (cal, i) {
+        return '<div class="fam-row cal-row" data-cal="' + i + '">' +
+          '<button type="button" class="fam-dot cal-dot" style="background:' + HB.colorVar(HB.calColor(cal)) + '" aria-label="Change colour">' + calDotInner(cal) + '</button>' +
+          '<input class="fam-name cal-name" value="' + esc(cal.name) + '" maxlength="16" placeholder="Calendar" aria-label="Calendar name" autocomplete="off">' +
+          '<button type="button" class="cal-fun' + (cal.fun ? ' on' : '') + '" aria-label="' + (cal.fun ? "The Fun calendar" : "Make this the Fun calendar") + '">★</button>' +
+          (c.length > 1 ? '<button type="button" class="fam-x cal-x" aria-label="Remove ' + esc(cal.name) + '">×</button>' : '') + '</div>';
+      }).join("") +
+      (c.length < MAX_CALS ? '<button type="button" class="fam-add cal-add">+ Add calendar</button>' : '') + '</div>' +
+      '<p class="fam-note cal-note">★ marks the Fun calendar: Plans’ “Fun” switch shows just that one.</p>';
+  }
+  function newCalId() {
+    var id;
+    do { id = "c" + Math.random().toString(36).slice(2, 6); } while (family.calendars.some(function (c) { return c.id === id; }));
+    return id;
   }
   // the preview: exactly the choices a bubble taps through
   function legendHtml() {
@@ -1368,6 +1452,26 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var v = document.getElementById("famView");
     v.addEventListener("click", function (e) {
       var row = e.target.closest(".fam-row"), i = row && row.dataset.i !== undefined ? +row.dataset.i : -1;
+      var ci = row && row.dataset.cal !== undefined ? +row.dataset.cal : -1, cals = family.calendars;
+      if (e.target.closest(".cal-add")) {
+        var usedC = cals.map(function (c) { return c.color; });
+        cals.push({ id: newCalId(), name: "", color: calChoices().filter(function (c) { return usedC.indexOf(c) < 0; })[0] || "s3" });
+        saveFamily(); renderFamily();
+        var cn = v.querySelectorAll(".cal-name"); cn[cn.length - 1].focus();
+        return;
+      }
+      if (ci >= 0) {
+        var cal = cals[ci];
+        if (e.target.closest(".cal-dot")) { var ch = calChoices(); cal.color = ch[(ch.indexOf(cal.color) + 1) % ch.length]; saveFamily(); renderFamily(); return; }
+        if (e.target.closest(".cal-fun")) { cals.forEach(function (c) { c.fun = c === cal; }); saveFamily(); renderFamily(); return; }
+        if (e.target.closest(".cal-x")) {
+          if (!confirm("Remove the " + (cal.name || "this") + " calendar? Its plans move to " + (cal.fun ? cals.filter(function (c) { return c !== cal; })[0].name : HB.calOf("").name) + ".")) return;
+          cals.splice(ci, 1);
+          if (cal.fun) cals[0].fun = true;
+          saveFamily(); renderFamily(); return;
+        }
+        return;
+      }
       if (e.target.closest(".fam-add")) {
         var used = family.people.map(function (p) { return p.color; });
         var color = PALETTE.filter(function (c) { return used.indexOf(c) < 0 && c !== "both"; })[0] || "s3";
@@ -1392,6 +1496,9 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (t.classList.contains("fam-con")) { family.columns[+row.dataset.c].on = t.checked; saveFamily(); return; }
       // typed fields: save, but don't redraw (you may already be tapping into the next box)
       if (t.classList.contains("fam-cname")) { var c = family.columns[+row.dataset.c]; c.name = t.value.trim() || c.name; t.value = c.name; saveFamily(); return; }
+      if (t.classList.contains("cal-name")) {
+        var cal = family.calendars[+row.dataset.cal]; cal.name = t.value.trim() || cal.name || "Calendar"; t.value = cal.name; saveFamily(); return;
+      }
       if (t.classList.contains("fam-tlabel")) { family.together.label = t.value.trim() || "Both"; t.value = family.together.label; saveFamily(); refreshLegend(); return; }
       if (row && row.dataset.i !== undefined) {
         var p = family.people[+row.dataset.i];

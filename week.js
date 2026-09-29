@@ -98,6 +98,40 @@ body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill 
 #pg-week .day.weekend .wk-hint { grid-column: 2 / -1; color: var(--muted); opacity: .55; font-size: 14px; font-weight: 600; padding-left: 6px; }
 #pg-week .day.weekend.has-note .wk-hint, #pg-week .day.weekend.open .wk-hint { visibility: hidden; }
 
+/* Grid | Day by day */
+#pg-week .vsw { display: flex; background: var(--chip); border-radius: 11px; padding: 3px; margin: 2px 0 4px; }
+#pg-week .vsw button { flex: 1; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 750; padding: 6px 0; border-radius: 8px; cursor: pointer; }
+#pg-week .vsw button.on { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+#pg-week .agenda { display: none; }
+#pg-week.agenda-mode .agenda { display: block; }
+#pg-week.agenda-mode .days, #pg-week.agenda-mode .cols { display: none !important; }
+#pg-week .ag-day { padding: 12px 0 10px; border-bottom: 0.5px solid var(--hair); }
+#pg-week .ag-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#pg-week .ag-head b { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+#pg-week .ag-head .n { font-size: 17px; font-weight: 800; }
+#pg-week .ag-day.today .ag-head b { color: var(--ink); }
+#pg-week .ag-day.today .ag-head .n { background: var(--today); color: var(--bg); border-radius: 12px; padding: 0 7px; }
+#pg-week .ag-head .home { margin-left: auto; width: 22px; height: 22px; }
+#pg-week .ag-head .home svg { width: 22px; height: 22px; }
+#pg-week .ag-plan { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 10px; margin: 4px 0; padding: 8px 10px; text-align: left; font: inherit; cursor: pointer;
+  background: color-mix(in srgb, var(--pc) 14%, var(--bg)); color: var(--ink); }
+#pg-week .ag-plan::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 5px; background: var(--pc); }
+#pg-week .ag-plan .nm { font-size: 15px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#pg-week .ag-plan .tm { margin-left: auto; flex: none; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+#pg-week .ag-meal { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; padding: 5px 2px; font: inherit; font-size: 14.5px; font-weight: 650; color: var(--ink); text-align: left; cursor: pointer; }
+#pg-week .ag-meal svg { width: 16px; height: 16px; flex: none; stroke: var(--muted); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+#pg-week .ag-who { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 4px 2px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+#pg-week .ag-who span { display: inline-flex; align-items: center; gap: 5px; }
+#pg-week .ag-who i { font-style: normal; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+#pg-week .ag-who i .both-ic { width: 14px; height: 14px; }
+#pg-week .ag-note { display: block; width: 100%; margin: 6px 0 0; resize: none; overflow: hidden; border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; line-height: 1.4; padding: 7px 12px; min-height: 36px; }
+#pg-week .ag-note:focus { outline: none; }
+/* an empty note is just a quiet "Add a note" line until you tap it */
+#pg-week .ag-note:placeholder-shown:not(:focus) { background: transparent; padding: 4px 2px; min-height: 0; font-size: 14px; }
+#pg-week .ag-empty + .ag-note:placeholder-shown:not(:focus) { margin-top: 0; }
+#pg-week .ag-note::placeholder { color: var(--muted); opacity: .7; }
+#pg-week .ag-empty { color: var(--muted); opacity: .7; font-size: 13.5px; font-weight: 600; padding: 2px 2px 0; }
+body.viewonly #pg-week .ag-note:placeholder-shown { display: none; }
 body.viewonly #pg-week .days { pointer-events: none; }
 body.viewonly #pg-week .cell { cursor: default; }
 body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
@@ -127,8 +161,9 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
             '<button class="next" aria-label="Next week"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>' +
           '</span></div>' +
       '</header>' +
+      '<div class="vsw" role="tablist"><button type="button" data-v="grid">Grid</button><button type="button" data-v="agenda">Day by day</button></div>' +
       '<div class="cols"></div></div>' +
-      '<div class="days"></div>';
+      '<div class="days"></div><div class="agenda"></div>';
     var daysEl = root.querySelector(".days"), rangeEl = root.querySelector(".range");
     var prevBtn = root.querySelector(".prev"), nextBtn = root.querySelector(".next");
 
@@ -294,11 +329,94 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       });
     }
 
+    // ---- Day by day: plans, meals, who's doing what and the note, for each day of the week ----
+    var weekPlans = [], meals = [], mode = "grid";
+    try { mode = localStorage.getItem("hb-glance-view") === "agenda" ? "agenda" : "grid"; } catch (e) {}
+    var FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], MEALDAY = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    var FORK = '<svg viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-1.7 1.3-2.5 3.5-2.5 6.5V13h2.5v8"/></svg>';
+    var HOUSE = '<svg viewBox="0 0 24 24"><path d="M3 11.2 12 4l9 7.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.2 9.6V20.2h13.6V9.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    function fmtTime(t) { var h = +t.slice(0, 2), m = t.slice(3, 5); return (h % 12 || 12) + (m !== "00" ? ":" + m : "") + (h < 12 ? " AM" : " PM"); }
+    function setMode(m) {
+      mode = m; try { localStorage.setItem("hb-glance-view", m); } catch (e) {}
+      root.classList.toggle("agenda-mode", m === "agenda");
+      root.querySelectorAll(".vsw button").forEach(function (b) { b.classList.toggle("on", b.dataset.v === m); });
+      if (m === "agenda") { loadMeals(); renderAgenda(); }
+      window.scrollTo(0, 0);
+    }
+    root.querySelectorAll(".vsw button").forEach(function (b) { b.addEventListener("click", function () { setMode(b.dataset.v); }); });
+    var agT = null;
+    function renderAgendaSoon() { clearTimeout(agT); agT = setTimeout(renderAgenda, 60); }
+    function renderAgenda() {
+      if (mode !== "agenda") return;
+      var box = root.querySelector(".agenda");
+      if (box.contains(document.activeElement)) { renderAgendaSoon.later = true; return; }   // don't redraw under your fingers
+      var fam = HB.family(), cols = fam.columns.filter(function (c) { return c.on; });
+      var isThisWeek = iso(weekStart) === iso(thisWeek);
+      box.innerHTML = FULL.map(function (name, i) {
+        var date = addDays(weekStart, i), key = iso(date), row = data[key] || blank();
+        var plans = weekPlans.filter(function (p) { return p.date === key; }).sort(function (a, b) { return (a.start_time || "") < (b.start_time || "") ? -1 : 1; });
+        var dm = isThisWeek ? meals.filter(function (m) { return !m.done && m.day === MEALDAY[i]; }) : [];
+        var noCols = !cols.length || (i >= 5 && !fam.weekendColumns);
+        var who = noCols ? [] : cols.map(function (c) { return { c: c, w: HB.whoInfo(row[c.key] || "") }; }).filter(function (x) { return x.w; });
+        var home = fam.homeTag && i < 5 && row.home ? HB.whoInfo(row.home) || (row.home === "Both" ? { color: fam.together.color } : null) : null;
+        return '<section class="ag-day' + (key === iso(today) ? ' today' : '') + '" data-key="' + key + '">' +
+          '<div class="ag-head"><b>' + name + '</b><span class="n">' + date.getDate() + '</span>' +
+            (home ? '<span class="home" style="color:' + HB.colorVar(home.color) + '" title="Home">' + HOUSE + '</span>' : '') + '</div>' +
+          plans.map(function (p) {
+            var cal = HB.calOf(p.cal || "");
+            var when = [p.start_time ? fmtTime(p.start_time) : "", p.location || ""].filter(Boolean).join(" · ");
+            return '<button type="button" class="ag-plan" data-id="' + HB.esc(p.id) + '" style="--pc:' + HB.colorVar(HB.calColor(cal)) + '"><span class="nm">' + HB.esc(p.name) + '</span>' + (when ? '<span class="tm">' + HB.esc(when) + '</span>' : '') + '</button>';
+          }).join("") +
+          dm.map(function (m) { return '<button type="button" class="ag-meal">' + FORK + HB.esc(m.name) + '</button>'; }).join("") +
+          (who.length ? '<div class="ag-who">' + who.map(function (x) {
+            return '<span><i style="background:' + HB.colorVar(x.w.color) + '">' + HB.whoHtml(x.w) + '</i>' + HB.esc(x.c.name) + '</span>';
+          }).join("") + '</div>' : '') +
+          (!plans.length && !dm.length && !who.length && !(row.notes || "").trim() ? '<div class="ag-empty">Nothing planned</div>' : '') +
+          '<textarea class="ag-note" rows="1" placeholder="Add a note"' + (HB.viewer ? ' readonly' : '') + ' aria-label="' + name + ' note">' + HB.esc(row.notes || "") + '</textarea>' +
+          '</section>';
+      }).join("");
+      box.querySelectorAll(".ag-note").forEach(autosize);
+    }
+    (function () {
+      var box = root.querySelector(".agenda");
+      box.addEventListener("click", function (e) {
+        var p = e.target.closest(".ag-plan");
+        if (p) { HB.planToOpen = p.dataset.id; location.hash = "#plans"; return; }
+        if (e.target.closest(".ag-meal")) location.hash = "#meals";
+      });
+      box.addEventListener("input", function (e) {
+        var t = e.target; if (!t.classList.contains("ag-note")) return;
+        var key = t.closest(".ag-day").dataset.key;
+        autosize(t); saveNoteSoon(key, t.value); applyRow(key);   // the grid's note stays in step
+      });
+      box.addEventListener("focusout", function () { setTimeout(function () { if (renderAgendaSoon.later && !box.contains(document.activeElement)) { renderAgendaSoon.later = false; renderAgenda(); } }, 0); });
+    })();
+    function loadPlans() {
+      var from = iso(weekStart), to = iso(addDays(weekStart, 6));
+      return db.from("plans").select("*").gte("date", from).lte("date", to).then(function (res) {
+        if (res.error) return;
+        weekPlans = (res.data || []).filter(function (p) { return p.date && !p.idea; });
+        renderAgenda();
+      });
+    }
+    var mealsLive = false;
+    function loadMeals() {
+      db.from("meals").select("*").then(function (res) { if (!res.error) { meals = res.data || []; renderAgenda(); } });
+      if (mealsLive) return; mealsLive = true;
+      db.channel("meals-glance").on("postgres_changes", { event: "*", schema: "public", table: "meals" }, function () { clearTimeout(loadMeals.t); loadMeals.t = setTimeout(loadMeals, 300); }).subscribe();
+    }
+    var plansT = null;
+    db.channel("plans-glance").on("postgres_changes", { event: "*", schema: "public", table: "plans" }, function () {
+      clearTimeout(plansT); plansT = setTimeout(loadPlans, 300);
+    }).subscribe();
+
     function loadWeek() {
+      loadPlans();
       var from = iso(weekStart), to = iso(addDays(weekStart, 6));
       return db.from("days").select("*").gte("date", from).lte("date", to).then(function (res) {
         if (res.error) { toast("Couldn't load the week."); return; }
         res.data.forEach(function (row) { data[row.date] = row; applyRow(row.date); });
+        renderAgenda();
       });
     }
 
@@ -308,6 +426,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
         if (!row || !row.date) return;
         data[row.date] = row;
         applyRow(row.date);
+        renderAgendaSoon();
       })
       .subscribe();
 
@@ -340,8 +459,8 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     this.shown = function () { Object.keys(refs).forEach(function (k) { autosize(refs[k].t); }); };
 
     // Family settings changed (here or on another phone): redraw with the new people / columns
-    HB.onFamily(function () { render(); });
+    HB.onFamily(function () { render(); renderAgenda(); });
 
-    render(); paintArrows(); loadWeek();
+    render(); paintArrows(); setMode(mode); loadWeek();
   }
 });
