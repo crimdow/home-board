@@ -73,7 +73,7 @@ module.exports = {
     return r;
   },
 
-  // the users table's other sign-in field besides email (e.g. "username", added for the hearts app), or ""
+  // the users table's other sign-in field besides email (normally "username"), or ""
   loginField(app) {
     try {
       const ids = app.findCollectionByNameOrId("users").passwordAuth.identityFields || [];
