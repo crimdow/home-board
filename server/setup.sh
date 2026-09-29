@@ -56,7 +56,7 @@ After=network.target
 User=homeboard
 Group=homeboard
 WorkingDirectory=$BASE
-ExecStart=/opt/pocketbase/pocketbase serve --http 127.0.0.1:8090 --dir $DATA --publicDir $SITE --migrationsDir $SITE/server/pb_migrations --hooksDir $SITE/server/pb_hooks
+ExecStart=/opt/pocketbase/pocketbase serve --http 127.0.0.1:8090 --dir $DATA --publicDir $SITE --migrationsDir $SITE/server/pb_migrations --automigrate=false --hooksDir $SITE/server/pb_hooks
 Restart=always
 RestartSec=3
 LimitNOFILE=4096
@@ -136,7 +136,8 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
 EOF
-  systemctl reload ssh || systemctl reload sshd || true
+  # Ubuntu 24.04 starts sshd per connection (ssh.socket), so new logins pick this up by themselves
+  systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
   echo "Password logins are now off (your SSH key still works)."
 else
   echo "SKIPPED: this server has no SSH key for root yet, so password login stays on for now."
@@ -148,8 +149,11 @@ ADMIN_FILE=/root/home-board-admin.txt
 if [ ! -f "$ADMIN_FILE" ]; then
   ADMIN_EMAIL="${ADMIN_EMAIL:-admin@home-board.local}"
   ADMIN_PASS="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)"
-  sleep 2
-  sudo -u homeboard /opt/pocketbase/pocketbase superuser upsert "$ADMIN_EMAIL" "$ADMIN_PASS" --dir "$DATA" >/dev/null
+  sleep 3
+  if ! sudo -u homeboard /opt/pocketbase/pocketbase superuser upsert "$ADMIN_EMAIL" "$ADMIN_PASS" --dir "$DATA" \
+       --migrationsDir "$SITE/server/pb_migrations" --hooksDir "$SITE/server/pb_hooks"; then
+    echo "Couldn't create the dashboard login. Check: journalctl -u pocketbase -n 30"; exit 1
+  fi
   printf 'PocketBase dashboard login\nemail: %s\npassword: %s\n' "$ADMIN_EMAIL" "$ADMIN_PASS" > "$ADMIN_FILE"
   chmod 600 "$ADMIN_FILE"
 fi
