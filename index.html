@@ -575,7 +575,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 
 <div class="gate" id="gate">
   <form id="gateForm" autocomplete="on">
-    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="email" type="text" placeholder="Email or username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
     <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
     <p class="err" id="loginErr"></p>
     <button type="submit" id="loginBtn">Sign in</button>
@@ -585,8 +585,9 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     <p class="join-sub" id="joinRole"></p>
     <div id="joinFields" class="hidden">
       <input id="jEmail" type="email" placeholder="Your email" autocomplete="username" required>
-      <input id="jPass" type="password" placeholder="Make a password (8+ characters)" autocomplete="new-password" minlength="8" required>
-      <input id="jPass2" type="password" placeholder="Password again" autocomplete="new-password" minlength="8" required>
+      <input id="jUser" type="text" class="hidden" placeholder="Username (optional)" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="30">
+      <input id="jPass" type="password" placeholder="Make a password (6+ characters)" autocomplete="new-password" minlength="6" required>
+      <input id="jPass2" type="password" placeholder="Password again" autocomplete="new-password" minlength="6" required>
       <button type="submit" id="joinBtn">Join</button>
     </div>
     <p class="err" id="joinErr"></p>
@@ -634,7 +635,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-28h";
+  var VERSION = "2026-09-28i";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1546,6 +1547,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       t.textContent = "Join " + r.j.household;
       document.getElementById("joinRole").textContent = r.j.role === "editor" ? "You'll be able to add and change things." : "You'll be able to see the boards.";
       document.getElementById("joinFields").classList.remove("hidden");
+      document.getElementById("jUser").classList.toggle("hidden", !r.j.loginField);   // only if logins can use a username
     }, function () { t.textContent = "Couldn't check the invite"; err.textContent = "Check your connection and reload."; });
   }
   document.getElementById("joinForm").addEventListener("submit", function (e) {
@@ -1554,7 +1556,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var err = document.getElementById("joinErr"), btn = document.getElementById("joinBtn");
     if (pw !== pw2) { err.textContent = "The two passwords don't match."; return; }
     btn.disabled = true; err.textContent = "";
-    fetch("/api/hb/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: joinCode(), email: email, password: pw }) })
+    fetch("/api/hb/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: joinCode(), email: email, password: pw, login: document.getElementById("jUser").value.trim() }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (r) {
         if (!r.ok) { btn.disabled = false; err.textContent = r.j.message || "Couldn't join."; return; }
@@ -1854,7 +1856,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       password: document.getElementById("password").value
     }).then(function (res) {
       btn.disabled = false;
-      if (res.error) { err.textContent = "That email or password didn't match."; return; }
+      if (res.error) { err.textContent = "That login or password didn't match."; return; }
       document.getElementById("password").value = "";
       start(res.data && res.data.session);
     });
