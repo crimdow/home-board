@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- keep "default": "black-translucent" makes iOS 26 blur the top of the home-screen app -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Home Board">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<meta name="theme-color" content="#e4e5e8">
+<script>
+  // Set light/dark and the colour theme before anything draws.
+  // "homeboard-theme" = light | dark (missing = follow the phone). "homeboard-skin" = colour theme.
+  (function () {
+    var t = null, k = "";
+    try { t = localStorage.getItem("homeboard-theme"); k = localStorage.getItem("homeboard-skin") || ""; } catch (e) {}
+    if (t !== "light" && t !== "dark") t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", t);
+    if (k) document.documentElement.setAttribute("data-skin", k);
+  })();
+</script>
+<title>Home Board</title>
+<style>
+/* ================= shared look for every page ================= */
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #e4e5e8; --ink: #2b2e33; --muted: #7a7f88; --hair: #d0d2d6;
+  --ash: #d45b6c; --ben: #4f7bd4; --both: #6f8a5c;
+  --chip: #d5d7db; --today: #2b2e33; --field: #d9dbdf; --sheet: #eeeff1;
+  --accent: #4f7bd4; --on-accent: #fff;   /* the round + button; each colour theme sets its own */
+  /* colours for stores, weekdays and TODO types */
+  --s0: #d45b6c; --s1: #4f7bd4; --s2: #6f8a5c; --s3: #c98a3e; --s4: #8a6bb8; --s5: #3f9a93; --s6: #b8735a;
+}
+:root[data-theme="dark"] {
+  --bg: #1d1e22; --ink: #e4e4e2; --muted: #8b9098; --hair: #2c2d32;
+  --ash: #cf6475; --ben: #5f86d6; --both: #7d9a68;
+  --chip: #2a2b30; --today: #e4e4e2; --field: #26272c; --sheet: #25262b;
+  --accent: #5f86d6; --on-accent: #fff;
+  --s0: #cf6475; --s1: #5f86d6; --s2: #7d9a68; --s3: #cf9550; --s4: #9679c2; --s5: #4fa69f; --s6: #c4826a;
+}
+/* colour themes (picked in the More menu) */
+:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; --sheet: #fdf1f6; --accent: #e0218a; --on-accent: #fff; }
+:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; --sheet: #331c2d; --accent: #ff4fa3; --on-accent: #2a1624; }
+:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; --sheet: #f6eee4; --accent: #6f4a2f; --on-accent: #fff; }
+:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; --sheet: #2a1f19; --accent: #d4a373; --on-accent: #211813; }
+:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; --sheet: #f9f2e9; --accent: #e8772e; --on-accent: #fff; }
+:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; --sheet: #211e26; --accent: #ff7a1a; --on-accent: #17151b; }
+
+*, *::before, *::after { box-sizing: inherit; }
+html, body { touch-action: manipulation; overscroll-behavior: none; }
+html { height: 100%; background: var(--bg); }
+body {
+  margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  font-size: 16px; line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  transition: background-color .35s ease, color .35s ease;
+}
+.hidden { display: none !important; }
+.wrap {
+  max-width: 500px; margin: 0 auto;   /* no forced full height: short pages don't scroll */
+  padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(84px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.page { display: flex; flex-direction: column; }
+.page[hidden] { display: none; }
+.page-msg { padding: 60px 0; text-align: center; color: var(--muted); font-weight: 600; }
+.page-msg button { margin-top: 10px; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-weight: 700; padding: 10px 16px; }
+
+/* page header: sticky title row */
+.top {
+  position: sticky; top: 0; z-index: 4;
+  margin: 0 -16px; padding: calc(4px + env(safe-area-inset-top, 0px)) 16px 0;
+  margin-top: calc(-1 * env(safe-area-inset-top, 0px));
+  background: var(--bg); transition: background-color .35s ease;
+}
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 4px 0 0; }
+.title { min-width: 0; }
+.title h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
+.nav { display: flex; gap: 8px; }
+.nav button {
+  width: 36px; height: 36px; border-radius: 50%; border: 0;
+  background: var(--chip); color: var(--ink); font-size: 18px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+}
+.nav svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.nav button:focus-visible { outline: 2px solid var(--ben); outline-offset: 2px; }
+/* view-only accounts see a small chip instead of editing controls */
+.vo { display: none; align-items: center; height: 36px; padding: 0 9px; border-radius: 18px; background: var(--chip); color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+body.viewonly .vo { display: inline-flex; }
+
+/* solid strip behind the status bar / Dynamic Island so nothing scrolls under it */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: env(safe-area-inset-top, 0px); background: var(--bg); pointer-events: none;
+}
+/* home-screen app only: nudge content down, clear of the iOS status-bar blur */
+@media (display-mode: standalone) {
+  .top { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
+}
+
+/* ---- bottom tab bar: this phone's pinned pages + More ---- */
+.bottom {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-top: 0.5px solid var(--hair);
+  padding: 8px 0 calc(4px + env(safe-area-inset-bottom, 0px));
+}
+.tabs { display: flex; justify-content: center; padding-top: 2px; max-width: 500px; margin: 0 auto; }
+.tabs a {
+  flex: 0 1 76px; display: flex; flex-direction: column; align-items: center;
+  color: var(--muted); text-decoration: none; padding: 8px 0 6px; cursor: pointer;
+}
+.tabs svg { width: 29px; height: 29px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabs a.on { color: var(--today); }
+.tabs a.on svg { stroke-width: 2.2; }
+.tabs a::after { content: ""; display: block; width: 5px; height: 5px; border-radius: 3px; margin: 4px auto 0; }
+.tabs a.on::after { background: var(--today); }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 60;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 600;
+  padding: 10px 16px; border-radius: 20px; opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* ---- More menu (bottom sheet) ---- */
+#moreBg { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .22s; }
+#moreBg.show { opacity: 1; pointer-events: auto; }
+#more {
+  position: fixed; left: 50%; bottom: 0; z-index: 31; width: 100%; max-width: 500px;
+  max-height: calc(100% - 40px - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain;
+  transform: translate(-50%, 105%); visibility: hidden;
+  background: var(--sheet); color: var(--ink); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.18);
+  padding: 8px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s linear .3s, background-color .35s;
+}
+#more.show { transform: translate(-50%, 0); visibility: visible; transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s, background-color .35s; }
+#more .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--hair); margin: 0 auto 10px; }
+#more .sh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+#more .sh-head h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+#more .linkbtn { appearance: none; border: 0; background: none; color: var(--ben); font: inherit; font-size: 16px; font-weight: 700; padding: 6px 2px; cursor: pointer; }
+#more h3 { margin: 18px 4px 6px; font-size: 12px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+#more h3 small { text-transform: none; letter-spacing: 0; font-weight: 600; margin-left: 4px; }
+#more .group { background: var(--bg); border-radius: 14px; overflow: hidden; transition: background-color .35s; }
+#more .pg-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 6px 12px;
+  appearance: none; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+#more .pg-row + .pg-row { border-top: 0.5px solid var(--hair); }
+#more .pg-row .ico { width: 30px; height: 30px; display: grid; place-items: center; color: var(--muted); flex: none; }
+#more .pg-row .ico svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#more .pg-row .nm { flex: 1; font-size: 17px; font-weight: 600; }
+#more .pg-row.here .ico, #more .pg-row.here .nm { color: var(--today); }
+#more .pg-row .tag { font-size: 12px; font-weight: 700; color: var(--muted); }
+#more .pg-row .ctl { display: flex; gap: 4px; }
+#more .pg-row .ctl button {
+  width: 34px; height: 34px; border-radius: 17px; border: 0; background: var(--chip); color: var(--ink);
+  display: grid; place-items: center; cursor: pointer; padding: 0;
+}
+#more .pg-row .ctl button:disabled { opacity: .3; cursor: default; }
+#more .pg-row .ctl button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+#more .pg-row .ctl .rm { color: var(--ash); }
+#more .pg-row .ctl .add { color: var(--both); }
+#more .pg-empty { padding: 14px 12px; color: var(--muted); font-size: 14px; font-weight: 600; }
+
+#more .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--chip); border-radius: 12px; }
+#more .seg button { border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: 15px; font-weight: 700; padding: 9px 0; cursor: pointer; }
+#more .seg button.on { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+#more .skins { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#more .skin {
+  appearance: none; border: 2px solid transparent; border-radius: 14px; padding: 10px 4px 8px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 7px; font: inherit;
+}
+#more .skin.on { border-color: var(--ink); }
+#more .skin .dots { display: flex; gap: 3px; }
+#more .skin .dots i { width: 13px; height: 13px; border-radius: 7px; display: block; }
+#more .skin b { font-size: 12px; font-weight: 800; }
+
+#more .acct { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; }
+#more .acct span { color: var(--muted); font-size: 14px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#more .signout { display: block; width: 100%; border: 0; border-radius: 12px; background: var(--card, var(--chip)); color: var(--ash); font: inherit; font-size: 16px; font-weight: 700; padding: 14px; cursor: pointer; }
+#more .acct button { flex: none; border: 0; border-radius: 10px; background: var(--chip); color: var(--ash); font: inherit; font-size: 15px; font-weight: 700; padding: 8px 14px; cursor: pointer; }
+
+/* ---- round + button, bottom right above the last tab (pages that add things) ---- */
+.fab {
+  position: fixed; z-index: 6; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); left: calc(100% - 72px);
+  width: 56px; height: 56px; border-radius: 28px; border: 0; padding: 0; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 38%, transparent), 0 2px 6px rgba(0,0,0,.12);
+  transform: scale(.6); opacity: 0; pointer-events: none;
+  transition: transform .22s cubic-bezier(.3,1.4,.5,1), opacity .15s, background-color .35s;
+}
+.fab.show { transform: scale(1); opacity: 1; pointer-events: auto; }
+.fab:active { transform: scale(.92); }
+.fab svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; }
+/* the + lives here now, not in each page header */
+#pages #addBtn, #pages .addBtn { display: none !important; }
+/* leave room so the last row can scroll clear of the + */
+body.has-fab .wrap { padding-bottom: calc(156px + env(safe-area-inset-bottom, 0px)); }
+
+/* undo bar */
+.undo {
+  position: fixed; left: max(16px, calc(50% - 234px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 25;
+  transform: translate(0, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 112px);
+  background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 10px 10px 16px;
+  font-size: 14px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.2);
+}
+.undo.show { opacity: 1; transform: translate(0, 0); pointer-events: auto; }
+.undo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.undo button { border: 0; border-radius: 14px; background: var(--ben); color: #fff; font: inherit; font-size: 14px; font-weight: 800; padding: 6px 14px; cursor: pointer; flex: none; }
+
+/* ---- Recipes, House and Notes pages (shared look) ---- */
+.doc-page .title h1 { white-space: nowrap; }
+.doc-page .count { color: var(--muted); font-size: 14px; font-weight: 600; margin-left: 8px; letter-spacing: 0; }
+.doc-page header { align-items: center; }
+.doc-page .nav svg { width: 18px; height: 18px; }
+.doc-page .addBtn { background: var(--ben) !important; color: #fff !important; }
+body.viewonly .doc-page .addBtn { display: none; }
+
+.doc-page .dseg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-top: 8px; background: var(--chip); border-radius: 12px; }
+.doc-page .dseg button { border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: 14px; font-weight: 700; padding: 7px 0; cursor: pointer; }
+.doc-page .dseg button.on { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.doc-page .dseg b { font-weight: 800; color: var(--ash); margin-left: 3px; }
+
+.doc-page .dsearch { position: relative; margin-top: 8px; }
+.doc-page .dsearch svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2.2; stroke-linecap: round; }
+.doc-page .dsearch input {
+  width: 100%; border: 0; border-radius: 10px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 16px; padding: 8px 12px 8px 34px; -webkit-appearance: none; appearance: none;
+}
+.doc-page .dsearch input:focus { outline: 2px solid var(--ben); }
+.doc-page .dsearch input::placeholder { color: var(--muted); }
+.doc-page .dtags { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 8px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; scrollbar-width: none; border-bottom: 0.5px solid var(--hair); }
+.doc-page .dtags::-webkit-scrollbar { display: none; }
+.doc-page .dtags:empty { padding: 4px 0 0; }
+.doc-page .dtag, .doc-sheet .dtag {
+  flex: none; appearance: none; border: 0; cursor: pointer; font-family: inherit; white-space: nowrap;
+  font-size: 13px; font-weight: 700; padding: 5px 12px; border-radius: 14px; background: var(--chip); color: var(--muted);
+}
+.doc-page .dtag.on { background: var(--ink); color: var(--bg); }
+
+.doc-page .dgroup { margin: 18px 0 0; padding-bottom: 4px; font-size: 12px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); border-bottom: 0.5px solid var(--hair); }
+.doc-page .dlist > .dgroup:first-child { margin-top: 10px; }
+.doc-page .item {
+  display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 7px 0; border-bottom: 0.5px solid var(--hair);
+}
+.doc-page .item .main { flex: 1; min-width: 0; appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 2px 0; cursor: pointer; }
+.doc-page .item .name { font-size: 17px; font-weight: 650; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-page .item .name .pinmark { width: 13px; height: 13px; stroke: var(--today); fill: var(--today); stroke-width: 1.6; vertical-align: -1px; margin-right: 5px; }
+.doc-page .item .prev { font-size: 14px; color: var(--muted); line-height: 1.3; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-page .item .meta { flex: none; font-size: 12px; font-weight: 700; color: var(--muted); padding: 4px 9px; border-radius: 12px; background: var(--chip); white-space: nowrap; }
+.doc-page .item .meta.plain { background: none; padding: 0; }
+.doc-page .item .meta.due { background: var(--ash); color: #fff; }
+.doc-page .item .meta.soon { background: var(--s3); color: #fff; }
+.doc-page .check {
+  flex: none; width: 30px; height: 30px; border-radius: 15px; border: 2px solid var(--muted);
+  background: none; cursor: pointer; display: grid; place-items: center; padding: 0; transition: background-color .15s, border-color .15s, transform .12s;
+}
+.doc-page .check:active { transform: scale(.9); }
+.doc-page .check svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.doc-page .check.did { background: var(--both); border-color: var(--both); }
+.doc-page .check.did svg { opacity: 1; }
+body.viewonly .doc-page .check { pointer-events: none; }
+.doc-page .empty { color: var(--muted); text-align: center; padding: 34px 12px; font-size: 15px; line-height: 1.5; }
+.doc-page .empty b { color: var(--ink); }
+
+.doc-page .item.flash { animation: docflash 1.4s ease-out; }
+@keyframes docflash { 0%, 30% { background: color-mix(in srgb, var(--ben) 16%, var(--bg)); } 100% { background: var(--bg); } }
+/* swipe left to delete */
+.doc-page .swipe { position: relative; overflow: hidden; }
+.doc-page .swipe .item { position: relative; background: var(--bg); transition: transform .2s ease; touch-action: pan-y; }
+.doc-page .swipe.dragging .item { transition: none; }
+.doc-page .swipe .delbg { position: absolute; top: 0; right: 0; bottom: 0; width: 88px; border: 0; cursor: pointer; background: var(--ash); color: #fff; font: inherit; font-size: 15px; font-weight: 700; visibility: hidden; }
+.doc-page .swipe.dragging .delbg, .doc-page .swipe.open .delbg { visibility: visible; }
+body.viewonly .doc-page .swipe .delbg { display: none; }
+
+/* ---- full-screen reader / editor ---- */
+.doc-sheet {
+  position: fixed; inset: 0; z-index: 12; background: var(--bg); color: var(--ink);
+  transform: translateY(104%); visibility: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s linear .3s, background-color .35s;
+}
+.doc-sheet.show { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.32,.72,0,1), visibility 0s, background-color .35s; }
+.doc-sheet .dbar {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px;
+  max-width: 500px; margin: 0 auto; background: var(--bg);
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+}
+@media (display-mode: standalone) { .doc-sheet .dbar { padding-top: calc(20px + env(safe-area-inset-top, 0px)); } }
+.doc-sheet .dbar .sp { flex: 1; }
+.doc-sheet .dbar button {
+  height: 36px; min-width: 36px; border-radius: 18px; border: 0; background: var(--chip); color: var(--ink);
+  display: grid; place-items: center; cursor: pointer; font: inherit; font-size: 15px; font-weight: 700; padding: 0 14px;
+}
+.doc-sheet .dbar button.icon { padding: 0; width: 36px; }
+.doc-sheet .dbar svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.doc-sheet .dbar .dpin.on { color: var(--today); }
+.doc-sheet .dbar .dpin.on svg { fill: currentColor; }
+.doc-sheet .dbar .dedit.save { background: var(--ben); color: #fff; }
+body.viewonly .doc-sheet .dpin, body.viewonly .doc-sheet .dedit { display: none; }
+.doc-sheet .dbody { max-width: 500px; margin: 0 auto; padding: 4px 18px calc(40px + env(safe-area-inset-bottom, 0px)); }
+
+/* reading */
+.doc-sheet h2 { margin: 6px 0 8px; font-size: 27px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; }
+.doc-sheet .dmeta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.doc-sheet .dtag { cursor: default; }
+.doc-sheet h4 { margin: 22px 0 8px; font-size: 13px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+.doc-sheet .rich { font-size: 18px; line-height: 1.5; }
+.doc-sheet .rich p { margin: 0 0 8px; white-space: pre-wrap; word-wrap: break-word; }
+.doc-sheet .rich h3 { margin: 18px 0 6px; font-size: 20px; font-weight: 800; letter-spacing: -0.2px; }
+.doc-sheet .rich ul, .doc-sheet .rich ol { margin: 0 0 8px; padding-left: 24px; }
+.doc-sheet .rich li { margin-bottom: 6px; }
+.doc-sheet .rich ol.steps { padding-left: 0; list-style: none; counter-reset: st; }
+.doc-sheet .rich ol.steps li { counter-increment: st; position: relative; padding-left: 38px; margin-bottom: 14px; min-height: 26px; }
+.doc-sheet .rich ol.steps li::before {
+  content: counter(st); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 13px;
+  background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 800; display: grid; place-items: center;
+}
+.doc-sheet .rich .gap { height: 8px; }
+.doc-sheet .rich a { color: var(--ben); word-break: break-all; }
+.doc-sheet .tick { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.doc-sheet .tick i {
+  flex: none; width: 22px; height: 22px; margin-top: 2px; border-radius: 6px; border: 2px solid var(--muted);
+  display: grid; place-items: center;
+}
+.doc-sheet .tick i svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 3.2; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.doc-sheet .tick.on i { background: var(--both); border-color: var(--both); }
+.doc-sheet .tick.on i svg { opacity: 1; }
+.doc-sheet .tick.on span { color: var(--muted); text-decoration: line-through; }
+body.viewonly .doc-sheet .tick.saves { cursor: default; }
+.doc-sheet .quiet { color: var(--muted); font-size: 16px; }
+.doc-sheet .duebox {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--chip); margin: 4px 0 16px;
+}
+.doc-sheet .duebox div { flex: 1; font-size: 15px; font-weight: 600; line-height: 1.35; }
+.doc-sheet .duebox div small { display: block; color: var(--muted); font-size: 13px; font-weight: 600; }
+.doc-sheet .duebox button { flex: none; border: 0; border-radius: 12px; background: var(--both); color: #fff; font: inherit; font-size: 15px; font-weight: 800; padding: 10px 14px; cursor: pointer; }
+.doc-sheet .duebox.due { background: color-mix(in srgb, var(--ash) 16%, var(--bg)); }
+.doc-sheet .duebox.soon { background: color-mix(in srgb, var(--s3) 18%, var(--bg)); }
+body.viewonly .doc-sheet .duebox button { display: none; }
+
+/* editing */
+.doc-sheet label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin: 16px 0 6px; }
+.doc-sheet label small { font-weight: 600; opacity: .8; margin-left: 4px; }
+.doc-sheet .ftitle {
+  width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; padding: 10px 12px;
+}
+.doc-sheet input:not(.ftitle), .doc-sheet textarea {
+  width: 100%; border: 0; border-radius: 10px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 16px; line-height: 1.45; padding: 10px 12px; resize: none;
+}
+.doc-sheet textarea { min-height: 96px; overflow: hidden; }
+.doc-sheet textarea.tall { min-height: 220px; }
+.doc-sheet input:focus, .doc-sheet textarea:focus { outline: 2px solid var(--ben); }
+.doc-sheet ::placeholder { color: var(--muted); opacity: .8; }
+.doc-sheet .sugg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.doc-sheet .sugg button { cursor: pointer; }
+.doc-sheet .sugg button.on { background: var(--ink); color: var(--bg); }
+.doc-sheet .rep { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.doc-sheet .rep .dtag { cursor: pointer; font-size: 14px; padding: 8px 14px; border-radius: 16px; }
+.doc-sheet .rep .dtag.on { background: var(--ink); color: var(--bg); }
+.doc-sheet .rep input { width: 76px; text-align: center; }
+.doc-sheet .rep span { color: var(--muted); font-weight: 700; }
+.doc-sheet .hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.doc-sheet .ddel { display: block; width: 100%; margin-top: 30px; border: 0; border-radius: 12px; background: var(--chip); color: var(--ash); font: inherit; font-size: 16px; font-weight: 700; padding: 13px; cursor: pointer; }
+
+/* ---- Family settings (inside the More menu) ---- */
+#famView h3 small { display: block; margin: 2px 0 0; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
+#famView .fam-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; }
+#famView .fam-row + .fam-row, #famView .fam-row + .fam-add { border-top: 0.5px solid var(--hair); }
+#famView input:not([type]) , #famView .fam-row input.fam-name, #famView .fam-row input.fam-init, #famView .fam-row input.fam-cname, #famView .fam-row input.fam-tlabel {
+  border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; padding: 8px 10px; min-width: 0;
+}
+#famView input:focus { outline: 2px solid var(--ben); }
+#famView input:disabled { opacity: .45; }
+#famView .fam-init { width: 46px; text-align: center; text-transform: uppercase; flex: none; }
+#famView .fam-name, #famView .fam-cname { flex: 1; }
+#famView .fam-tlabel { width: 84px; flex: none; }
+#famView .fam-lbl { flex: 1; font-size: 16px; font-weight: 600; }
+#famView .fam-dot { flex: none; width: 30px; height: 30px; border-radius: 15px; border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--hair); cursor: pointer; padding: 0; }
+#famView .fam-x { flex: none; width: 34px; height: 34px; border-radius: 17px; border: 0; background: var(--chip); color: var(--ash); font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer; }
+#famView .fam-add { display: block; width: 100%; border: 0; background: none; color: var(--ben); font: inherit; font-size: 16px; font-weight: 700; text-align: left; padding: 14px 12px; cursor: pointer; }
+#famView .fam-gap { margin-top: 10px; }
+#famView .fam-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 10px 4px 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+#famView .fam-legend span { display: inline-flex; align-items: center; gap: 6px; }
+#famView .fam-legend i { font-style: normal; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 13px; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+#famView .fam-note { margin: 14px 4px 0; color: var(--muted); font-size: 13px; }
+/* iOS-style switch */
+.fam-sw { position: relative; flex: none; width: 50px; height: 30px; }
+.fam-sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.fam-sw i { position: absolute; inset: 0; border-radius: 15px; background: var(--chip); transition: background-color .2s; }
+.fam-sw i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.fam-sw input:checked + i { background: var(--both); }
+.fam-sw input:checked + i::after { transform: translateX(20px); }
+/* the Family row: editors in a household only */
+body.viewonly #famGroup, body.no-household #famGroup { display: none; }
+
+/* members, invites, site admin */
+#famView .mem-row, #adminView .fam-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; }
+#adminView .fam-row + .fam-row { border-top: 0.5px solid var(--hair); }
+.mem-email { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mem-email small { color: var(--muted); font-weight: 600; }
+.mem-role { flex: none; font-size: 12px; font-weight: 800; padding: 4px 9px; border-radius: 10px; background: var(--chip); color: var(--muted); }
+.mem-role.editor { color: var(--ben); }
+#famView .inv-seg { flex: 1; margin: 0; }
+.inv-make, .adm-new { flex: none; border: 0; border-radius: 12px; background: var(--accent, var(--ink)); color: var(--on-accent, var(--bg)); font: inherit; font-size: 15px; font-weight: 700; padding: 10px 14px; cursor: pointer; }
+.adm-new { display: block; width: 100%; margin-top: 12px; padding: 13px; }
+.inv-box { background: var(--card, var(--field)); border-radius: 14px; padding: 12px; margin: 8px 0; box-shadow: 0 0 0 0.5px var(--hair); }
+.inv-url { font-size: 13px; font-weight: 600; word-break: break-all; user-select: all; -webkit-user-select: all; }
+.inv-note { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 600; }
+.inv-btns { display: flex; gap: 8px; margin-top: 10px; }
+.inv-btns button { flex: 1; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-size: 15px; font-weight: 700; padding: 10px; cursor: pointer; }
+.inv-del { border: 0; background: none; color: var(--ash); font: inherit; font-size: 14px; font-weight: 700; padding: 0 4px 6px; cursor: pointer; }
+#adminView .fam-note { margin: 14px 4px 0; color: var(--muted); font-size: 13px; }
+#adminView h3 small { display: block; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
+body:not(.site-admin) #adminGroup { display: none; }
+#more .inv-seg { grid-template-columns: 1fr 1fr; }
+#famView .fam-lbl small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
+/* the "both" icon: white on the coloured bubble, sized to the bubble's text */
+.both-ic { width: 1.35em; height: 1.35em; fill: currentColor; stroke: none !important; display: block; margin: auto; }
+#famView .fam-legend i .both-ic { width: 16px; height: 16px; }
+/* Calendars (Plans) */
+#famView .cal-dot { display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800; }
+#famView .cal-dot .both-ic { width: 17px; height: 17px; }
+#famView .cal-fun { flex: none; width: 34px; height: 34px; border-radius: 17px; border: 0; background: var(--chip); color: var(--muted); opacity: .45; font-size: 17px; line-height: 1; cursor: pointer; }
+#famView .cal-fun.on { opacity: 1; color: #e9a800; background: color-mix(in srgb, #e9b000 18%, var(--chip)); }
+#famView .cal-note { margin-top: 8px; }
+
+/* full-page sign-in gate */
+body.checking .wrap, body.checking .bottom, body.checking .gate { visibility: hidden; }
+body.locked .wrap, body.locked .bottom { display: none; }
+.gate {
+  display: none; position: fixed; inset: 0; z-index: 20; overflow: hidden;
+  align-items: center; justify-content: center; padding: 24px 16px; background: var(--bg);
+}
+/* soft colour wash in the app's own palette */
+.gate::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(circle 13px at 55.0% 34.6%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 64.3% 92.9%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 86.6% 59.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 12.4% 94.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 7.8% 75.1%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 97.8% 73.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 18.6% 37.6%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 17.9% 19.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 52.4% 8.7%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 66.3% 62.4%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 71.7% 5.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 27.9% 67.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 13px at 58.1% 26.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 9px at 97.2% 30.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 27.5% 53.7%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 40.1% 19.3%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 9px at 64.0% 15.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 31.2% 33.3%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 17.8% 68.6%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 60.2% 63.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 51.4% 93.6%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 94.3% 58.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 21.3% 91.5%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 54.9% 17.3%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 16.9% 81.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 5.1% 89.2%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 88.3% 36.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 9px at 89.5% 47.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 26.8% 29.4%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 69.6% 81.1%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 43.6% 67.5%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 8.8% 3.4%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 57.0% 98.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 47.1% 81.4%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 46.8% 43.8%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 70.8% 16.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 19.1% 53.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 11px at 61.1% 4.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 74.5% 75.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 14.1% 53.8%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 76.9% 21.4%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 5.6% 49.5%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 13px at 41.3% 36.8%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 19px at 49.2% 67.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 40.0% 88.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 34.3% 44.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 36.3% 77.9%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 7px at 81.2% 95.4%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 9px at 79.6% 2.9%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 11px at 92.4% 92.8%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 22.9% 77.2%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 13.1% 40.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 39.1% 3.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 50.3% 54.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 96.9% 8.0%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 52.6% 78.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 90.5% 69.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 2.9% 80.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 11.1% 31.3%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 19px at 84.0% 23.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 32.5% 98.3%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 3.1% 35.5%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 67.5% 30.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 3.0% 68.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 27.5% 3.5%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 11px at 22.5% 5.0%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 74.7% 60.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 50.1% 32.2%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 97.1% 93.3%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 69.1% 52.5%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 31.4% 11.1%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 47.8% 14.6%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 13px at 90.6% 18.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 7px at 33.3% 20.7%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 7px at 77.8% 40.1%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 9px at 60.1% 74.1%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 11px at 73.6% 47.9%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 11px at 27.0% 94.2%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 11px at 25.9% 39.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 13px at 29.0% 83.6%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 7px at 85.9% 76.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 16px at 23.3% 60.7%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 9px at 61.9% 84.0%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 13px at 17.6% 7.8%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 7px at 37.6% 58.4%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 8.7% 59.7%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 9px at 94.0% 40.9%, var(--both) 92%, transparent 100%),
+    radial-gradient(circle 19px at 35.9% 30.2%, var(--ash) 92%, transparent 100%),
+    radial-gradient(circle 16px at 10.7% 18.2%, var(--ben) 92%, transparent 100%),
+    radial-gradient(circle 16px at 79.6% 51.2%, var(--both) 92%, transparent 100%);
+  opacity: .6;
+}
+.gate form {
+  position: relative; z-index: 1;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border-radius: 24px; padding: 30px 22px 24px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.10);
+}
+body.locked .gate { display: flex; }
+.gate form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+.gate img { width: 76px; height: 76px; border-radius: 18px; margin: 0 auto 4px; }
+.gate h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.4px; }
+.gate .hello { margin: 0 0 6px; color: var(--ink); font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.gate input {
+  width: 100%; border: 0; border-radius: 12px; background: var(--field); color: var(--ink);
+  font: inherit; font-size: 17px; padding: 14px; text-align: left;
+}
+.gate input:focus { outline: 2px solid var(--ben); outline-offset: 0; }
+.gate button {
+  border: 0; border-radius: 12px; background: var(--ink); color: var(--bg);
+  font: inherit; font-size: 17px; font-weight: 700; padding: 14px; cursor: pointer;
+}
+.gate button:disabled { opacity: .5; }
+.gate .err { color: var(--ash); font-size: 15px; min-height: 1.4em; margin: 0; }
+/* invite links and "no household" share the sign-in screen */
+body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, body.joining #noHouse, body:not(.homeless) #noHouse { display: none; }
+#joinFields { display: flex; flex-direction: column; gap: 12px; }
+#joinFields.hidden { display: none; }
+.gate .join-sub { margin: -6px 0 4px; color: var(--muted); font-size: 15px; }
+.gate .join-link { color: var(--muted); font-size: 14px; font-weight: 600; }
+
+
+@media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
+</style>
+<!-- the database: PocketBase on our own server (pb-client.js gives the pages the same db.from(...) calls as before) -->
+<script src="pocketbase.umd.js"></script>
+<script src="pb-client.js"></script>
+</head>
+<body class="checking editing">
+
+<div class="gate" id="gate">
+  <form id="gateForm" autocomplete="on">
+    <input id="email" type="text" placeholder="Email or username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <p class="err" id="loginErr"></p>
+    <button type="submit" id="loginBtn">Sign in</button>
+  </form>
+  <form id="joinForm" autocomplete="on">
+    <p class="hello" id="joinTitle">Checking your invite…</p>
+    <p class="join-sub" id="joinRole"></p>
+    <div id="joinFields" class="hidden">
+      <input id="jEmail" type="email" placeholder="Your email" autocomplete="username" required>
+      <input id="jPass" type="password" placeholder="Make a password (6+ characters)" autocomplete="new-password" minlength="6" required>
+      <input id="jPass2" type="password" placeholder="Password again" autocomplete="new-password" minlength="6" required>
+      <button type="submit" id="joinBtn">Join</button>
+    </div>
+    <p class="err" id="joinErr"></p>
+    <a href="#" class="join-link" id="joinHaveLogin">I already have a Home Board login</a>
+  </form>
+  <form id="noHouse">
+    <p class="hello">Not in a household yet</p>
+    <p class="join-sub">This login isn’t part of a Home Board household. Ask someone in your family for an invite link, then open it on this phone.</p>
+    <button type="button" id="noHouseOut">Sign out</button>
+  </form>
+</div>
+
+<!-- each page draws itself into its own box in here -->
+<main class="wrap" id="pages"></main>
+
+<div class="bottom"><nav class="tabs" id="tabs"></nav></div>
+
+<div class="more-bg" id="moreBg"></div>
+<div class="more-sheet" id="more" role="dialog" aria-modal="true" aria-label="More">
+  <div class="grab"></div>
+  <div class="sh-head"><h2 id="moreTitle">More</h2><button class="linkbtn" id="editTabs">Edit tab bar</button></div>
+  <div id="pageList"></div>
+  <div id="famView" class="hidden"></div>
+  <div id="adminView" class="hidden"></div>
+  <div id="settings">
+    <div id="famGroup"><h3>Family</h3>
+    <div class="group"><div class="pg-row" id="famRow" role="button" tabindex="0"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.6c2.4.2 4 1.8 4.5 4.4"/></svg></span><span class="nm">Family settings</span><span class="tag">People, columns</span></div></div></div>
+    <div id="adminGroup"><h3>Site</h3>
+    <div class="group"><div class="pg-row" id="adminRow" role="button" tabindex="0"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9v10h12V9"/><path d="M10 19v-5h4v5"/></svg></span><span class="nm">Site admin</span><span class="tag">Households</span></div></div></div>
+    <h3>Appearance</h3>
+    <div class="seg" id="modeSeg">
+      <button data-m="light">Light</button><button data-m="dark">Dark</button><button data-m="auto">Auto</button>
+    </div>
+    <h3>Theme</h3>
+    <div class="skins" id="skinList"></div>
+    <h3>Account</h3>
+    <button class="signout" id="signOut">Sign out</button>
+  </div>
+</div>
+
+<button class="fab" id="fab" aria-label="Add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="undo" id="undo" role="status"><span id="undoText"></span><button type="button" id="undoBtn">Undo</button></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
+  var VERSION = "2026-09-29b";
+
+  // ---- database connection ----
+  var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
+
+  // ---- every page in the app ----
+  // src = page file loaded inside this app. href = older stand-alone page (not moved over yet).
+  var ICON = {
+    week: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 4.5v15"/>',
+    groceries: '<path d="M3 4h2.5l2.2 11h10.6l2-8H6.6"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/>',
+    meals: '<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10"/><path d="M17 21V3c-2 1.5-3 4-3 7v3h3"/>',
+    todos: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5"/>',
+    plans: '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.3"/>',
+    recipes: '<path d="M12 6.5C10.5 5 8 4.5 4 4.5v14c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-14c-4 0-6.5.5-8 2z"/><path d="M12 6.5v14"/>',
+    house: '<path d="M3.5 11.5L12 4.5l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5.5h4V20"/>',
+    notes: '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8h5M9 12.5h7M9 16h5"/>',
+    more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'
+  };
+  var PAGES = [
+    { id: "week",      name: "At a Glance", src: "week.js" },
+    { id: "groceries", name: "Groceries",   src: "groceries.js" },
+    { id: "meals",     name: "Meals",       src: "meals.js" },
+    { id: "todos",     name: "Tasks",       src: "todos.js" },
+    { id: "plans",     name: "Plans",       src: "plans.js" },
+    { id: "recipes",   name: "Recipes",     src: "recipes.js" },
+    { id: "house",     name: "House",       src: "house.js" },
+    { id: "notes",     name: "Notes",       src: "notes.js" }
+  ];
+  var MAX_PINS = 5;
+  function page(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return null; }
+  function svg(id) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[id] + '</svg>'; }
+  function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  // ---- shared helpers the pages use ----
+  var toastEl = document.getElementById("toast"), toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
+  }
+  var waiting = {}, mods = {};
+  window.HB = {
+    db: db, toast: toast, viewer: false,
+    // a page file calls this once it has loaded
+    register: function (id, mod) {
+      if (mod.css) { var st = document.createElement("style"); st.textContent = mod.css; document.head.appendChild(st); }
+      mods[id] = mod;
+      if (waiting[id]) waiting[id](mod);
+    }
+  };
+
+  // ================= shared list helpers (Groceries, Meals, TODOS, Plans) =================
+  // Swipe a row left to reveal Delete; tap Delete (or swipe all the way) to remove it.
+  var openSwipe = null;
+  function closeSwipe() { if (openSwipe) { var w = openSwipe; w.querySelector(".item").style.transform = ""; openSwipe = null; setTimeout(function () { if (openSwipe !== w) w.classList.remove("open"); }, 220); } }
+  document.addEventListener("touchstart", function (e) { if (openSwipe && !openSwipe.contains(e.target)) closeSwipe(); }, { passive: true });
+  // extra (optional): another button shown beside Delete, e.g. Plans' "To Calendar"
+  function swipeable(el, onDelete, extra) {
+    var wrap = document.createElement("div"); wrap.className = "swipe";
+    var bg = document.createElement("button"); bg.type = "button"; bg.className = "delbg"; bg.textContent = "Delete";
+    wrap.appendChild(bg);
+    var W = 88;
+    if (extra) { wrap.appendChild(extra); W = 88 + (extra.offsetWidth || 96); }
+    wrap.appendChild(el);
+    var x0 = 0, y0 = 0, dx = 0, mode = "", base = 0;
+    el.addEventListener("touchstart", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = "";
+      base = openSwipe === wrap ? -W : 0;
+    }, { passive: true });
+    el.addEventListener("touchmove", function (e) {
+      if (document.body.classList.contains("viewonly")) return;
+      var mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (!mode) { if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) mode = "x"; else if (Math.abs(my) > 8) mode = "y"; }
+      if (mode !== "x") return;
+      e.preventDefault();
+      if (openSwipe && openSwipe !== wrap) closeSwipe();
+      dx = Math.min(0, base + mx); wrap.classList.add("dragging");
+      el.style.transform = "translateX(" + Math.max(dx, -el.offsetWidth) + "px)";
+    }, { passive: false });
+    el.addEventListener("touchend", function () {
+      wrap.classList.remove("dragging");
+      if (mode !== "x") return;
+      if (dx < -el.offsetWidth * 0.6) { wrap.classList.add("open"); el.style.transform = "translateX(-100%)"; setTimeout(onDelete, 180); openSwipe = null; }
+      else if (dx < -44) { el.style.transform = "translateX(-" + W + "px)"; openSwipe = wrap; wrap.classList.add("open"); }
+      else { el.style.transform = ""; if (openSwipe === wrap) openSwipe = null; setTimeout(function () { if (openSwipe !== wrap) wrap.classList.remove("open"); }, 220); }
+    });
+    // a tap on a row that's swiped open just closes it
+    el.addEventListener("click", function (e) { if (openSwipe === wrap) { e.stopPropagation(); e.preventDefault(); closeSwipe(); } }, true);
+    bg.addEventListener("click", function () { openSwipe = null; onDelete(); });
+    return wrap;
+  }
+
+  // Delete with a few seconds to undo: the row disappears at once, the database delete
+  // happens when the undo bar goes away (or when you leave the page).
+  var pendingDel = null, undoT = null, undoBar = document.getElementById("undo");
+  function flushDelete() {
+    clearTimeout(undoT); undoBar.classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.commit(); }
+  }
+  function deleteWithUndo(id, name, commit, restore) {
+    flushDelete();
+    pendingDel = { id: id, commit: commit, restore: restore };
+    document.getElementById("undoText").textContent = "Deleted \u201c" + name + "\u201d";
+    undoBar.classList.add("show");
+    undoT = setTimeout(flushDelete, 4500);
+  }
+  function notPending(x) { return !pendingDel || x.id !== pendingDel.id; }
+  document.getElementById("undoBtn").addEventListener("click", function () {
+    clearTimeout(undoT); undoBar.classList.remove("show");
+    if (pendingDel) { var p = pendingDel; pendingDel = null; p.restore(); }
+  });
+  window.addEventListener("pagehide", flushDelete);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) flushDelete(); });
+
+  // After adding: bring the new row into view just under the header, with a quick highlight
+  function reveal(root, id) {
+    setTimeout(function () {
+      var el = root.querySelector('[data-id="' + id + '"]'); if (!el) return;
+      var top = root.querySelector(".top"), off = top ? top.getBoundingClientRect().bottom : 0;
+      var vh = window.visualViewport ? visualViewport.height : window.innerHeight;
+      var q = root.querySelector("#quickSheet"), qh = q && q.classList.contains("show") ? q.offsetHeight : 0;
+      var r = el.getBoundingClientRect();
+      if (r.top < off || r.bottom > vh - qh - 8) window.scrollTo(0, Math.max(0, r.top + window.scrollY - off - 8));
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    }, 60);
+  }
+  HB.closeSwipe = closeSwipe;
+
+  // ---- no AutoFill in the app's own boxes ----
+  // iPhones offer contacts / addresses / passwords for text boxes they think look like a form.
+  // Every box inside the app (not the sign-in screen) is marked as "not a form field" for Safari
+  // and password managers, and gets a meaningless name so nothing matches it.
+  var afN = 0;
+  function noAutofill(el) {
+    if (el.dataset.noaf) return;
+    var t = (el.getAttribute("type") || "text").toLowerCase();
+    if (["text", "search", "url", "tel", "number", ""].indexOf(t) < 0 && el.tagName !== "TEXTAREA") return;
+    el.dataset.noaf = "1";
+    el.setAttribute("autocomplete", "off");
+    el.setAttribute("name", "hb-box-" + (++afN));
+    el.setAttribute("data-form-type", "other");        // Dashlane and friends
+    el.setAttribute("data-lpignore", "true");           // LastPass
+    el.setAttribute("data-1p-ignore", "");              // 1Password
+    el.setAttribute("data-bwignore", "");               // Bitwarden
+  }
+  // Keyboard toolbar: while typing in an add bar, take every other box out of the ⌃ ⌄ order,
+  // so the arrows don't jump into hidden date boxes or fields behind the bar. Tapping still works.
+  var parked = [];
+  document.addEventListener("focusin", function (e) {
+    var t = e.target;
+    if (!t || t.id !== "quickText") return;
+    document.querySelectorAll("input, textarea, select").forEach(function (el) {
+      if (el === t || el.dataset.parked) return;
+      el.dataset.parked = el.hasAttribute("tabindex") ? el.getAttribute("tabindex") : "none";
+      el.setAttribute("tabindex", "-1"); parked.push(el);
+    });
+  });
+  document.addEventListener("focusout", function (e) {
+    if (!e.target || e.target.id !== "quickText") return;
+    parked.forEach(function (el) {
+      var v = el.dataset.parked; delete el.dataset.parked;
+      if (v === "none") el.removeAttribute("tabindex"); else el.setAttribute("tabindex", v);
+    });
+    parked = [];
+  });
+  function noAutofillIn(root) { root.querySelectorAll("input, textarea").forEach(noAutofill); }
+  ["pages", "more"].forEach(function (id) {
+    var box = document.getElementById(id); noAutofillIn(box);
+    new MutationObserver(function (list) {
+      list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) { if (/^(INPUT|TEXTAREA)$/.test(n.tagName)) noAutofill(n); else noAutofillIn(n); } }); });
+    }).observe(box, { childList: true, subtree: true });
+  });
+  HB.swipeable = swipeable; HB.deleteWithUndo = deleteWithUndo; HB.notPending = notPending; HB.flushDelete = flushDelete; HB.reveal = reveal;
+
+  // ================= shared engine for the Recipes, House and Notes pages =================
+  // Each of those page files is just a few lines: HB.docPage("recipes", { title, table, kind, ... }).
+  HB.docPage = function (id, cfg) {
+    HB.register(id, { title: cfg.title, mount: function (root) { docMount(this, root, id, cfg); } });
+  };
+
+  var DI = {
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>',
+    down: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path d="M9 3.5h6l-1 6 3.5 3.5h-11L10 9.5z"/><path d="M12 13v7.5"/></svg>',
+    tick: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+  };
+  function desc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function linkify(h) { return h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
+  function dayNum(d) { var x = typeof d === "string" ? new Date(d + "T12:00:00") : d; return Math.floor(new Date(x.getFullYear(), x.getMonth(), x.getDate()) / 86400000); }
+  function isoDay(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function shortDate(s) { if (!s) return ""; var d = new Date(String(s).length === 10 ? s + "T12:00:00" : s); return MON[d.getMonth()] + " " + d.getDate() + (d.getFullYear() !== new Date().getFullYear() ? ", " + d.getFullYear() : ""); }
+  // House checklist: how many days until it's due (negative = overdue). Never done = due now.
+  function dueIn(r) { if (!r.repeat_days) return null; if (!r.last_done) return 0; return r.repeat_days - (dayNum(new Date()) - dayNum(r.last_done)); }
+  function dueLabel(n) {
+    if (n === null) return "";
+    if (n < 0) return "Overdue " + (-n) + (n === -1 ? " day" : " days");
+    if (n === 0) return "Due today";
+    if (n === 1) return "Due tomorrow";
+    if (n < 21) return "Due in " + n + " days";
+    if (n < 70) return "Due in " + Math.round(n / 7) + " wks";
+    return "Due in " + Math.round(n / 30) + " mo";
+  }
+  function dueClass(n) { return n === null ? "" : n <= 0 ? "due" : n <= 7 ? "soon" : ""; }
+  function autoGrow(t) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+  function splitTags(s) {
+    var out = [];
+    String(s || "").split(",").forEach(function (t) { t = t.trim(); if (t && out.indexOf(t) < 0) out.push(t); });
+    return out;
+  }
+
+  // Light formatting for bodies: "# heading", "- bullet", "1. numbered", "[ ] / [x] checkbox", links.
+  function richText(text, tickable) {
+    var lines = String(text || "").split("\n"), html = "", list = null, i = 0;
+    function close() { if (list) { html += "</" + list + ">"; list = null; } }
+    lines.forEach(function (raw, n) {
+      var l = raw.replace(/\s+$/, ""), m;
+      if ((m = l.match(/^\s*(?:[-*•]\s*)?\[( |x|X)\]\s?(.*)$/))) {
+        close();
+        html += '<div class="tick' + (m[1] !== " " ? " on" : "") + (tickable ? " saves" : "") + '" data-line="' + n + '"><i>' + DI.tick + '</i><span>' + linkify(desc(m[2])) + '</span></div>';
+      } else if ((m = l.match(/^\s*#{1,3}\s+(.*)$/))) { close(); html += "<h3>" + linkify(desc(m[1])) + "</h3>"; }
+      else if ((m = l.match(/^\s*[-*•]\s+(.*)$/))) { if (list !== "ul") { close(); html += "<ul>"; list = "ul"; } html += "<li>" + linkify(desc(m[1])) + "</li>"; }
+      else if ((m = l.match(/^\s*\d+[.)]\s+(.*)$/))) { if (list !== "ol") { close(); html += "<ol>"; list = "ol"; } html += "<li>" + linkify(desc(m[1])) + "</li>"; }
+      else if (!l.trim()) { close(); html += '<div class="gap"></div>'; }
+      else { close(); html += "<p>" + linkify(desc(l)) + "</p>"; }
+      i++;
+    });
+    close();
+    return html;
+  }
+
+  function docMount(mod, root, pageId, cfg) {
+    var db = HB.db, toast = HB.toast, T = cfg.table, kind = cfg.kind;
+    var rows = [], q = "", tag = "", view = "facts", openRow = null, editingDoc = false, isNew = false, started = false, wake = null;
+    var nouns = cfg.noun;   // [one, many]
+    root.classList.add("doc-page");
+    root.innerHTML =
+      '<div class="top"><header><div class="title"><h1>' + desc(cfg.title) + '<span class="count"></span></h1></div>' +
+        '<div class="nav"><span class="vo">View only</span><button class="addBtn" aria-label="Add a ' + nouns[0] + '">' + DI.plus + '</button></div></header>' +
+        (kind === "house" ? '<div class="dseg"><button data-v="facts" class="on">Facts</button><button data-v="check">Checklist</button></div>' : '') +
+        '<div class="dsearch">' + DI.search + '<input type="search" placeholder="Search ' + nouns[1] + '" autocomplete="off" enterkeyhint="search"></div>' +
+        '<div class="dtags"></div></div>' +
+      '<div class="dlist"></div>' +
+      '<div class="doc-sheet" role="dialog" aria-modal="true">' +
+        '<div class="dbar"><button class="icon dclose" aria-label="Close">' + DI.down + '</button><span class="sp"></span>' +
+        '<button class="icon dpin" aria-label="Pin to top">' + DI.pin + '</button><button class="dedit">Edit</button></div>' +
+        '<div class="dbody"></div></div>';
+    var $q = function (s) { return root.querySelector(s); };
+    var listEl = $q(".dlist"), tagsEl = $q(".dtags"), searchEl = $q(".dsearch input"), sheet = $q(".doc-sheet"), body = $q(".dbody");
+    var oops = function (res) { if (res && res.error) { toast("Couldn't save. Check your connection."); loadAll(); return true; } return false; };
+    function byId(id) { for (var i = 0; i < rows.length; i++) if (rows[i].id === id) return rows[i]; return null; }
+    function tagsOf(r) { return kind === "house" ? (r.area ? [r.area] : []) : (r.tags || []); }
+
+    // ---------- list ----------
+    function matches(r) {
+      if (kind === "house" && (view === "check") !== !!r.repeat_days) return false;
+      if (tag && tagsOf(r).indexOf(tag) < 0) return false;
+      if (!q) return true;
+      var hay = [r.name, r.body, r.ingredients, r.steps, r.note, r.area, (r.tags || []).join(" ")].join(" ").toLowerCase();
+      return q.toLowerCase().split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; });
+    }
+    function sortRows(a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      if (kind === "house" && view === "check") return dueIn(a) - dueIn(b);
+      if (kind === "note") return (a.updated_at || a.created_at) < (b.updated_at || b.created_at) ? 1 : -1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    }
+    function preview(r) {
+      if (kind === "recipe") {
+        var n = String(r.ingredients || "").split("\n").filter(function (l) { return l.trim(); }).length;
+        return [ (r.tags || []).join(", "), n ? n + " ingredient" + (n === 1 ? "" : "s") : "" ].filter(Boolean).join(" · ") || firstLine(r.note);
+      }
+      if (kind === "house" && r.repeat_days) return (r.area ? r.area + " · " : "") + "every " + r.repeat_days + " days" + (r.last_done ? " · last " + shortDate(r.last_done) : "");
+      return firstLine(r.body);
+    }
+    function firstLine(s) { var l = String(s || "").split("\n").filter(function (x) { return x.trim(); })[0] || ""; return l.replace(/^\s*(#+|[-*•]|\d+[.)]|\[[ xX]\])\s*/, ""); }
+    function rowEl(r) {
+      var el = document.createElement("div");
+      el.className = "item"; el.dataset.id = r.id;
+      var n = dueIn(r), meta = "";
+      if (kind === "house" && r.repeat_days) meta = '<span class="meta ' + dueClass(n) + '">' + dueLabel(n) + '</span>';
+      else if (kind === "note") meta = '<span class="meta plain">' + shortDate(r.updated_at || r.created_at) + '</span>';
+      el.innerHTML =
+        (kind === "house" && r.repeat_days ? '<button class="check" aria-label="Mark done today">' + DI.tick + '</button>' : '') +
+        '<button class="main"><div class="name">' + (r.pinned ? DI.pin.replace("<svg ", '<svg class="pinmark" ') : "") + desc(r.name) + '</div>' +
+        '<div class="prev">' + desc(preview(r)) + '</div></button>' + meta;
+      el.querySelector(".main").addEventListener("click", function () { openDoc(r.id); });
+      var ck = el.querySelector(".check");
+      if (ck) ck.addEventListener("click", function () { markDone(r, ck); });
+      if (HB.viewer) return el;
+      return HB.swipeable(el, function () {
+        if (String(r.id).indexOf("tmp") === 0) return;
+        rows = rows.filter(function (x) { return x !== r; }); render();
+        HB.deleteWithUndo(r.id, r.name,
+          function () { db.from(T).delete().eq("id", r.id).then(oops); },
+          function () { rows.push(r); render(); });
+      });
+    }
+    function render() {
+      var shown = rows.filter(HB.notPending);
+      // tag / area chips (only ones in use on this view)
+      var all = [];
+      shown.forEach(function (r) {
+        if (kind === "house" && (view === "check") !== !!r.repeat_days) return;
+        tagsOf(r).forEach(function (t) { if (all.indexOf(t) < 0) all.push(t); });
+      });
+      all.sort(function (a, b) { return a.localeCompare(b); });
+      if (tag && all.indexOf(tag) < 0) tag = "";
+      tagsEl.innerHTML = all.length ? ['<button class="dtag' + (tag ? "" : " on") + '" data-t="">All</button>'].concat(all.map(function (t) {
+        return '<button class="dtag' + (t === tag ? " on" : "") + '" data-t="' + desc(t) + '">' + desc(t) + '</button>';
+      })).join("") : "";
+
+      var list = shown.filter(matches).sort(sortRows);
+      listEl.innerHTML = "";
+      if (cfg.householdOnly && HB.viewer) {
+        listEl.innerHTML = '<div class="empty">' + desc(cfg.title) + ' is for the household only.</div>';
+      } else if (!list.length) {
+        listEl.innerHTML = '<div class="empty">' + (q || tag ? "Nothing matches." :
+          kind === "house" && view === "check" ? "Nothing on the checklist yet.<br>Tap <b>+</b> for things like <b>Change furnace filter</b>, every 90 days." :
+          kind === "house" ? "No house facts yet.<br>Tap <b>+</b> to save paint colours, filter sizes, model numbers…" :
+          kind === "recipe" ? "No recipes yet.<br>Tap <b>+</b> to add your first one." :
+          "No notes yet.<br>Tap <b>+</b> to write one.") + '</div>';
+      } else if (kind === "house" && view === "facts" && !tag) {
+        // facts grouped by area
+        var groups = {}, order = [];
+        list.forEach(function (r) { var g = r.pinned ? "Pinned" : (r.area || "Other"); if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(r); });
+        order.sort(function (a, b) { return a === "Pinned" ? -1 : b === "Pinned" ? 1 : a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b); });
+        order.forEach(function (g) {
+          var h = document.createElement("div"); h.className = "dgroup"; h.textContent = g; listEl.appendChild(h);
+          groups[g].forEach(function (r) { listEl.appendChild(rowEl(r)); });
+        });
+      } else list.forEach(function (r) { listEl.appendChild(rowEl(r)); });
+
+      var cnt = $q(".count"), due = 0;
+      rows.forEach(function (r) { var n = dueIn(r); if (n !== null && n <= 0) due++; });
+      if (kind === "house") {
+        cnt.textContent = due ? due + " due" : "";
+        var cb = root.querySelector('.dseg button[data-v="check"]');
+        cb.innerHTML = "Checklist" + (due ? "<b>" + due + "</b>" : "");
+      } else {
+        var total = rows.length;
+        cnt.textContent = total ? total + " " + (total === 1 ? nouns[0] : nouns[1]) : "";
+      }
+      root.querySelectorAll(".dseg button").forEach(function (b) { b.classList.toggle("on", b.dataset.v === view); });
+    }
+    tagsEl.addEventListener("click", function (e) { var b = e.target.closest(".dtag"); if (!b) return; tag = b.dataset.t; render(); });
+    searchEl.addEventListener("input", function () { q = searchEl.value.trim(); render(); });
+    searchEl.addEventListener("keydown", function (e) { if (e.key === "Enter") searchEl.blur(); });
+    root.querySelectorAll(".dseg button").forEach(function (b) {
+      b.addEventListener("click", function () { view = b.dataset.v; tag = ""; render(); window.scrollTo(0, 0); });
+    });
+
+    function markDone(r, ck) {
+      if (HB.viewer) return;
+      var today = isoDay(new Date());
+      if (r.last_done === today) { toast("Already marked done today"); return; }
+      if (ck) ck.classList.add("did");
+      r.last_done = today;
+      db.from(T).update({ last_done: today }).eq("id", r.id).then(oops);
+      toast("Done. Next due " + shortDate(isoDay(new Date(Date.now() + r.repeat_days * 86400000))));
+      setTimeout(function () { render(); if (openRow === r && !editingDoc) showDoc(); }, ck ? 700 : 0);
+    }
+
+    // ---------- reader / editor ----------
+    function openDoc(id) {
+      var r = byId(id); if (!r || String(r.id).indexOf("tmp") === 0) return;
+      openRow = r; isNew = false; editingDoc = false; showDoc(); present();
+    }
+    function newDoc() {
+      openRow = { id: null, name: "", body: "", ingredients: "", steps: "", note: "", tags: tag && kind !== "house" ? [tag] : [], area: kind === "house" ? tag : "", pinned: false,
+                  repeat_days: kind === "house" && view === "check" ? 90 : null, last_done: null };
+      isNew = true; editingDoc = true; showEditor(); present();
+      setTimeout(function () { var t = body.querySelector(".ftitle"); if (t) t.focus(); }, 320);
+    }
+    function present() {
+      sheet.scrollTop = 0; sheet.classList.add("show");
+      document.documentElement.style.overflow = "hidden";
+      if (kind === "recipe" && navigator.wakeLock) navigator.wakeLock.request("screen").then(function (w) { wake = w; }, function () {});
+    }
+    function dismiss() {
+      if (editingDoc && !saveEditor()) return;
+      sheet.classList.remove("show"); openRow = null; editingDoc = false;
+      document.documentElement.style.overflow = "";
+      if (wake) { try { wake.release(); } catch (e) {} wake = null; }
+      if (document.activeElement) document.activeElement.blur();
+      render();
+    }
+    $q(".dclose").addEventListener("click", dismiss);
+    $q(".dpin").addEventListener("click", function () {
+      var r = openRow; if (!r) return;
+      r.pinned = !r.pinned; this.classList.toggle("on", r.pinned);
+      if (r.id) db.from(T).update({ pinned: r.pinned }).eq("id", r.id).then(oops);
+      toast(r.pinned ? "Pinned to the top" : "Unpinned");
+    });
+    $q(".dedit").addEventListener("click", function () {
+      if (!editingDoc) { editingDoc = true; showEditor(); return; }
+      if (saveEditor()) { if (!openRow) return; editingDoc = false; showDoc(); }
+    });
+
+    function paintBar() {
+      var r = openRow;
+      $q(".dpin").classList.toggle("on", !!(r && r.pinned));
+      var e = $q(".dedit"); e.textContent = editingDoc ? "Done" : "Edit"; e.classList.toggle("save", editingDoc);
+    }
+    function showDoc() {
+      var r = openRow; if (!r) return;
+      paintBar();
+      var h = "<h2>" + desc(r.name) + "</h2>";
+      var chips = tagsOf(r);
+      if (chips.length) h += '<div class="dmeta">' + chips.map(function (t) { return '<span class="dtag">' + desc(t) + '</span>'; }).join("") + '</div>';
+      if (kind === "house" && r.repeat_days) {
+        var n = dueIn(r);
+        h += '<div class="duebox ' + dueClass(n) + '"><div>' + dueLabel(n) + '<small>Every ' + r.repeat_days + ' days' + (r.last_done ? ' · last done ' + shortDate(r.last_done) : ' · not done yet') + '</small></div>' +
+             '<button class="ddone">Done today</button></div>';
+      }
+      if (kind === "recipe") {
+        var ing = String(r.ingredients || "").split("\n").filter(function (l) { return l.trim(); });
+        var st = String(r.steps || "").split("\n").filter(function (l) { return l.trim(); });
+        if (ing.length) h += '<h4>Ingredients</h4><div class="rich">' + ing.map(function (l) {
+          return '<div class="tick"><i>' + DI.tick + '</i><span>' + linkify(desc(l.replace(/^\s*([-*•]|\[[ xX]\])\s*/, ""))) + '</span></div>'; }).join("") + '</div>';
+        if (st.length) h += '<h4>Steps</h4><div class="rich"><ol class="steps">' + st.map(function (l) {
+          return "<li>" + linkify(desc(l.replace(/^\s*(\d+[.)]|[-*•])\s*/, ""))) + "</li>"; }).join("") + '</ol></div>';
+        if (String(r.note || "").trim()) h += '<h4>Notes</h4><div class="rich">' + richText(r.note) + '</div>';
+        if (!ing.length && !st.length && !String(r.note || "").trim()) h += '<p class="quiet">Nothing written yet. Tap Edit to add ingredients and steps.</p>';
+      } else {
+        h += String(r.body || "").trim() ? '<div class="rich body">' + richText(r.body, true) + '</div>' : '<p class="quiet">Nothing written yet. Tap Edit to add details.</p>';
+      }
+      body.innerHTML = h;
+      var dd = body.querySelector(".ddone"); if (dd) dd.addEventListener("click", function () { markDone(r); });
+      // recipes: ingredient ticks are just for cooking (not saved). Notes / House: checkboxes save.
+      body.querySelectorAll(".tick").forEach(function (t) {
+        t.addEventListener("click", function (e) {
+          if (e.target.closest("a")) return;
+          if (!t.classList.contains("saves")) { t.classList.toggle("on"); return; }
+          if (HB.viewer) return;
+          r = openRow || r;
+          if (String(r.id).indexOf("tmp") === 0) return;   // still saving; try again in a moment
+          var lines = String(r.body || "").split("\n"), i = +t.dataset.line;
+          lines[i] = lines[i].replace(/\[( |x|X)\]/, function (m, c) { return c === " " ? "[x]" : "[ ]"; });
+          r.body = lines.join("\n"); t.classList.toggle("on");
+          db.from(T).update({ body: r.body }).eq("id", r.id).then(oops);
+        });
+      });
+    }
+
+    function allTags() {
+      var out = [];
+      rows.forEach(function (r) { tagsOf(r).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); }); });
+      (cfg.suggest || []).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); });
+      return out.sort(function (a, b) { return a.localeCompare(b); });
+    }
+    function ta(cls, val, ph, extra) { return '<textarea class="' + cls + (extra ? " " + extra : "") + '" placeholder="' + ph + '">' + desc(val) + '</textarea>'; }
+    function showEditor() {
+      var r = openRow; paintBar();
+      var h = '<input class="ftitle" placeholder="' + desc(cfg.titleHint) + '" value="' + desc(r.name) + '" autocomplete="off">';
+      if (kind === "recipe") {
+        h += '<label>Ingredients <small>one per line</small></label>' + ta("fing", r.ingredients, "2 cups flour&#10;1 tsp salt");
+        h += '<label>Steps <small>one per line</small></label>' + ta("fsteps", r.steps, "Preheat oven to 375°F&#10;Mix the dry ingredients", "tall");
+        h += '<label>Notes</label>' + ta("fnote", r.note, "Where it's from, how many it serves, tips…");
+      } else if (kind === "house") {
+        h += '<label>Area</label><input class="farea" value="' + desc(r.area) + '" placeholder="Kitchen, HVAC, Paint…" autocomplete="off">' +
+             '<div class="sugg asugg"></div>';
+        h += '<label>Details</label>' + ta("fbody", r.body, "Size, colour, model number, where it is…", "tall");
+        h += '<label>Repeats</label><div class="rep"><button type="button" class="dtag rno">No</button><button type="button" class="dtag ryes">Every</button>' +
+             '<input class="frep" type="number" inputmode="numeric" min="1" value="' + (r.repeat_days || 90) + '"><span>days</span></div>' +
+             '<div class="lastwrap"><label>Last done <small>leave empty if never</small></label><input class="flast" type="date" value="' + (r.last_done || "") + '"></div>' +
+             '<div class="hint">Repeating items go on the Checklist with a due date.</div>';
+      } else {
+        h += '<label>Note</label>' + ta("fbody", r.body, "Write anything. Tips: start a line with - for a bullet, [ ] for a checkbox, # for a heading.", "tall");
+      }
+      if (kind !== "house") h += '<label>Tags <small>comma separated</small></label><input class="ftags" value="' + desc((r.tags || []).join(", ")) + '" placeholder="' + desc(cfg.tagHint) + '" autocomplete="off"><div class="sugg tsugg"></div>';
+      if (!isNew) h += '<button type="button" class="ddel">Delete ' + nouns[0] + '</button>';
+      body.innerHTML = h;
+      body.querySelectorAll("textarea").forEach(function (t) { autoGrow(t); t.addEventListener("input", function () { autoGrow(t); }); });
+
+      var tagIn = body.querySelector(".ftags"), tbox = body.querySelector(".tsugg");
+      function paintTagSugg() {
+        if (!tbox) return;
+        var cur = splitTags(tagIn.value);
+        tbox.innerHTML = allTags().map(function (t) { return '<button type="button" class="dtag' + (cur.indexOf(t) >= 0 ? " on" : "") + '">' + desc(t) + '</button>'; }).join("");
+      }
+      if (tagIn) {
+        paintTagSugg(); tagIn.addEventListener("input", paintTagSugg);
+        tbox.addEventListener("click", function (e) {
+          var b = e.target.closest("button"); if (!b) return;
+          var cur = splitTags(tagIn.value), t = b.textContent, i = cur.indexOf(t);
+          if (i >= 0) cur.splice(i, 1); else cur.push(t);
+          tagIn.value = cur.join(", "); paintTagSugg();
+        });
+      }
+      var areaIn = body.querySelector(".farea"), abox = body.querySelector(".asugg");
+      if (areaIn) {
+        var paintArea = function () { abox.innerHTML = allTags().map(function (t) { return '<button type="button" class="dtag' + (t === areaIn.value.trim() ? " on" : "") + '">' + desc(t) + '</button>'; }).join(""); };
+        paintArea(); areaIn.addEventListener("input", paintArea);
+        abox.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; areaIn.value = b.textContent; paintArea(); });
+        var rep = !!r.repeat_days;
+        var paintRep = function () {
+          body.querySelector(".rno").classList.toggle("on", !rep); body.querySelector(".ryes").classList.toggle("on", rep);
+          body.querySelector(".frep").style.display = rep ? "" : "none"; body.querySelector(".rep span").style.display = rep ? "" : "none";
+          body.querySelector(".lastwrap").style.display = rep ? "" : "none";
+        };
+        body.querySelector(".rno").addEventListener("click", function () { rep = false; paintRep(); });
+        body.querySelector(".ryes").addEventListener("click", function () { rep = true; paintRep(); });
+        body.repOn = function () { return rep; };
+        paintRep();
+      }
+      var del = body.querySelector(".ddel");
+      if (del) del.addEventListener("click", function () {
+        var r0 = openRow;
+        editingDoc = false; openRow = null; sheet.classList.remove("show"); document.documentElement.style.overflow = "";
+        rows = rows.filter(function (x) { return x !== r0; }); render();
+        HB.deleteWithUndo(r0.id, r0.name,
+          function () { db.from(T).delete().eq("id", r0.id).then(oops); },
+          function () { rows.push(r0); render(); });
+      });
+    }
+    // returns false if the sheet should stay open
+    function saveEditor() {
+      var r = openRow; if (!r) return true;
+      var v = function (s) { var el = body.querySelector(s); return el ? el.value : null; };
+      var ch = { name: (v(".ftitle") || "").trim() };
+      if (kind === "recipe") { ch.ingredients = v(".fing").replace(/\s+$/, ""); ch.steps = v(".fsteps").replace(/\s+$/, ""); ch.note = v(".fnote").replace(/\s+$/, ""); }
+      else ch.body = v(".fbody").replace(/\s+$/, "");
+      if (kind === "house") {
+        ch.area = v(".farea").trim();
+        var on = body.repOn && body.repOn(), days = parseInt(v(".frep"), 10);
+        ch.repeat_days = on && days > 0 ? days : null;
+        ch.last_done = on ? (v(".flast") || null) : null;
+      } else ch.tags = splitTags(v(".ftags"));
+      var empty = !ch.name && !(ch.body || ch.ingredients || ch.steps || ch.note);
+      if (isNew) {
+        if (empty) { openRow = null; editingDoc = false; closeSheetOnly(); return true; }
+        if (!ch.name) ch.name = (firstLine(ch.body || ch.ingredients || ch.note) || "Untitled").slice(0, 60);
+        ch.pinned = !!r.pinned;
+        var temp = Object.assign({ id: "tmp" + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }, ch);
+        rows.push(temp); isNew = false; openRow = temp;
+        if (kind === "house") view = temp.repeat_days ? "check" : "facts";
+        db.from(T).insert(ch).select().single().then(function (res) {
+          if (oops(res)) return;
+          var i = rows.indexOf(temp);
+          if (rows.some(function (x) { return x.id === res.data.id; })) { if (i >= 0) rows.splice(i, 1); }
+          else if (i >= 0) rows[i] = res.data; else rows.push(res.data);
+          if (openRow === temp) { openRow = res.data; if (!editingDoc) showDoc(); }
+          render(); if (!openRow) HB.reveal(root, res.data.id);
+          lastNew = res.data.id;
+        });
+        lastNew = temp.id;
+        return true;
+      }
+      if (!ch.name) ch.name = r.name;
+      var norm = function (k, x) { return x != null ? x : k === "tags" ? [] : k === "repeat_days" || k === "last_done" ? null : ""; };
+      var changed = Object.keys(ch).some(function (k) { return JSON.stringify(norm(k, ch[k])) !== JSON.stringify(norm(k, r[k])); });
+      if (changed) {
+        Object.assign(r, ch, { updated_at: new Date().toISOString() });
+        if (kind === "house") view = r.repeat_days ? "check" : "facts";
+        db.from(T).update(ch).eq("id", r.id).then(oops);
+      }
+      return true;
+    }
+    function closeSheetOnly() { sheet.classList.remove("show"); document.documentElement.style.overflow = ""; if (document.activeElement) document.activeElement.blur(); render(); }
+    var lastNew = null;
+    // after the sheet closes on a brand-new item, show where it landed
+    sheet.addEventListener("transitionend", function (e) {
+      if (e.target === sheet && !sheet.classList.contains("show") && lastNew) { var id = lastNew; lastNew = null; if (byId(id)) HB.reveal(root, id); }
+    });
+    $q(".addBtn").addEventListener("click", newDoc);
+
+    // ---------- load + live sync ----------
+    function loadAll() {
+      return db.from(T).select("*").then(function (res) {
+        if (res.error) { toast("Couldn't load " + cfg.title + "."); return; }
+        var temps = rows.filter(function (r) { return String(r.id).indexOf("tmp") === 0; });
+        rows = res.data.concat(temps);
+        if (openRow && openRow.id) { var fresh = byId(openRow.id); if (fresh && !editingDoc) { openRow = fresh; showDoc(); } else if (fresh) openRow = fresh; }
+        if (!editingDoc) render();
+      });
+    }
+    var reloadT;
+    function soon() { clearTimeout(reloadT); reloadT = setTimeout(loadAll, 250); }
+    db.channel(pageId + "-live").on("postgres_changes", { event: "*", schema: "public", table: T }, soon).subscribe();
+    started = true;
+    render(); loadAll();
+    // house due dates move with the calendar: redraw once a minute
+    if (kind === "house") setInterval(function () { if (!editingDoc) render(); }, 60000);
+
+    mod.refresh = function () { if (started) loadAll(); };
+    mod.shown = function () { render(); };
+  }
+
+  // ================= Family settings: who can be assigned, and the At a Glance columns =================
+  // Saved on the household (so everyone in the family sees the same), cached on the phone for a fast start.
+  // Colours are theme colour names, so they follow light/dark and the colour themes.
+  var PALETTE = ["ash", "ben", "both", "s3", "s4", "s5", "s6"];
+  var MAX_PEOPLE = 6;
+  var FAMILY_DEFAULT = {
+    people: [
+      { id: "A", initial: "A", name: "Ash", color: "ash" },
+      { id: "B", initial: "B", name: "Ben", color: "ben" }
+    ],
+    together: { on: true, label: "Both", color: "both" },
+    columns: [
+      { key: "drop_off", name: "Drop off", on: true },
+      { key: "pick_up", name: "Pick up", on: true },
+      { key: "dinner", name: "Dinner", on: true }
+    ],
+    weekendColumns: false,
+    homeTag: true
+    // calendars (Plans) and taskTypes (Tasks) are filled in by normFamily
+  };
+  var MAX_CALS = 6, MAX_TYPES = 8;
+  // Task types: how each kind of task behaves once it's ticked off
+  var TASK_TYPES_DEFAULT = [
+    { id: "daily", name: "Daily", color: "s3", repeat: "daily" },
+    { id: "weekly", name: "Weekly", color: "s5", repeat: "weekly" },
+    { id: "project", name: "Project", color: "s4", repeat: "none" },
+    { id: "someday", name: "Someday", color: "s6", repeat: "none" }
+  ];
+  // Calendars for Plans: one per person (same colour as their bubble), one for the kids, and Family (the "fun" one)
+  function defaultCalendars(people) {
+    var cals = [{ id: "kids", name: "Kids", color: "s3" }];
+    people.forEach(function (p) { cals.push({ id: "p-" + p.id, name: p.name || p.initial || "Person", color: "p:" + p.id }); });
+    cals.push({ id: "family", name: "Family", color: "together", fun: true });
+    return cals;
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function normFamily(s) {
+    var d = clone(FAMILY_DEFAULT);
+    s = s && typeof s === "object" ? clone(s) : {};
+    if (!Array.isArray(s.people)) s.people = d.people;
+    s.people = s.people.filter(function (p) { return p && p.id; }).slice(0, MAX_PEOPLE);
+    s.together = Object.assign(d.together, s.together || {});
+    var cols = Array.isArray(s.columns) ? s.columns : [];
+    s.columns = d.columns.map(function (c) { return Object.assign(c, cols.filter(function (x) { return x && x.key === c.key; })[0] || {}); });
+    s.weekendColumns = !!s.weekendColumns;
+    s.homeTag = s.homeTag !== false;
+    if (!Array.isArray(s.calendars) || !s.calendars.length) s.calendars = defaultCalendars(s.people);
+    s.calendars = s.calendars.filter(function (c) { return c && c.id; }).slice(0, MAX_CALS);
+    if (!s.calendars.some(function (c) { return c.fun; })) s.calendars[s.calendars.length - 1].fun = true;
+    var funSeen = false;
+    s.calendars.forEach(function (c) { if (c.fun) { if (funSeen) c.fun = false; funSeen = true; } });   // exactly one Fun calendar
+    if (!Array.isArray(s.taskTypes) || !s.taskTypes.length) s.taskTypes = clone(TASK_TYPES_DEFAULT);
+    s.taskTypes = s.taskTypes.filter(function (t) { return t && t.id; }).slice(0, MAX_TYPES);
+    s.taskTypes.forEach(function (t) { if (["daily", "weekly", "none"].indexOf(t.repeat) < 0) t.repeat = "none"; });
+    return s;
+  }
+  var family = null, familyId = "", familyListeners = [], famSaveT = null, famOpen = false;
+  try { family = normFamily(JSON.parse(read("hb-family"))); } catch (e) { family = normFamily(null); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  HB.esc = esc;
+  HB.family = function () { return family; };
+  HB.onFamily = function (fn) { familyListeners.push(fn); };
+  // the tap-through order for a "who" bubble: nobody, each person, then the together option
+  HB.whoCycle = function () {
+    var c = [""].concat(family.people.map(function (p) { return p.id; }));
+    if (family.together.on) c.push("Both");
+    return c;
+  };
+  HB.whoInfo = function (v) {
+    if (!v) return null;
+    if (v === "Both") return { id: v, short: family.together.label || "Both", name: family.together.label || "Both", color: family.together.color };
+    var p = family.people.filter(function (x) { return x.id === v; })[0];
+    if (!p) return { id: v, short: "?", name: "someone no longer listed", color: "muted" };
+    return { id: v, short: (p.initial || p.name.charAt(0) || "?").toUpperCase(), name: p.name || p.initial, color: p.color };
+  };
+  // "both / everyone" is drawn as two little people wherever it shows
+  var BOTH_ICON = '<svg class="both-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.3" cy="8.6" r="2.9"/><circle cx="15.7" cy="8.6" r="2.9"/>' +
+    '<path d="M2.8 19c.4-3.6 2.6-5.6 5.5-5.6s5.1 2 5.5 5.6zM10.7 19c.4-3.6 2.6-5.6 5-5.6 2.9 0 5.1 2 5.5 5.6z"/></svg>';
+  HB.bothIcon = BOTH_ICON;
+  HB.whoHtml = function (who) { return !who ? "" : who.id === "Both" ? BOTH_ICON : esc(who.short); };
+  // ---- calendars (Plans) ----
+  HB.calendars = function () { return family.calendars; };
+  HB.funCalendar = function () { return family.calendars.filter(function (c) { return c.fun; })[0] || family.calendars[0]; };
+  // a plan's calendar; unknown / empty (older plans) = the Family calendar, or the Fun one
+  HB.calOf = function (id) {
+    var c = family.calendars;
+    return c.filter(function (x) { return x.id === id; })[0] || c.filter(function (x) { return x.id === "family"; })[0] || HB.funCalendar();
+  };
+  // a calendar's colour follows its person (or the Together colour), so it matches everywhere
+  HB.calColor = function (cal) {
+    var col = cal && cal.color || "muted";
+    if (col === "together") return family.together.color;
+    if (col.indexOf("p:") === 0) {
+      var p = family.people.filter(function (x) { return x.id === col.slice(2); })[0];
+      return p ? p.color : "muted";
+    }
+    return col;
+  };
+  HB.setCalendars = function (list) { family.calendars = list; saveFamily(); };
+  // ---- task types (Tasks) ----
+  HB.taskTypes = function () { return family.taskTypes; };
+  HB.setTaskTypes = function (list) { family.taskTypes = list; saveFamily(); };
+  HB.PALETTE = PALETTE;
+  HB.colorVar = function (c) { return "var(--" + (PALETTE.indexOf(c) >= 0 ? c : "muted") + ")"; };
+  function emitFamily() {
+    store("hb-family", JSON.stringify(family));
+    familyListeners.forEach(function (fn) { try { fn(family); } catch (e) {} });
+  }
+  function loadFamily(session) {
+    familyId = (session && session.user && session.user.household) || "";
+    document.body.classList.toggle("no-household", !familyId);
+    if (!familyId) return;
+    db.from("households").select("*").eq("id", familyId).then(function (r) {
+      if (r.error || !r.data || !r.data[0]) return;
+      family = normFamily(r.data[0].settings); emitFamily();
+      if (famOpen) renderFamily();
+    });
+    if (loadFamily.live) return;
+    loadFamily.live = true;
+    db.channel("households-live").on("postgres_changes", { event: "*", schema: "public", table: "households" }, function (p) {
+      var row = p.new;
+      if (!row || row.id !== familyId || famSaveT) return;   // ignore our own save in flight
+      family = normFamily(row.settings); emitFamily();
+      if (famOpen && !document.getElementById("famView").contains(document.activeElement)) renderFamily();
+    }).subscribe();
+  }
+  function saveFamily() {
+    emitFamily();
+    clearTimeout(famSaveT);
+    famSaveT = setTimeout(function () {
+      if (!familyId) { famSaveT = null; toast("This login isn't in a household yet."); return; }
+      db.from("households").update({ settings: family }).eq("id", familyId).then(function (r) {
+        famSaveT = null;
+        if (r.error) toast("Couldn't save the family settings.");
+      });
+    }, 500);
+  }
+
+  // ---- the settings screen (inside the More menu) ----
+  var PEOPLE_ICON = '<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.6c2.4.2 4 1.8 4.5 4.4"/></svg>';
+  function sw(cls, on, label) {
+    return '<label class="fam-sw"><input type="checkbox" class="' + cls + '"' + (on ? " checked" : "") + ' aria-label="' + esc(label) + '"><i></i></label>';
+  }
+  function renderFamily() {
+    var f = family, el = document.getElementById("famView");
+    el.innerHTML =
+      '<h3>People <small>who you can assign on At a Glance and Tasks</small></h3>' +
+      '<div class="group">' + f.people.map(function (p, i) {
+        return '<div class="fam-row" data-i="' + i + '">' +
+          '<button type="button" class="fam-dot" style="background:' + HB.colorVar(p.color) + '" aria-label="Change colour"></button>' +
+          '<input class="fam-init" maxlength="2" value="' + esc(p.initial) + '" placeholder="?" aria-label="Initial" autocomplete="off" autocapitalize="characters">' +
+          '<input class="fam-name" value="' + esc(p.name) + '" placeholder="Who" aria-label="Person" autocomplete="off">' +
+          '<button type="button" class="fam-x" aria-label="Remove ' + esc(p.name) + '">×</button></div>';
+      }).join("") +
+      (f.people.length < MAX_PEOPLE ? '<button type="button" class="fam-add">+ Add person</button>' : '') + '</div>' +
+      '<div class="group fam-gap"><div class="fam-row">' + sw("fam-tog", f.together.on, "Together option") +
+        '<span class="fam-lbl">Together</span>' +
+        '<input class="fam-tlabel" maxlength="6" value="' + esc(f.together.label) + '" aria-label="Together label" autocomplete="off"' + (f.together.on ? "" : " disabled") + '>' +
+        '<button type="button" class="fam-dot fam-tdot" style="background:' + HB.colorVar(f.together.color) + '" aria-label="Change colour"></button></div></div>' +
+      '<div class="fam-legend">' + legendHtml() + '</div>' +
+      calendarsHtml() +
+      '<h3>At a Glance columns <small>switch all off for just the days and notes</small></h3>' +
+      '<div class="group">' + f.columns.map(function (c, i) {
+        return '<div class="fam-row" data-c="' + i + '">' + sw("fam-con", c.on, "Show column " + (i + 1)) +
+          '<input class="fam-cname" value="' + esc(c.name) + '" maxlength="14" placeholder="Column ' + (i + 1) + '" aria-label="Column ' + (i + 1) + ' name" autocomplete="off"></div>';
+      }).join("") +
+        '<div class="fam-row">' + sw("fam-wknd", f.weekendColumns, "Columns on Saturday and Sunday") + '<span class="fam-lbl">Columns on Saturday &amp; Sunday</span></div>' +
+        '<div class="fam-row">' + sw("fam-home", f.homeTag, "Who's home") + '<span class="fam-lbl">Who’s home <small>tap a date, then the little house</small></span></div></div>' +
+      '<p class="fam-note">Changes save by themselves and show up on everyone’s phone in the family.</p>' +
+      membersHtml();
+    renderMembers();
+  }
+  // ---- Calendars section: name, colour (a person's, Together, or its own), and which one is "Fun" ----
+  function calChoices() {
+    return family.people.map(function (p) { return "p:" + p.id; }).concat(["together"], PALETTE.filter(function (c) { return c !== "both"; }));
+  }
+  function calDotInner(cal) {
+    if (cal.color === "together") return HB.bothIcon;
+    if (cal.color.indexOf("p:") === 0) {
+      var p = family.people.filter(function (x) { return x.id === cal.color.slice(2); })[0];
+      return esc(p ? (p.initial || p.name.charAt(0) || "?").toUpperCase() : "?");
+    }
+    return "";
+  }
+  function calendarsHtml() {
+    var c = family.calendars;
+    return '<h3>Calendars <small>for Plans · tap a colour to match a person</small></h3>' +
+      '<div class="group">' + c.map(function (cal, i) {
+        return '<div class="fam-row cal-row" data-cal="' + i + '">' +
+          '<button type="button" class="fam-dot cal-dot" style="background:' + HB.colorVar(HB.calColor(cal)) + '" aria-label="Change colour">' + calDotInner(cal) + '</button>' +
+          '<input class="fam-name cal-name" value="' + esc(cal.name) + '" maxlength="16" placeholder="Calendar" aria-label="Calendar name" autocomplete="off">' +
+          '<button type="button" class="cal-fun' + (cal.fun ? ' on' : '') + '" aria-label="' + (cal.fun ? "The Fun calendar" : "Make this the Fun calendar") + '">★</button>' +
+          (c.length > 1 ? '<button type="button" class="fam-x cal-x" aria-label="Remove ' + esc(cal.name) + '">×</button>' : '') + '</div>';
+      }).join("") +
+      (c.length < MAX_CALS ? '<button type="button" class="fam-add cal-add">+ Add calendar</button>' : '') + '</div>' +
+      '<p class="fam-note cal-note">★ marks the Fun calendar: Plans’ “Fun” switch shows just that one.</p>';
+  }
+  function newCalId() {
+    var id;
+    do { id = "c" + Math.random().toString(36).slice(2, 6); } while (family.calendars.some(function (c) { return c.id === id; }));
+    return id;
+  }
+  // the preview: exactly the choices a bubble taps through
+  function legendHtml() {
+    return HB.whoCycle().slice(1).map(function (v) {
+      var w = HB.whoInfo(v);
+      return '<span><i style="background:' + HB.colorVar(w.color) + '">' + HB.whoHtml(w) + '</i>' + esc(w.name) + '</span>';
+    }).join("");
+  }
+  function refreshLegend() { var l = document.querySelector("#famView .fam-legend"); if (l) l.innerHTML = legendHtml(); }
+  function newPersonId() {
+    var id;
+    do { id = Math.random().toString(36).slice(2, 6); } while (family.people.some(function (p) { return p.id === id; }) || id === "Both");
+    return id;
+  }
+  function nextColor(cur) { return PALETTE[(PALETTE.indexOf(cur) + 1) % PALETTE.length]; }
+  (function () {
+    var v = document.getElementById("famView");
+    v.addEventListener("click", function (e) {
+      var row = e.target.closest(".fam-row"), i = row && row.dataset.i !== undefined ? +row.dataset.i : -1;
+      var ci = row && row.dataset.cal !== undefined ? +row.dataset.cal : -1, cals = family.calendars;
+      if (e.target.closest(".cal-add")) {
+        var usedC = cals.map(function (c) { return c.color; });
+        cals.push({ id: newCalId(), name: "", color: calChoices().filter(function (c) { return usedC.indexOf(c) < 0; })[0] || "s3" });
+        saveFamily(); renderFamily();
+        var cn = v.querySelectorAll(".cal-name"); cn[cn.length - 1].focus();
+        return;
+      }
+      if (ci >= 0) {
+        var cal = cals[ci];
+        if (e.target.closest(".cal-dot")) { var ch = calChoices(); cal.color = ch[(ch.indexOf(cal.color) + 1) % ch.length]; saveFamily(); renderFamily(); return; }
+        if (e.target.closest(".cal-fun")) { cals.forEach(function (c) { c.fun = c === cal; }); saveFamily(); renderFamily(); return; }
+        if (e.target.closest(".cal-x")) {
+          if (!confirm("Remove the " + (cal.name || "this") + " calendar? Its plans move to " + (cal.fun ? cals.filter(function (c) { return c !== cal; })[0].name : HB.calOf("").name) + ".")) return;
+          cals.splice(ci, 1);
+          if (cal.fun) cals[0].fun = true;
+          saveFamily(); renderFamily(); return;
+        }
+        return;
+      }
+      if (e.target.closest(".fam-add")) {
+        var used = family.people.map(function (p) { return p.color; });
+        var color = PALETTE.filter(function (c) { return used.indexOf(c) < 0 && c !== "both"; })[0] || "s3";
+        family.people.push({ id: newPersonId(), initial: "", name: "", color: color });
+        saveFamily(); renderFamily();
+        var ins = v.querySelectorAll(".fam-name"); ins[ins.length - 1].focus();
+        return;
+      }
+      if (e.target.closest(".fam-tdot")) { family.together.color = nextColor(family.together.color); saveFamily(); renderFamily(); return; }
+      if (e.target.closest(".fam-dot") && i >= 0) { family.people[i].color = nextColor(family.people[i].color); saveFamily(); renderFamily(); return; }
+      if (e.target.closest(".fam-x") && i >= 0) {
+        var p = family.people[i];
+        if (!confirm("Remove " + (p.name || "this person") + "? Anything already assigned to them will show as “?” until you reassign it.")) return;
+        family.people.splice(i, 1); saveFamily(); renderFamily();
+      }
+    });
+    v.addEventListener("change", function (e) {
+      var t = e.target, row = t.closest(".fam-row");
+      if (t.classList.contains("fam-tog")) { family.together.on = t.checked; saveFamily(); renderFamily(); return; }
+      if (t.classList.contains("fam-wknd")) { family.weekendColumns = t.checked; saveFamily(); return; }
+      if (t.classList.contains("fam-home")) { family.homeTag = t.checked; saveFamily(); return; }
+      if (t.classList.contains("fam-con")) { family.columns[+row.dataset.c].on = t.checked; saveFamily(); return; }
+      // typed fields: save, but don't redraw (you may already be tapping into the next box)
+      if (t.classList.contains("fam-cname")) { var c = family.columns[+row.dataset.c]; c.name = t.value.trim() || c.name; t.value = c.name; saveFamily(); return; }
+      if (t.classList.contains("cal-name")) {
+        var cal = family.calendars[+row.dataset.cal]; cal.name = t.value.trim() || cal.name || "Calendar"; t.value = cal.name; saveFamily(); return;
+      }
+      if (t.classList.contains("fam-tlabel")) { family.together.label = t.value.trim() || "Both"; t.value = family.together.label; saveFamily(); refreshLegend(); return; }
+      if (row && row.dataset.i !== undefined) {
+        var p = family.people[+row.dataset.i];
+        if (t.classList.contains("fam-name")) {
+          p.name = t.value.trim();
+          if (!p.initial && p.name) p.initial = p.name.charAt(0).toUpperCase();
+        }
+        if (t.classList.contains("fam-init")) p.initial = t.value.trim().toUpperCase();
+        row.querySelector(".fam-init").value = p.initial;
+        saveFamily(); refreshLegend();
+      }
+    });
+    // Enter moves on instead of doing nothing
+    v.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.tagName === "INPUT") e.target.blur(); });
+  })();
+  function openFamily() {
+    if (HB.viewer) return;
+    famOpen = true; renderFamily();
+    openSub("famView", "Family settings");
+  }
+  // ================= members, invites, joining, and site admin =================
+  function api(method, path, body) {
+    return db.pb.send(path, { method: method, body: body });
+  }
+  function apiError(e) { return (e && e.response && e.response.message) || "Something went wrong. Check your connection."; }
+  function inviteUrl(code) { return location.origin + "/#join=" + code; }
+  function shortDate(iso) { var d = new Date(iso); return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()] + " " + d.getDate(); }
+  // a ready-to-send invite: the link plus Share (iPhone share sheet) and Copy
+  function linkBox(code, note) {
+    return '<div class="inv-box" data-code="' + esc(code) + '"><div class="inv-url">' + esc(inviteUrl(code)) + '</div>' +
+      (note ? '<div class="inv-note">' + esc(note) + '</div>' : '') +
+      '<div class="inv-btns">' + (navigator.share ? '<button type="button" class="inv-share">Share</button>' : '') +
+      '<button type="button" class="inv-copy">Copy link</button></div></div>';
+  }
+  function linkBoxClick(e) {
+    var box = e.target.closest(".inv-box"); if (!box) return false;
+    var url = inviteUrl(box.dataset.code);
+    if (e.target.closest(".inv-share")) { navigator.share({ title: "Join our Home Board", text: "Here's your Home Board invite:", url: url }).catch(function () {}); return true; }
+    if (e.target.closest(".inv-copy")) {
+      var ok = function () { toast("Invite link copied"); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, function () { prompt("Copy this link:", url); });
+      else prompt("Copy this link:", url);
+      return true;
+    }
+    return false;
+  }
+
+  // ---- in Family settings: who's in the household, and invite links ----
+  var inviteRole = "editor";
+  function renderMembers() {
+    var box = document.getElementById("famMembers"); if (!box) return;
+    Promise.all([api("GET", "/api/hb/members"), api("GET", "/api/hb/invites")]).then(function (r) {
+      var members = r[0], invites = r[1];
+      box.innerHTML = members.map(function (m) {
+        return '<div class="fam-row mem-row"><span class="mem-email">' + esc(m.email) + (m.me ? ' <small>(you)</small>' : '') + '</span>' +
+          '<span class="mem-role ' + m.role + '">' + (m.role === "editor" ? "Editor" : "Viewer") + '</span>' +
+          (m.me ? '' : '<button type="button" class="fam-x mem-rm" data-id="' + m.id + '" data-email="' + esc(m.email) + '" aria-label="Remove">×</button>') + '</div>';
+      }).join("");
+      var pend = document.getElementById("famInvites");
+      pend.innerHTML = invites.length ? '<h3>Waiting to be used</h3>' + invites.map(function (i) {
+        return '<div class="inv-pend">' + linkBox(i.code, (i.role === "editor" ? "Editor" : "Viewer") + " · works once · until " + shortDate(i.expires_at)) +
+          '<button type="button" class="inv-del" data-id="' + i.id + '">Cancel invite</button></div>';
+      }).join("") : "";
+    }, function (e) { box.innerHTML = '<div class="pg-empty">' + esc(apiError(e)) + '</div>'; });
+  }
+  function membersHtml() {
+    return '<h3>Members</h3><div class="group" id="famMembers"><div class="pg-empty">Loading…</div></div>' +
+      '<h3>Invite someone <small>they make their own login from the link</small></h3>' +
+      '<div class="group"><div class="fam-row"><div class="seg inv-seg"><button type="button" data-r="editor"' + (inviteRole === "editor" ? ' class="on"' : '') + '>Editor</button>' +
+      '<button type="button" data-r="viewer"' + (inviteRole === "viewer" ? ' class="on"' : '') + '>Viewer</button></div>' +
+      '<button type="button" class="inv-make">Create link</button></div></div>' +
+      '<div id="famInvites"></div>';
+  }
+  document.getElementById("famView").addEventListener("click", function (e) {
+    if (linkBoxClick(e)) return;
+    var seg = e.target.closest(".inv-seg button");
+    if (seg) { inviteRole = seg.dataset.r; document.querySelectorAll(".inv-seg button").forEach(function (b) { b.classList.toggle("on", b === seg); }); return; }
+    if (e.target.closest(".inv-make")) {
+      api("POST", "/api/hb/invites", { role: inviteRole }).then(function () { toast("Invite link ready"); renderMembers(); }, function (err) { toast(apiError(err)); });
+      return;
+    }
+    var del = e.target.closest(".inv-del");
+    if (del) { api("DELETE", "/api/hb/invites/" + del.dataset.id).then(renderMembers, function (err) { toast(apiError(err)); }); return; }
+    var rm = e.target.closest(".mem-rm");
+    if (rm) {
+      if (!confirm("Remove " + rm.dataset.email + " from your household? They won't see your board anymore.")) return;
+      api("POST", "/api/hb/members/" + rm.dataset.id + "/remove").then(renderMembers, function (err) { toast(apiError(err)); });
+    }
+  });
+
+  // ---- site admin (households) ----
+  var isSiteAdmin = false;
+  function renderAdmin() {
+    var v = document.getElementById("adminView");
+    v.innerHTML = '<h3>Households</h3><div class="group" id="admList"><div class="pg-empty">Loading…</div></div>' +
+      '<button type="button" class="adm-new">+ New household</button><div id="admLink"></div>' +
+      '<p class="fam-note">A new household gets its own boards and settings. Send the first person the invite link; they can invite the rest of their family from Family settings.</p>';
+    api("GET", "/api/hb/households").then(function (list) {
+      document.getElementById("admList").innerHTML = list.map(function (h) {
+        return '<div class="fam-row"><span class="mem-email">' + esc(h.name) + ' <small>' + h.members + (h.members === 1 ? " person" : " people") + '</small></span>' +
+          '<button type="button" class="inv-make adm-inv" data-id="' + h.id + '" data-name="' + esc(h.name) + '">Invite link</button></div>';
+      }).join("");
+    }, function (e) { document.getElementById("admList").innerHTML = '<div class="pg-empty">' + esc(apiError(e)) + '</div>'; });
+  }
+  document.getElementById("adminView").addEventListener("click", function (e) {
+    if (linkBoxClick(e)) return;
+    var out = document.getElementById("admLink");
+    if (e.target.closest(".adm-new")) {
+      var name = prompt("Name for the new household (e.g. The Smiths):");
+      if (!name || !name.trim()) return;
+      api("POST", "/api/hb/households", { name: name.trim() }).then(function (h) {
+        renderAdmin();
+        setTimeout(function () { document.getElementById("admLink").innerHTML = '<h3>Invite for ' + esc(h.name) + '</h3>' + linkBox(h.invite.code, "Editor · works once · until " + shortDate(h.invite.expires_at)); }, 50);
+      }, function (err) { toast(apiError(err)); });
+      return;
+    }
+    var inv = e.target.closest(".adm-inv");
+    if (inv) {
+      api("POST", "/api/hb/households/" + inv.dataset.id + "/invite").then(function (i) {
+        out.innerHTML = '<h3>Invite for ' + esc(inv.dataset.name) + '</h3>' + linkBox(i.code, "Editor · works once · until " + shortDate(i.expires_at));
+      }, function (err) { toast(apiError(err)); });
+    }
+  });
+
+  // ---- sub-screens of the More menu (Family settings, Site admin) ----
+  var subOpen = "";
+  function openSub(id, title) {
+    subOpen = id;
+    document.getElementById("pageList").classList.add("hidden");
+    document.getElementById("settings").classList.add("hidden");
+    document.getElementById(id).classList.remove("hidden");
+    document.getElementById("moreTitle").textContent = title;
+    document.getElementById("editTabs").textContent = "Done";
+    document.getElementById("more").scrollTop = 0;
+  }
+  function closeSub() {
+    if (document.activeElement) document.activeElement.blur();
+    if (subOpen) document.getElementById(subOpen).classList.add("hidden");
+    subOpen = ""; famOpen = false;
+    document.getElementById("pageList").classList.remove("hidden");
+    document.getElementById("settings").classList.remove("hidden");
+  }
+  document.getElementById("adminRow").addEventListener("click", function () { renderAdmin(); openSub("adminView", "Site admin"); });
+
+  // ---- joining a household from an invite link (home.jermins.com/#join=code) ----
+  function joinCode() { var m = location.hash.match(/^#join=([a-z0-9]+)$/); return m ? m[1] : ""; }
+  function showJoin(code) {
+    document.body.classList.remove("checking"); document.body.classList.add("locked", "joining");
+    var t = document.getElementById("joinTitle"), err = document.getElementById("joinErr");
+    t.textContent = "Checking your invite…"; err.textContent = "";
+    fetch("/api/hb/join/" + code).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (r) {
+      if (!r.ok) { t.textContent = "Invite not valid"; err.textContent = r.j.message || ""; document.getElementById("joinFields").classList.add("hidden"); return; }
+      t.textContent = "Join " + r.j.household;
+      document.getElementById("joinRole").textContent = r.j.role === "editor" ? "You'll be able to add and change things." : "You'll be able to see the boards.";
+      document.getElementById("joinFields").classList.remove("hidden");
+    }, function () { t.textContent = "Couldn't check the invite"; err.textContent = "Check your connection and reload."; });
+  }
+  document.getElementById("joinForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var email = document.getElementById("jEmail").value.trim(), pw = document.getElementById("jPass").value, pw2 = document.getElementById("jPass2").value;
+    var err = document.getElementById("joinErr"), btn = document.getElementById("joinBtn");
+    if (pw !== pw2) { err.textContent = "The two passwords don't match."; return; }
+    btn.disabled = true; err.textContent = "";
+    fetch("/api/hb/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: joinCode(), email: email, password: pw }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (r) {
+        if (!r.ok) { btn.disabled = false; err.textContent = r.j.message || "Couldn't join."; return; }
+        return db.auth.signInWithPassword({ email: email, password: pw }).then(function (res) {
+          btn.disabled = false;
+          if (res.error) { err.textContent = "Joined. Now sign in with that email and password."; return; }
+          history.replaceState(null, "", location.pathname);
+          document.body.classList.remove("joining");
+          toast("Welcome to your Home Board");
+          start(res.data && res.data.session);
+        });
+      }, function () { btn.disabled = false; err.textContent = "Check your connection and try again."; });
+  });
+  document.getElementById("joinHaveLogin").addEventListener("click", function (e) {
+    e.preventDefault();
+    history.replaceState(null, "", location.pathname);
+    document.body.classList.remove("joining");
+    db.auth.getSession().then(function (res) { if (res.data && res.data.session) start(res.data.session); });
+  });
+
+  // Short pages shouldn't scroll: when the keyboard closes, iOS can leave the page nudged up.
+  function snapBack() {
+    setTimeout(function () {
+      if (document.documentElement.scrollHeight <= window.innerHeight + 2 && window.scrollY !== 0) window.scrollTo(0, 0);
+    }, 150);
+  }
+  document.addEventListener("focusout", snapBack);
+  window.addEventListener("resize", snapBack);
+  if (window.visualViewport) visualViewport.addEventListener("resize", snapBack);
+
+  // ================= light / dark and colour theme =================
+  var SKINS = [
+    { k: "",          name: "Classic",   light: ["#e4e5e8", "#d45b6c", "#4f7bd4", "#6f8a5c"], dark: ["#1d1e22", "#cf6475", "#5f86d6", "#7d9a68"] },
+    { k: "barbie",    name: "Barbie",    light: ["#f8e7ef", "#d9467f", "#5b7fd6", "#e0218a"], dark: ["#2a1624", "#ee5b98", "#7394e0", "#ff4fa3"] },
+    { k: "espresso",  name: "Espresso",  light: ["#efe5d8", "#c55f5b", "#5a739c", "#6f4a2f"], dark: ["#211813", "#cf7068", "#7390c2", "#d4a373"] },
+    { k: "halloween", name: "Halloween", light: ["#f3e9dc", "#d2574d", "#6b64c9", "#e8772e"], dark: ["#17151b", "#e0645a", "#8a78e6", "#ff7a1a"] }
+  ];
+  var sysDark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
+  function mode() { var m = read("homeboard-theme"); return m === "light" || m === "dark" ? m : "auto"; }
+  function paintLook() {
+    var m = mode(), t = m === "auto" ? (sysDark && sysDark.matches ? "dark" : "light") : m;
+    var k = read("homeboard-skin") || "";
+    document.documentElement.setAttribute("data-theme", t);
+    if (k) document.documentElement.setAttribute("data-skin", k); else document.documentElement.removeAttribute("data-skin");
+    // iOS: the top bar colour must match the page exactly, or iOS 26 blurs it
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
+    document.querySelectorAll("#modeSeg button").forEach(function (b) { b.classList.toggle("on", b.dataset.m === m); });
+    var list = document.getElementById("skinList");
+    list.innerHTML = SKINS.map(function (s) {
+      var c = s[t];
+      return '<button class="skin' + (s.k === k ? " on" : "") + '" data-k="' + s.k + '" style="background:' + c[0] + ';color:' + (t === "dark" ? "#eee" : "#2b2e33") + '">' +
+        '<span class="dots"><i style="background:' + c[1] + '"></i><i style="background:' + c[2] + '"></i><i style="background:' + c[3] + '"></i></span><b>' + s.name + '</b></button>';
+    }).join("");
+  }
+  document.getElementById("modeSeg").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    store("homeboard-theme", b.dataset.m === "auto" ? null : b.dataset.m); paintLook();
+  });
+  document.getElementById("skinList").addEventListener("click", function (e) {
+    var b = e.target.closest(".skin"); if (!b) return;
+    store("homeboard-skin", b.dataset.k); paintLook();
+  });
+  if (sysDark && sysDark.addEventListener) sysDark.addEventListener("change", function () { if (mode() === "auto") paintLook(); });
+  window.addEventListener("storage", function (e) { if (e.key === "homeboard-theme" || e.key === "homeboard-skin") paintLook(); });
+  paintLook();
+
+  // ================= tab bar (saved per phone) =================
+  function pins() {
+    var p = null;
+    try { p = JSON.parse(read("homeboard-tabs")); } catch (e) {}
+    if (Array.isArray(p)) { p = p.filter(function (id, i) { return page(id) && p.indexOf(id) === i; }).slice(0, MAX_PINS); if (p.length) return p; }
+    return PAGES.slice(0, MAX_PINS).map(function (x) { return x.id; });
+  }
+  function setPins(p) { store("homeboard-tabs", JSON.stringify(p)); paintTabs(); placeFab(); renderList(); }
+
+  var current = null;
+  function paintTabs() {
+    var p = pins(), onMore = current && p.indexOf(current) < 0;
+    document.getElementById("tabs").innerHTML = p.map(function (id) {
+      var x = page(id);
+      return '<a data-id="' + id + '" href="' + (x.src ? "#" + id : x.href) + '" class="' + (id === current ? "on" : "") + '" aria-label="' + x.name + '" title="' + x.name + '">' + svg(id) + '</a>';
+    }).join("") +
+      '<a data-id="more" href="#" class="' + (onMore ? "on" : "") + '" aria-label="More" title="More">' + svg("more") + '</a>';
+  }
+  // the round + sits right above the last tab (the ☰), and only on pages that add things
+  var fab = document.getElementById("fab");
+  function placeFab() {
+    var last = document.querySelector("#tabs a:last-child"); if (!last) return;
+    var r = last.getBoundingClientRect();
+    fab.style.left = Math.round(r.left + r.width / 2 - 28) + "px";
+  }
+  function paintFab() {
+    var box = current && boxes[current], b = box && box.querySelector("#addBtn, .addBtn");
+    var on = !!b && !HB.viewer;
+    fab.classList.toggle("show", on);
+    document.body.classList.toggle("has-fab", on);
+    placeFab();
+  }
+  window.addEventListener("resize", placeFab);
+  fab.addEventListener("click", function () {
+    var box = current && boxes[current], b = box && box.querySelector("#addBtn, .addBtn");
+    if (b) b.click();
+  });
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var a = e.target.closest("a"); if (!a) return;
+    var id = a.dataset.id;
+    if (id === "more") { e.preventDefault(); openMore(); return; }
+    if (!page(id).src) return;                    // older stand-alone page: let the link load it
+    e.preventDefault();
+    if (id === current) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    go(id);
+  });
+
+  // ================= More menu =================
+  var editingTabs = false;
+  var UP = '<svg viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/></svg>',
+      DOWN = '<svg viewBox="0 0 24 24"><path d="M6 10l6 6 6-6"/></svg>',
+      MINUS = '<svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>',
+      PLUS = '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>';
+  function row(id, ctl) {
+    var x = page(id);
+    return '<div class="pg-row' + (id === current && !ctl ? " here" : "") + '" data-id="' + id + '" role="button" tabindex="0">' +
+      '<span class="ico">' + svg(id) + '</span><span class="nm">' + x.name + '</span>' + (ctl || "") + '</div>';
+  }
+  function renderList() {
+    var p = pins(), rest = PAGES.map(function (x) { return x.id; }).filter(function (id) { return p.indexOf(id) < 0; });
+    var el = document.getElementById("pageList"), html;
+    if (!editingTabs) {
+      html = '<div class="group">' + p.concat(rest).map(function (id) { return row(id); }).join("") + '</div>';
+    } else {
+      html = '<h3>On the tab bar <small>' + p.length + ' of ' + MAX_PINS + '</small></h3><div class="group">' +
+        p.map(function (id, i) {
+          return row(id, '<span class="ctl">' +
+            '<button data-act="up" aria-label="Move up"' + (i === 0 ? " disabled" : "") + '>' + UP + '</button>' +
+            '<button data-act="down" aria-label="Move down"' + (i === p.length - 1 ? " disabled" : "") + '>' + DOWN + '</button>' +
+            '<button data-act="rm" class="rm" aria-label="Take off the tab bar"' + (p.length === 1 ? " disabled" : "") + '>' + MINUS + '</button></span>');
+        }).join("") + '</div>' +
+        '<h3>In More only</h3><div class="group">' +
+        (rest.length ? rest.map(function (id) {
+          return row(id, '<span class="ctl"><button data-act="add" class="add" aria-label="Add to the tab bar"' + (p.length >= MAX_PINS ? " disabled" : "") + '>' + PLUS + '</button></span>');
+        }).join("") : '<div class="pg-empty">Every page is on the tab bar.</div>') + '</div>';
+    }
+    el.innerHTML = html;
+    document.getElementById("editTabs").textContent = editingTabs ? "Done" : "Edit tab bar";
+    document.getElementById("moreTitle").textContent = editingTabs ? "Tab bar" : "More";
+    document.getElementById("settings").classList.toggle("hidden", editingTabs);
+  }
+  document.getElementById("pageList").addEventListener("click", function (e) {
+    var r = e.target.closest(".pg-row"); if (!r) return;
+    var id = r.dataset.id, b = e.target.closest("button[data-act]");
+    if (b) {
+      if (b.disabled) return;
+      var p = pins(), i = p.indexOf(id), act = b.dataset.act;
+      if (act === "up" && i > 0) { p.splice(i, 1); p.splice(i - 1, 0, id); }
+      else if (act === "down" && i < p.length - 1) { p.splice(i, 1); p.splice(i + 1, 0, id); }
+      else if (act === "rm" && p.length > 1) p.splice(i, 1);
+      else if (act === "add" && p.length < MAX_PINS) p.push(id);
+      setPins(p);
+      return;
+    }
+    if (editingTabs) return;
+    closeMore();
+    var x = page(id);
+    if (x.src) { if (id !== current) go(id); } else location.href = x.href;
+  });
+  document.getElementById("editTabs").addEventListener("click", function () {
+    if (subOpen) { closeSub(); renderList(); return; }
+    editingTabs = !editingTabs; renderList();
+  });
+  document.getElementById("famRow").addEventListener("click", openFamily);
+  function openMore() {
+    if (subOpen) closeSub();
+    editingTabs = false; renderList(); paintLook();
+    document.getElementById("more").scrollTop = 0;
+    document.getElementById("moreBg").classList.add("show");
+    document.getElementById("more").classList.add("show");
+  }
+  function closeMore() {
+    document.getElementById("moreBg").classList.remove("show");
+    document.getElementById("more").classList.remove("show");
+  }
+  document.getElementById("moreBg").addEventListener("click", closeMore);
+  // drag the sheet down to close it
+  (function () {
+    var sh = document.getElementById("more"), y0 = null, dy = 0;
+    sh.addEventListener("touchstart", function (e) { y0 = sh.scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+    sh.addEventListener("touchmove", function (e) {
+      if (y0 === null) return;
+      dy = e.touches[0].clientY - y0;
+      if (dy > 0) { sh.style.transition = "none"; sh.style.transform = "translate(-50%," + dy + "px)"; }
+    }, { passive: true });
+    sh.addEventListener("touchend", function () {
+      if (y0 === null) return;
+      sh.style.transition = ""; sh.style.transform = "";
+      if (dy > 90) closeMore();
+      y0 = null;
+    });
+  })();
+  document.getElementById("signOut").addEventListener("click", function () {
+    if (!confirm("Sign out of Home Board on this phone?")) return;
+    closeMore(); db.auth.signOut();
+  });
+
+  // ================= showing pages =================
+  var boxes = {}, scrolls = {};
+  function load(p) {
+    return new Promise(function (resolve, reject) {
+      if (mods[p.id]) return resolve(mods[p.id]);
+      waiting[p.id] = resolve;
+      var s = document.createElement("script");
+      s.src = p.src + "?v=" + VERSION;
+      s.onerror = function () { s.remove(); reject(); };
+      document.head.appendChild(s);
+    });
+  }
+  function mount(p, box) {
+    box.innerHTML = "";
+    load(p).then(function (mod) {
+      mod.mount(box);
+      if (current === p.id && mod.shown) mod.shown();
+      paintFab();
+    }, function () {
+      box.innerHTML = '<div class="page-msg">Couldn’t load ' + p.name + '.<br><button>Try again</button></div>';
+      box.querySelector("button").onclick = function () { mount(p, box); };
+    });
+  }
+  function show(id) {
+    var p = page(id);
+    if (!p || !p.src) p = page("week");
+    if (current === p.id) return;
+    if (current && boxes[current]) {
+      flushDelete();
+      var old = mods[current]; if (old && old.hidden) old.hidden();
+      scrolls[current] = window.scrollY; boxes[current].hidden = true;
+    }
+    current = p.id; paintTabs(); paintFab();
+    document.title = p.name;
+    var box = boxes[p.id];
+    if (!box) {
+      box = boxes[p.id] = document.createElement("div");
+      box.className = "page"; box.id = "pg-" + p.id;
+      document.getElementById("pages").appendChild(box);
+      mount(p, box);
+    } else {
+      box.hidden = false;
+      var m = mods[p.id]; if (m) { if (m.shown) m.shown(); if (m.refresh) m.refresh(); }
+    }
+    window.scrollTo(0, scrolls[p.id] || 0);
+  }
+  function go(id) { history.replaceState(null, "", "#" + id); show(id); }
+  window.addEventListener("hashchange", function () {
+    if (joinCode()) { showJoin(joinCode()); return; }
+    if (started) show(location.hash.slice(1));
+  });
+
+  // phone waking up or reopening the app: the page on screen catches up
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible") return;
+    paintLook();
+    var m = current && mods[current]; if (m && m.refresh) m.refresh();
+  });
+  window.addEventListener("pageshow", function (e) { if (e.persisted) { paintLook(); paintTabs(); } });
+
+  // View-only accounts: the database already refuses their changes; this hides editing controls.
+  function checkRole() {
+    db.rpc("is_editor").then(function (r) {
+      var viewer = !r.error && r.data === false;
+      HB.viewer = viewer; paintFab();
+      document.body.classList.toggle("viewonly", viewer);
+      if (viewer) document.querySelectorAll("#pages textarea, #pages input").forEach(function (t) { t.readOnly = true; });
+    }, function () {});
+  }
+
+  // ================= sign-in: the whole app needs the household login; each phone stays signed in =================
+  var started = false;
+  function start(session) {
+    document.body.classList.remove("checking", "locked");
+
+    checkRole();
+    loadFamily(session);
+    isSiteAdmin = !!(session && session.user && session.user.site_admin);
+    document.body.classList.toggle("site-admin", isSiteAdmin);
+    var noHouse = !(session && session.user && session.user.household);
+    document.body.classList.toggle("homeless", noHouse);
+    if (noHouse) { document.body.classList.add("locked"); return; }
+    if (!started) { started = true; paintTabs(); show(location.hash.slice(1)); }
+  }
+  function lock() { document.body.classList.remove("checking", "homeless"); document.body.classList.add("locked"); }
+  document.getElementById("noHouseOut").addEventListener("click", function () { db.auth.signOut(); });
+  document.getElementById("gateForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
+    btn.disabled = true; err.textContent = "";
+    db.auth.signInWithPassword({
+      email: (function (v) { return v.indexOf("@") < 0 ? v.toLowerCase() : v; })(document.getElementById("email").value.trim()),
+      password: document.getElementById("password").value
+    }).then(function (res) {
+      btn.disabled = false;
+      if (res.error) { err.textContent = "That login or password didn't match."; return; }
+      document.getElementById("password").value = "";
+      start(res.data && res.data.session);
+    });
+  });
+  db.auth.onAuthStateChange(function (event) { if (event === "SIGNED_OUT") lock(); });
+  if (joinCode()) showJoin(joinCode());
+  else db.auth.getSession().then(function (res) {
+    if (res.data && res.data.session) start(res.data.session); else lock();
+  });
+})();
+</script>
+<script>
+// stop pinch-zoom and double-tap-zoom in iOS Safari
+document.addEventListener("gesturestart", function (e) { e.preventDefault(); }, { passive: false });
+document.addEventListener("gesturechange", function (e) { e.preventDefault(); }, { passive: false });
+document.addEventListener("dblclick", function (e) { e.preventDefault(); }, { passive: false });
+</script>
+</body>
+</html>
