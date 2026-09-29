@@ -81,9 +81,8 @@ body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill 
 #pg-week .cell svg.both-ic { width: 26px; height: 26px; fill: currentColor; stroke: none; }
 #pg-week .cell svg:not(.both-ic) { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; margin: auto; }
 
-#pg-week .notes-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .2s ease; }
-#pg-week .notes-panel > div { overflow: hidden; }
-#pg-week .day.open .notes-panel, #pg-week .day.has-note .notes-panel { grid-template-rows: 1fr; }
+#pg-week .notes-panel { display: none; }
+#pg-week .day.open .notes-panel, #pg-week .day.has-note .notes-panel { display: block; }
 #pg-week textarea {
   display: block; width: 100%; margin: 4px 0 2px; resize: none; overflow: hidden;
   border: 0; border-radius: 10px; background: var(--field); color: var(--ink);
@@ -106,7 +105,7 @@ body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill 
 #pg-week.agenda-mode .agenda { display: block; }
 #pg-week.agenda-mode .days, #pg-week.agenda-mode .cols { display: none !important; }
 #pg-week .ag-day { padding: 12px 0 10px; border-bottom: 0.5px solid var(--hair); }
-#pg-week .ag-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#pg-week .ag-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; }
 #pg-week .ag-head b { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
 #pg-week .ag-head .n { font-size: 17px; font-weight: 800; }
 #pg-week .ag-day.today .ag-head b { color: var(--ink); }
@@ -133,9 +132,7 @@ body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill 
 #pg-week .ag-who i .both-ic { width: 14px; height: 14px; }
 #pg-week .ag-note { display: block; width: 100%; margin: 6px 0 0; resize: none; overflow: hidden; border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; line-height: 1.4; padding: 7px 12px; min-height: 36px; }
 #pg-week .ag-note:focus { outline: none; }
-/* an empty note is just a quiet "Add a note" line until you tap it */
-#pg-week .ag-note:placeholder-shown:not(:focus) { background: transparent; padding: 4px 2px; min-height: 0; font-size: 14px; }
-#pg-week .ag-empty + .ag-note:placeholder-shown:not(:focus) { margin-top: 0; }
+
 #pg-week .ag-note::placeholder { color: var(--muted); opacity: .7; }
 #pg-week .ag-empty { color: var(--muted); opacity: .7; font-size: 13.5px; font-weight: 600; padding: 2px 2px 0; }
 body.viewonly #pg-week .ag-note:placeholder-shown { display: none; }
@@ -337,13 +334,13 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     }
 
     // ---- Day by day: plans, meals, who's doing what and the note, for each day of the week ----
-    var weekPlans = [], meals = [], mode = "grid";
-    try { mode = localStorage.getItem("hb-glance-view") === "agenda" ? "agenda" : "grid"; } catch (e) {}
+    var weekPlans = [], meals = [], mode = "grid", agOpen = {};   // agOpen: days you've tapped to write a note
+    // always opens on the Grid; Day by day is a tap away
     var FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], MEALDAY = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     var FORK = '<svg viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-1.7 1.3-2.5 3.5-2.5 6.5V13h2.5v8"/></svg>';
     function fmtTime(t) { var h = +t.slice(0, 2), m = t.slice(3, 5); return (h % 12 || 12) + (m !== "00" ? ":" + m : "") + (h < 12 ? " AM" : " PM"); }
     function setMode(m) {
-      mode = m; try { localStorage.setItem("hb-glance-view", m); } catch (e) {}
+      mode = m;
       root.classList.toggle("agenda-mode", m === "agenda");
       root.querySelectorAll(".vsw button").forEach(function (b) { b.classList.toggle("on", b.dataset.v === m); });
       if (m === "agenda") { loadMeals(); renderAgenda(); }
@@ -363,6 +360,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
         var plans = weekPlans.filter(function (p) { return p.date === key; }).sort(function (a, b) { return (a.start_time || "") < (b.start_time || "") ? -1 : 1; });
         var dm = isThisWeek ? meals.filter(function (m) { return !m.done && m.day === MEALDAY[i]; }) : [];
         var noCols = !cols.length || (i >= 5 && !fam.weekendColumns);
+        var hasNote = !!(row.notes || "").trim();
         var who = noCols ? [] : cols.map(function (c) { return { c: c, w: HB.whoInfo(row[c.key] || "") }; }).filter(function (x) { return x.w; });
         var home = fam.homeTag && i < 5 && row.home ? HB.whoInfo(row.home) || (row.home === "Both" ? { color: fam.together.color } : null) : null;
         return '<section class="ag-day' + (key === iso(today) ? ' today' : '') + '" data-key="' + key + '">' +
@@ -379,8 +377,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
             return '<button type="button" class="ag-plan" data-id="' + HB.esc(p.id) + '" style="--pc:' + HB.colorVar(HB.calColor(cal)) + '"><span class="nm">' + HB.esc(p.name) + '</span></button>';
           }).join("") +
           dm.map(function (m) { return '<button type="button" class="ag-meal">' + FORK + HB.esc(m.name) + '</button>'; }).join("") +
-          (!plans.length && !dm.length && !(row.notes || "").trim() ? '<div class="ag-empty">Nothing planned</div>' : '') +
-          '<textarea class="ag-note" rows="1" placeholder="Add a note"' + (HB.viewer ? ' readonly' : '') + ' aria-label="' + name + ' note">' + HB.esc(row.notes || "") + '</textarea>' +
+          (hasNote || agOpen[key] ? '<textarea class="ag-note" rows="1" placeholder="Add a note"' + (HB.viewer ? ' readonly' : '') + ' aria-label="' + name + ' note">' + HB.esc(row.notes || "") + '</textarea>' : '') +
           '</section>';
       }).join("");
       box.querySelectorAll(".ag-note").forEach(autosize);
@@ -388,6 +385,15 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     (function () {
       var box = root.querySelector(".agenda");
       box.addEventListener("click", function (e) {
+        var head = e.target.closest(".ag-head");
+        if (head && !HB.viewer) {   // tap a day to add (or hide) its note
+          if (box.contains(document.activeElement)) document.activeElement.blur();
+          var key = head.closest(".ag-day").dataset.key;
+          agOpen[key] = !agOpen[key]; renderAgenda();
+          var ta = agOpen[key] && box.querySelector('.ag-day[data-key="' + key + '"] .ag-note');
+          if (ta && !ta.value) ta.focus({ preventScroll: true });
+          return;
+        }
         var p = e.target.closest(".ag-plan");
         if (p) { HB.planToOpen = p.dataset.id; location.hash = "#plans"; return; }
         if (e.target.closest(".ag-meal")) location.hash = "#meals";
