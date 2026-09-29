@@ -188,6 +188,7 @@ body::before {
 
 #more .acct { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; }
 #more .acct span { color: var(--muted); font-size: 14px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#more .signout { display: block; width: 100%; border: 0; border-radius: 12px; background: var(--card, var(--chip)); color: var(--ash); font: inherit; font-size: 16px; font-weight: 700; padding: 14px; cursor: pointer; }
 #more .acct button { flex: none; border: 0; border-radius: 10px; background: var(--chip); color: var(--ash); font: inherit; font-size: 15px; font-weight: 700; padding: 8px 14px; cursor: pointer; }
 
 /* ---- round + button, bottom right above the last tab (pages that add things) ---- */
@@ -585,7 +586,6 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     <p class="join-sub" id="joinRole"></p>
     <div id="joinFields" class="hidden">
       <input id="jEmail" type="email" placeholder="Your email" autocomplete="username" required>
-      <input id="jUser" type="text" class="hidden" placeholder="Username (optional)" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="30">
       <input id="jPass" type="password" placeholder="Make a password (6+ characters)" autocomplete="new-password" minlength="6" required>
       <input id="jPass2" type="password" placeholder="Password again" autocomplete="new-password" minlength="6" required>
       <button type="submit" id="joinBtn">Join</button>
@@ -624,7 +624,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     <h3>Theme</h3>
     <div class="skins" id="skinList"></div>
     <h3>Account</h3>
-    <div class="group acct"><span id="whoami">Signed in</span><button id="signOut">Sign out</button></div>
+    <button class="signout" id="signOut">Sign out</button>
   </div>
 </div>
 
@@ -635,7 +635,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-09-28i";
+  var VERSION = "2026-09-28k";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1547,7 +1547,6 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       t.textContent = "Join " + r.j.household;
       document.getElementById("joinRole").textContent = r.j.role === "editor" ? "You'll be able to add and change things." : "You'll be able to see the boards.";
       document.getElementById("joinFields").classList.remove("hidden");
-      document.getElementById("jUser").classList.toggle("hidden", !r.j.loginField);   // only if logins can use a username
     }, function () { t.textContent = "Couldn't check the invite"; err.textContent = "Check your connection and reload."; });
   }
   document.getElementById("joinForm").addEventListener("submit", function (e) {
@@ -1556,7 +1555,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var err = document.getElementById("joinErr"), btn = document.getElementById("joinBtn");
     if (pw !== pw2) { err.textContent = "The two passwords don't match."; return; }
     btn.disabled = true; err.textContent = "";
-    fetch("/api/hb/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: joinCode(), email: email, password: pw, login: document.getElementById("jUser").value.trim() }) })
+    fetch("/api/hb/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: joinCode(), email: email, password: pw }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (r) {
         if (!r.ok) { btn.disabled = false; err.textContent = r.j.message || "Couldn't join."; return; }
@@ -1834,8 +1833,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   var started = false;
   function start(session) {
     document.body.classList.remove("checking", "locked");
-    var who = session && session.user && session.user.email;
-    document.getElementById("whoami").textContent = who ? "Signed in as " + who : "Signed in";
+
     checkRole();
     loadFamily(session);
     isSiteAdmin = !!(session && session.user && session.user.site_admin);
@@ -1852,7 +1850,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
     btn.disabled = true; err.textContent = "";
     db.auth.signInWithPassword({
-      email: document.getElementById("email").value.trim(),
+      email: (function (v) { return v.indexOf("@") < 0 ? v.toLowerCase() : v; })(document.getElementById("email").value.trim()),
       password: document.getElementById("password").value
     }).then(function (res) {
       btn.disabled = false;
