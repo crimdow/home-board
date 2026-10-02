@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <!-- keep "default": "black-translucent" makes iOS 26 blur the top of the home-screen app -->
@@ -53,6 +53,7 @@
 
 *, *::before, *::after { box-sizing: inherit; }
 html, body { touch-action: manipulation; overscroll-behavior: none; }
+body { overflow-x: clip; }   /* nothing wider than the phone, so iOS never zooms the page out */
 html { height: 100%; background: var(--bg); }
 body {
   margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
@@ -657,7 +658,6 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     recipes: '<path d="M12 6.5C10.5 5 8 4.5 4 4.5v14c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-14c-4 0-6.5.5-8 2z"/><path d="M12 6.5v14"/>',
     house: '<path d="M3.5 11.5L12 4.5l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5.5h4V20"/>',
     notes: '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8h5M9 12.5h7M9 16h5"/>',
-    binder: '<rect x="6.5" y="3.5" width="13" height="17" rx="2"/><path d="M4 8h4.5M4 12h4.5M4 16h4.5M11 8h5.5"/>',
     more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'
   };
   var PAGES = [
@@ -665,10 +665,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     { id: "groceries", name: "Groceries",   src: "groceries.js" },
     { id: "meals",     name: "Meals",       src: "meals.js" },
     { id: "todos",     name: "Tasks",       src: "todos.js" },
-    { id: "plans",     name: "Plans",       src: "plans.js" },
-    { id: "house",     name: "House",       src: "house.js" },
-    // Recipes and Notes now live in Pocket Binder (same tables, same logins); this opens it
-    { id: "binder",    name: "Binder",      href: "https://binder.jermins.com/" }
+    { id: "plans",     name: "Plans",       src: "plans.js" }
   ];
   var MAX_PINS = 5;
   function page(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return null; }
