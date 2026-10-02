@@ -6,6 +6,25 @@ cronAdd("binder_inbox_cleanup", "17 4 * * *", () => {
   old.forEach((r) => $app.delete(r));
 });
 
+// Pocket Binder laptop bookmark: the page you're on posts its clipping here as a plain form into a new tab.
+// Same household key check as the iPhone shortcut; then the tab lands on the binder with the clipping open.
+routerAdd("POST", "/api/binder/clip-form", (e) => {
+  const b = e.requestInfo().body || {};
+  const val = (k, max) => String(b[k] == null ? "" : b[k]).slice(0, max);
+  const key = val("key", 64), t = val("t", 300), u = val("u", 2000);
+  const back = "/#add&t=" + encodeURIComponent(t.slice(0, 200)) + "&u=" + encodeURIComponent(u) + "&nx=1";
+  if (!/^[A-Za-z0-9]{24,64}$/.test(key)) return e.redirect(303, back);
+  try { $app.findFirstRecordByData("clip_keys", "key", key); } catch (err) { return e.redirect(303, back); }
+  const rec = new Record($app.findCollectionByNameOrId("clip_inbox"));
+  rec.set("key", key);
+  rec.set("k", val("k", 20));
+  rec.set("t", t);
+  rec.set("u", u);
+  rec.set("x", val("x", 150000));
+  try { $app.save(rec); } catch (err) { return e.redirect(303, back); }
+  return e.redirect(303, "/#add&clip=" + rec.id);
+});
+
 // Pocket Binder: save a recipe's photo from the recipe site onto this server, so it keeps working
 // even if the site moves it. Signed-in people only; public https photo links only.
 routerAdd("POST", "/api/binder/photo", (e) => {
