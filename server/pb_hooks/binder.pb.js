@@ -21,6 +21,8 @@ routerAdd("POST", "/api/binder/clip-form", (e) => {
   rec.set("t", t);
   rec.set("u", u);
   rec.set("x", val("x", 150000));
+  rec.set("d", val("d", 1000));
+  rec.set("img", val("img", 2000));
   try { $app.save(rec); } catch (err) { return e.redirect(303, back); }
   return e.redirect(303, "/#add&clip=" + rec.id);
 });
@@ -48,4 +50,47 @@ routerAdd("POST", "/api/binder/photo", (e) => {
   const ext = (name.split(".").pop() || "").toLowerCase();
   const type = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
   return e.json(200, { id: rec.id, path: "/api/files/" + col.id + "/" + rec.id + "/" + encodeURIComponent(name), name: name, size: file.size || 0, type: type });
+}, $apis.requireAuth());
+
+// Pocket Binder Places: turn a Google Maps share link into a name, address and map spot.
+// Only Google Maps links are fetched (maps.app.goo.gl, goo.gl/maps, google.com/maps); signed-in people only.
+routerAdd("POST", "/api/binder/place-link", (e) => {
+  const url = String((e.requestInfo().body || {}).url || "").trim().slice(0, 2000);
+  const m = url.match(/^https:\/\/([^\/?#:]+)(\/[^?#]*)?/i);
+  const host = m ? m[1].toLowerCase() : "", path = m && m[2] ? m[2] : "/";
+  const ok = host === "maps.app.goo.gl" || (host === "goo.gl" && path.indexOf("/maps") === 0) ||
+    (/^(www\.|maps\.)?google\.(com|ca|co\.uk|com\.au|[a-z]{2})$/.test(host) && (host.indexOf("maps.") === 0 || path.indexOf("/maps") === 0));
+  if (!ok) throw new BadRequestError("Paste a Google Maps link (from Share → Copy link in Google Maps).");
+  let html = "";
+  try {
+    const res = $http.send({ url: url, method: "GET", timeout: 15, headers: {
+      "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+      "Accept-Language": "en-US,en;q=0.9" } });
+    if (res.statusCode >= 400) throw new Error("status " + res.statusCode);
+    html = toString(res.body, 3 * 1048576);
+  } catch (err) { throw new BadRequestError("Couldn't reach Google Maps. Try again, or fill it in by hand."); }
+  const unent = (s) => String(s || "").replace(/&amp;/g, "&").replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\\u0026/g, "&").trim();
+  const meta = (p) => {
+    const a = html.match(new RegExp('<meta[^>]+(?:property|itemprop|name)="' + p + '"[^>]*>', "i"));
+    if (!a) return "";
+    const c = a[0].match(/content="([^"]*)"/i);
+    return c ? unent(c[1]) : "";
+  };
+  const out = { name: "", address: "", category: "", rating: "", lat: "", lng: "", maps: url };
+  const title = meta("og:title") || unent((html.match(/<title>([^<]*)<\/title>/i) || [])[1] || "").replace(/\s*-\s*Google Maps$/i, "");
+  const parts = title.split(" · ");
+  out.name = parts[0] || "";
+  out.address = parts.slice(1).join(", ");
+  const desc = meta("og:description");                          // e.g. "★★★★☆ · Pizza restaurant · 7 Carmine St"
+  if (desc) {
+    const d = desc.split(" · ").map((x) => x.trim()).filter(Boolean);
+    if (d[0] && /^[★☆]+$/.test(d[0])) { out.rating = String((d[0].match(/★/g) || []).length); d.shift(); }
+    if (d[0] && !/\d/.test(d[0])) out.category = d.shift();
+    if (!out.address && d.length) out.address = d.join(", ");
+  }
+  const ll = (meta("og:image").match(/center=(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i)) ||
+             html.match(/@(-?\d{1,2}\.\d{3,}),(-?\d{1,3}\.\d{3,})/) || html.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (ll) { out.lat = ll[1]; out.lng = ll[2]; }
+  if (!out.name) throw new BadRequestError("Google Maps didn't say which place that is. Fill it in by hand.");
+  return e.json(200, out);
 }, $apis.requireAuth());
