@@ -198,7 +198,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       if (v === "Both") { var t = HB.family().together; return { id: "Both", short: "", name: "everyone", color: t.color }; }
       return HB.whoInfo(v);
     }
-    var thisWeek = mondayOf(today), weekStart = thisWeek;
+    var thisWeek = mondayOf(today), weekStart = addDays(thisWeek, 7 * Math.max(-1, Math.min(1, HB.weekOffset || 0)));   // the week Meals was on, too
 
     // ---- saving ----
     function saveField(key, field, value) {
@@ -457,7 +457,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     }
     function go(n) {
       var o = Math.max(-1, Math.min(1, weekOffset() + n));
-      weekStart = addDays(thisWeek, 7 * o); render(); loadWeek(); paintArrows();
+      weekStart = addDays(thisWeek, 7 * o); HB.weekOffset = o; render(); loadWeek(); paintArrows();
     }
     prevBtn.addEventListener("click", function () { go(-1); });
     nextBtn.addEventListener("click", function () { go(1); });
@@ -467,7 +467,9 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     // called by the app when the phone wakes up or this tab is opened again
     this.refresh = function () {
       var now = new Date();
-      if (iso(now) !== iso(today)) { today = now; thisWeek = weekStart = mondayOf(today); render(); paintArrows(); }
+      if (iso(now) !== iso(today)) { today = now; thisWeek = weekStart = mondayOf(today); HB.weekOffset = 0; render(); paintArrows(); }
+      var want = Math.max(-1, Math.min(1, HB.weekOffset || 0));   // follow the week picked on Meals
+      if (want !== weekOffset()) { weekStart = addDays(thisWeek, 7 * want); render(); paintArrows(); }
       loadWeek();
     };
     this.shown = function () { Object.keys(refs).forEach(function (k) { autosize(refs[k].t); }); };
