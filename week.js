@@ -358,7 +358,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       box.innerHTML = FULL.map(function (name, i) {
         var date = addDays(weekStart, i), key = iso(date), row = data[key] || blank();
         var plans = weekPlans.filter(function (p) { return p.date === key; }).sort(function (a, b) { return (a.start_time || "") < (b.start_time || "") ? -1 : 1; });
-        var dm = isThisWeek ? meals.filter(function (m) { return !m.done && m.day === MEALDAY[i]; }) : [];
+        var dm = meals.filter(function (m) { return !m.done && (m.date ? m.date === key : isThisWeek && m.day === MEALDAY[i]); });   // meals have dates now; older ones only a weekday
         var noCols = !cols.length || (i >= 5 && !fam.weekendColumns);
         var hasNote = !!(row.notes || "").trim();
         var who = noCols ? [] : cols.map(function (c) { return { c: c, w: HB.whoInfo(row[c.key] || "") }; }).filter(function (x) { return x.w; });
