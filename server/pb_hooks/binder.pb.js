@@ -82,22 +82,39 @@ routerAdd("POST", "/api/binder/place-link", (e) => {
     return f ? f[0] : "";
   };
   // the long link itself says a lot: /maps/place/Lakeview+Park/@41.47,-82.19,17z/…!3d41.47!4d-82.19
+  // or, from the iPhone app: maps.google.com/?q=Lakeview+Park,+1800+W+Erie+Ave,+Lorain,+OH&ftid=…
   const fromLink = (u) => {
-    const r = { name: "", lat: "", lng: "" }, s = String(u || "");
-    const n = s.match(/\/maps\/place\/([^\/?#@]+)/) || s.match(/[?&](?:q|query)=([^&#]+)/);
-    if (n) { try { r.name = decodeURIComponent(n[1].replace(/\+/g, " ")).trim(); } catch (err) { r.name = n[1].replace(/\+/g, " ").trim(); } }
-    if (/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(r.name)) r.name = "";      // a bare map spot isn't a name
+    const r = { name: "", address: "", lat: "", lng: "" }, s = String(u || "");
+    const dec = (x) => { try { return decodeURIComponent(x.replace(/\+/g, " ")).trim(); } catch (err) { return x.replace(/\+/g, " ").trim(); } };
+    const pl = s.match(/\/maps\/place\/([^\/?#@]+)/), q = s.match(/[?&](?:q|query)=([^&#]+)/);
+    if (pl) r.name = dec(pl[1]);
+    else if (q) { const parts = dec(q[1]).split(/,\s*/); r.name = parts[0] || ""; r.address = parts.slice(1).join(", "); }
+    if (/^-?\d+(\.\d+)?$/.test(r.name) || /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(r.name)) { r.name = ""; r.address = ""; }   // a bare map spot isn't a name
     const ll = s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || s.match(/@(-?\d{1,2}\.\d{3,}),(-?\d{1,3}\.\d{3,})/);
     if (ll) { r.lat = ll[1]; r.lng = ll[2]; }
     return r;
   };
 
+  // Where does the short link lead? Ask curl one hop at a time (PocketBase follows redirects without saying where they went).
+  const resolve = (u) => {
+    let cur = u;
+    for (let i = 0; i < 6; i++) {
+      let out = "";
+      try { out = toString($os.cmd("curl", "-s", "-o", "/dev/null", "--max-time", "10", "-A", UA, "-H", "Accept-Language: en-US,en;q=0.9", "-w", "%{http_code} %{redirect_url}", cur).output()); } catch (err) { return i ? cur : ""; }
+      const mm = out.trim().match(/^(\d{3})\s+(\S+)?/);
+      if (!mm || !mm[2] || !/^3/.test(mm[1])) return cur;
+      if (!/^https:\/\/[^\/]*(google\.[a-z.]+|goo\.gl|g\.co|share\.google)(\/|$)/i.test(mm[2])) return cur;   // only ever follow Google
+      cur = mm[2];
+    }
+    return cur;
+  };
+  const final = resolve(url);
   let html = "";
-  try { html = get(url); } catch (err) {
+  try { html = get(final || url); } catch (err) {
     $app.logger().warn("binder place-link: couldn't fetch", "url", url, "error", String(err));
     throw new BadRequestError("Couldn't reach Google. Try again, or fill it in by hand.");
   }
-  let long = /\/maps\/place\//.test(url) ? url : "";
+  let long = [final, url].find((x) => x && /^https:\/\/[^\/]*google\.[a-z.]+\/maps(\/place\/|\/search\/|\/?\?)|^https:\/\/maps\.google\.[a-z.]+\/(maps)?\/?\?/i.test(x) && /\/maps\/place\/|[?&](q|query)=/.test(x)) || "";
   if (!hasOg(html)) {                                   // e.g. a "continue" page: follow the place link on it
     const found = placeLinkIn(html);
     if (found) { long = found; try { const h2 = get(found); if (hasOg(h2)) html = h2; } catch (err) {} }
@@ -137,9 +154,10 @@ routerAdd("POST", "/api/binder/place-link", (e) => {
   }
   const f = fromLink(long || placeLinkIn(html));
   if (!out.name) out.name = f.name;
+  if (!out.address) out.address = f.address;
   if (!out.lat && f.lat) { out.lat = f.lat; out.lng = f.lng; }
   if (!out.name) {
-    $app.logger().warn("binder place-link: no place name", "url", url, "length", html.length, "title", titleOf(html).slice(0, 120));
+    $app.logger().warn("binder place-link: no place name", "url", url, "final", final, "length", html.length, "title", titleOf(html).slice(0, 120));
     throw new BadRequestError("Google didn't say which place that is. Fill it in by hand.");
   }
   return e.json(200, out);
