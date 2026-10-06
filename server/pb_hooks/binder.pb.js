@@ -96,11 +96,12 @@ routerAdd("POST", "/api/binder/place-link", (e) => {
   };
 
   // Where does the short link lead? Ask curl one hop at a time (PocketBase follows redirects without saying where they went).
+  let curlErr = "";
   const resolve = (u) => {
     let cur = u;
     for (let i = 0; i < 6; i++) {
       let out = "";
-      try { out = toString($os.cmd("curl", "-s", "-o", "/dev/null", "--max-time", "10", "-A", UA, "-H", "Accept-Language: en-US,en;q=0.9", "-w", "%{http_code} %{redirect_url}", cur).output()); } catch (err) { return i ? cur : ""; }
+      try { curlErr = ""; out = toString($os.cmd("curl", "-s", "-o", "/dev/null", "--max-time", "10", "-A", UA, "-H", "Accept-Language: en-US,en;q=0.9", "-w", "%{http_code} %{redirect_url}", cur).output()); } catch (err) { curlErr = String(err).slice(0, 80); return i ? cur : ""; }
       const mm = out.trim().match(/^(\d{3})\s+(\S+)?/);
       if (!mm || !mm[2] || !/^3/.test(mm[1])) return cur;
       if (!/^https:\/\/[^\/]*(google\.[a-z.]+|goo\.gl|g\.co|share\.google)(\/|$)/i.test(mm[2])) return cur;   // only ever follow Google
@@ -158,7 +159,9 @@ routerAdd("POST", "/api/binder/place-link", (e) => {
   if (!out.lat && f.lat) { out.lat = f.lat; out.lng = f.lng; }
   if (!out.name) {
     $app.logger().warn("binder place-link: no place name", "url", url, "final", final, "length", html.length, "title", titleOf(html).slice(0, 120));
-    throw new BadRequestError("Google didn't say which place that is. Fill it in by hand.");
+    // for now, say what Google sent back, so it can be fixed from a screenshot
+    const why = (final ? "went to " + final.replace(/^https:\/\//, "").slice(0, 120) : "curl couldn't follow the link (" + curlErr + ")") + " · page \u201c" + titleOf(html).slice(0, 50) + "\u201d · " + html.length + " chars";
+    throw new BadRequestError("Google didn't say which place that is. Fill it in by hand. [" + why + "]");
   }
   return e.json(200, out);
 }, $apis.requireAuth());
