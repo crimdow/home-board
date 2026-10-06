@@ -76,9 +76,12 @@ routerAdd("POST", "/api/binder/place-link", (e) => {
   const titleOf = (h) => unent((String(h).match(/<title>([^<]*)<\/title>/i) || [])[1] || "");
   const hasOg = (h) => { const t = (String(h).match(/<meta[^>]+property="og:title"[^>]*>/i) || [""])[0]; return !!t && !/content="Google Maps"/i.test(t); };
   // a long Maps place link anywhere in a page (plain, HTML-escaped or JavaScript-escaped)
+  const unesc = (h) => String(h).replace(/\\\//g, "/").replace(/\\x2f|\\u002f|&#x2f;|&#47;/gi, "/").replace(/\\x3a|\\u003a|&#x3a;|&#58;/gi, ":")
+    .replace(/\\x26|\\u0026|&amp;|&#x26;|&#38;/gi, "&").replace(/\\x3d|\\u003d|&#x3d;|&#61;/gi, "=").replace(/\\x3f|\\u003f/gi, "?");
   const placeLinkIn = (h) => {
-    const x = String(h).replace(/\\\//g, "/").replace(/\\u0026/gi, "&").replace(/\\u003d/gi, "=").replace(/&amp;/g, "&");
-    const f = x.match(/https:\/\/(?:www\.|maps\.)?google\.[a-z.]+\/maps\/place\/[^"'\s<>\\]+/i);
+    const x = unesc(h);
+    const f = x.match(/https:\/\/(?:www\.|maps\.)?google\.[a-z.]+\/maps\/place\/[^"'\s<>\\]+/i) ||
+              x.match(/https:\/\/(?:www\.|maps\.)?google\.[a-z.]+\/(?:maps)?\/?\?[^"'\s<>\\]*\b(?:q|query)=[^"'\s<>\\]+/i);
     return f ? f[0] : "";
   };
   // the long link itself says a lot: /maps/place/Lakeview+Park/@41.47,-82.19,17z/…!3d41.47!4d-82.19
@@ -96,20 +99,28 @@ routerAdd("POST", "/api/binder/place-link", (e) => {
   };
 
   // Where does the short link lead? Ask curl one hop at a time (PocketBase follows redirects without saying where they went).
-  let curlErr = "";
-  const resolve = (u) => {
+  // The app adds ?g_st=… to its links, which makes Google answer with a "Continue to the app" page; drop it.
+  const clean = (u) => /^https:\/\/maps\.app\.goo\.gl\//i.test(u) ? u.replace(/[?#].*$/, "") : u;
+  let curlErr = "", codes = [];
+  const resolve = (u, ua) => {
     let cur = u;
     for (let i = 0; i < 6; i++) {
       let out = "";
-      try { curlErr = ""; out = toString($os.cmd("curl", "-s", "-o", "/dev/null", "--max-time", "10", "-A", UA, "-H", "Accept-Language: en-US,en;q=0.9", "-w", "%{http_code} %{redirect_url}", cur).output()); } catch (err) { curlErr = String(err).slice(0, 80); return i ? cur : ""; }
-      const mm = out.trim().match(/^(\d{3})\s+(\S+)?/);
+      const args = ["-s", "-o", "/dev/null", "--max-time", "10", "-H", "Accept-Language: en-US,en;q=0.9", "-w", "%{http_code} %{redirect_url}"];
+      if (ua) args.push("-A", ua);
+      args.push(cur);
+      try { curlErr = ""; out = toString($os.cmd("curl", ...args).output()); } catch (err) { curlErr = String(err).slice(0, 80); return i ? cur : ""; }
+      const mm = out.trim().match(/^(\d{3})\s*(\S+)?/);
+      if (mm) codes.push(mm[1]);
       if (!mm || !mm[2] || !/^3/.test(mm[1])) return cur;
       if (!/^https:\/\/[^\/]*(google\.[a-z.]+|goo\.gl|g\.co|share\.google)(\/|$)/i.test(mm[2])) return cur;   // only ever follow Google
       cur = mm[2];
     }
     return cur;
   };
-  const final = resolve(url);
+  const start = clean(url);
+  let final = resolve(start, UA);
+  if (final === start) { const f2 = resolve(start, ""); if (f2 && f2 !== start) final = f2; }   // plain curl, in case Google treats it differently
   let html = "";
   try { html = get(final || url); } catch (err) {
     $app.logger().warn("binder place-link: couldn't fetch", "url", url, "error", String(err));
@@ -160,7 +171,8 @@ routerAdd("POST", "/api/binder/place-link", (e) => {
   if (!out.name) {
     $app.logger().warn("binder place-link: no place name", "url", url, "final", final, "length", html.length, "title", titleOf(html).slice(0, 120));
     // for now, say what Google sent back, so it can be fixed from a screenshot
-    const why = (final ? "went to " + final.replace(/^https:\/\//, "").slice(0, 120) : "curl couldn't follow the link (" + curlErr + ")") + " · page \u201c" + titleOf(html).slice(0, 50) + "\u201d · " + html.length + " chars";
+    const g = (unesc(html).match(/https:\/\/[a-z.]*google\.[a-z.]+\/[^"'\s<>\\]{0,80}/gi) || []).filter((x) => !/\.(js|css|png|ico|svg)|\/(xjs|images|gen_204|logos)/i.test(x)).slice(0, 2).join(" ");
+    const why = "codes " + codes.join(",") + " · " + (final ? "went to " + final.replace(/^https:\/\//, "").slice(0, 120) : "curl couldn't follow the link (" + curlErr + ")") + " · page \u201c" + titleOf(html).slice(0, 50) + "\u201d · " + html.length + " chars" + (g ? " · links " + g : "");
     throw new BadRequestError("Google didn't say which place that is. Fill it in by hand. [" + why + "]");
   }
   return e.json(200, out);
