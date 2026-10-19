@@ -1,0 +1,62 @@
+# Home Board — notes for Claude
+
+The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also holds the **server** for all the family apps (Home Board, Pocket Binder, Hearts, Spinner).
+
+## Never
+- Put passwords, service keys or secret keys in any file. Only public keys go in pages. Passwords live in Keeper.
+- Tell Ben to re-run `server/setup.sh` on bkweb: it overwrites the custom Caddyfile.
+- Write the Binder clipper key into a file (pages fetch it from the `clip_keys` table).
+
+## How it runs
+- **Server:** PocketBase 0.40.3 on the home-lab VM "bkweb" (Ubuntu 24.04), behind a Cloudflare Tunnel. Caddy serves this repo's files and the other sites.
+- **Deploy:** Ben pushes to GitHub and a deploy script pulls. It restarts PocketBase when `server/pb_migrations/` changes. After a hook change, if it doesn't take, run `sudo systemctl restart pocketbase`.
+- **Logins:** PocketBase `users`. Each user has a `household` (relation) and a `role` (editor or viewer). Every table row carries `household`, and the hooks set it on create. `hearts_role` on users is for Hearts.
+
+## Files
+- `_index.src.html` is the app shell (gate, tab bar, More sheet, theme, shared helpers). Build `index.html` from it with `python3 _build.py`; it inlines `_docs.*`, `_family.*`, `_skins.css` and `_gate.css`. Always ship both files.
+- Page modules are loaded as `src + "?v=" + VERSION`:
+  - `week.js` (At a Glance)
+  - `groceries.js`
+  - `meals.js`
+  - `todos.js`
+  - `plans.js`
+- **Bump `VERSION` in `_index.src.html` whenever any page JS changes.** Otherwise phones keep the cached old file, and it looks like "the change isn't working".
+- `pb-client.js` is a small `db.from(...)` layer over `pocketbase.umd.js`.
+- `groceries.html`, `meals.html` and the other `*.html` pages just redirect old bookmarks to `./#page`.
+- `manifest.webmanifest`, `icon.svg`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` and `favicon.ico` hold the grey painted-house icon. Links use `?v=2`; bump it if the icon changes.
+- `server/pb_hooks/`:
+  - `main.pb.js`: households, invites, members, site admin, calendar feed.
+  - `hb_lib.js`
+  - `meals.pb.js`: a day-only meal gets the next date for that weekday.
+  - `binder.pb.js`: clipper form, photo saving, Google Maps place lookup.
+- `server/pb_migrations/`: one file per schema change, numbered by timestamp. Add new ones and never edit old ones.
+- Old root copies of `hb_lib.js`, `main.pb.js`, `house.js`, `notes.js` and `recipes.js` are leftovers and are no longer used.
+
+## Shared helpers (in `_index.src.html`)
+- `HB.swipeable(el, onDelete)`: swipe a row left to show Delete; a full swipe deletes.
+- `HB.deleteWithUndo`: shows the Undo bar.
+- `HB.weekOffset`: the shared week. The Meals week slider follows At a Glance and the reverse.
+- Each page can have a `refresh` hook, which runs when the page is shown again.
+- Theme:
+  - `homeboard-theme` holds light, dark or nothing; nothing means Auto.
+  - `homeboard-skin` holds the colour theme: Classic, Barbie, Espresso or Halloween.
+  - Both are set in the More sheet: Appearance is a `.seg` control with Light / Dark / Auto, Theme is shown as `.skins` cards.
+
+## Pages and decisions
+- **Pages:** week, groceries, meals, todos, plans. Recipes and Notes moved to Binder, which uses the same `recipes` / `notes` tables. The House page and the Binder link were removed.
+- **Meals:**
+  - Each meal has a real `date` (YYYY-MM-DD). The legacy `day` field counts as this week.
+  - Keep the single list with **tap-to-cycle day pills** plus the week slider (two weeks back to six ahead). Ben rejected a layout grouped by day as too cumbersome.
+- **Plans:** start and end time, a location, and `idea` (true when there's no date). Binder's "+ Plans" creates rows here.
+- **Zoom:** locked with viewport `minimum-scale=1, maximum-scale=1, user-scalable=no`, plus `body{overflow-x:clip}`.
+
+## Look (shared by all the family apps)
+- **Light:** background `#e4e5e8`, cards `#eeeff1`, ink `#2b2e33`.
+- **Dark:** background `#1d1e22`, cards `#25262b`, ink `#e4e4e2`.
+- **App colours:** blue `#4f7bd4`, red `#d45b6c`, amber `#c98a3e`, green `#3f9a66`, violet `#8a6bb8`, teal `#36ad9c`.
+- **Type and controls:** system font, heavy weights, round grey icon buttons, solid pills, sheets that slide up from the bottom, and a ☰ menu.
+
+## Testing
+- Run a local PocketBase 0.40.3 with `--publicDir` set to this repo, plus `--hooksDir server/pb_hooks --migrationsDir server/pb_migrations`. Create throwaway test users in one household and drive the app with Playwright on a phone-sized viewport.
+- Unset the proxy variables (`HTTPS_PROXY` and friends) for localhost.
+- Never `pkill -f` a pattern that matches your own shell command (exit 144). Use `pkill -x pocketbase`.
