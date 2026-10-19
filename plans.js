@@ -447,8 +447,9 @@ HB.register("plans", {
       else if ($("quickSheet").classList.contains("show")) closeQuick(); else closeSheet(true);
     });
 
+    function query() { return db.from("plans").select("*"); }
     function loadAll() {
-      return db.from("plans").select("*").then(function (r) {
+      return query().then(function (r) {
         if (r.error) { toast("Couldn't load plans."); return; }
         plans = (r.data || []).filter(notPending);
         loadedOnce = true;
@@ -468,6 +469,7 @@ HB.register("plans", {
       if (started) { loadAll(); return; }
       started = true;
       db.channel("plans" + "-live").on("postgres_changes", { event: "*", schema: "public", table: "plans" }, soon).subscribe();
+      var seen = query().cached(); if (seen) plans = seen.filter(notPending);   // last copy on this phone, until the fresh one arrives
       render(); loadAll();
     }
 

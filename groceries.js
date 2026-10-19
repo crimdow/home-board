@@ -266,11 +266,9 @@ HB.register("groceries", {
     });
 
     // ---- load + live sync ----
+    function queries() { return [db.from("grocery_stores").select("*").order("position"), db.from("grocery_items").select("*")]; }
     function loadAll() {
-      return Promise.all([
-        db.from("grocery_stores").select("*").order("position"),
-        db.from("grocery_items").select("*")
-      ]).then(function (r) {
+      return Promise.all(queries()).then(function (r) {
         if (r[0].error || r[1].error) { toast("Couldn't load the list."); return; }
         stores = r[0].data; items = r[1].data.filter(notPending);
         if (!openId && !settleT) render();
@@ -288,6 +286,8 @@ HB.register("groceries", {
         .on("postgres_changes", { event: "*", schema: "public", table: "grocery_items" }, soon)
         .on("postgres_changes", { event: "*", schema: "public", table: "grocery_stores" }, soon)
         .subscribe();
+      var q = queries(), s0 = q[0].cached(), i0 = q[1].cached();   // last copy on this phone, until the fresh one arrives
+      if (s0 && i0) { stores = s0; items = i0.filter(notPending); }
       render(); loadAll();
     }
 

@@ -238,8 +238,10 @@ HB.register("meals", {
     });
 
     // ---- load + live sync ----
+    // only the weeks the slider can reach (and ideas with no day): old meals would make this slower every week
+    function query() { return db.from("meals").select("*").onOrAfter("date", iso(addDays(thisWeek, 7 * MIN_WK))); }
     function loadAll() {
-      return db.from("meals").select("*").then(function (r) {
+      return query().then(function (r) {
         if (r.error) { toast("Couldn't load meals."); return; }
         meals = (r.data || []).filter(notPending);
         if (!openId && !settleT) render();
@@ -252,6 +254,7 @@ HB.register("meals", {
       if (started) { loadAll(); return; }
       started = true;
       db.channel("meals-live").on("postgres_changes", { event: "*", schema: "public", table: "meals" }, soon).subscribe();
+      var seen = query().cached(); if (seen) meals = seen.filter(notPending);   // last copy on this phone, until the fresh one arrives
       render(); loadAll();
     }
 
