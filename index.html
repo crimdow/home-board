@@ -579,7 +579,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 </style>
 <!-- the database: PocketBase on our own server (pb-client.js gives the pages the same db.from(...) calls as before) -->
 <script src="pocketbase.umd.js"></script>
-<script src="pb-client.js"></script>
+<script src="pb-client.js?v=2026-10-19"></script>
 </head>
 <body class="checking editing">
 
@@ -644,7 +644,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-04b";
+  var VERSION = "2026-10-19";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1342,7 +1342,9 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     familyId = (session && session.user && session.user.household) || "";
     document.body.classList.toggle("no-household", !familyId);
     if (!familyId) return;
-    db.from("households").select("*").eq("id", familyId).then(function (r) {
+    var famQ = db.from("households").select("*").eq("id", familyId), seen = famQ.cached();
+    if (seen && seen[0]) { family = normFamily(seen[0].settings); emitFamily(); }   // last copy on this phone, until the fresh one arrives
+    famQ.then(function (r) {
       if (r.error || !r.data || !r.data[0]) return;
       family = normFamily(r.data[0].settings); emitFamily();
       if (famOpen) renderFamily();

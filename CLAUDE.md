@@ -22,6 +22,10 @@ The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also
   - `plans.js`
 - **Bump `VERSION` in `_index.src.html` whenever any page JS changes.** Otherwise phones keep the cached old file, and it looks like "the change isn't working".
 - `pb-client.js` is a small `db.from(...)` layer over `pocketbase.umd.js`.
+  - It's loaded as `pb-client.js?v=…`; bump that too when it changes.
+  - **Fast open:** `getSession()` answers at once from the saved login and refreshes it in the background. A refused login signs out; a changed role, household or site admin reloads the app. Don't put the server check back in front of the first draw.
+  - **Saved copies:** every select is kept in localStorage (`hb-cache:<user>:<query>`, at most 40, cleared on sign-out). A page shows `query().cached()` at start, then the fresh result. Pages build each query in one function (`query()`, `queries()`, `daysQuery()`...) so the cached copy and the fresh load use the same key.
+  - `.onOrAfter("date", d)` means "on or after d, or no date". Meals use it so only the weeks the slider reaches are downloaded.
 - `groceries.html`, `meals.html` and the other `*.html` pages just redirect old bookmarks to `./#page`.
 - `manifest.webmanifest`, `icon.svg`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` and `favicon.ico` hold the grey painted-house icon. Links use `?v=2`; bump it if the icon changes.
 - `server/pb_hooks/`:

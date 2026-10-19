@@ -32,6 +32,25 @@
     return r;
   }
   function now() { return new Date().toISOString(); }
+
+  // ---------- last-seen copies of each list, kept in this phone's storage ----------
+  var CACHE = "hb-cache:", CACHE_MAX = 40;
+  function cacheKeys() {
+    var ks = [];
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(CACHE) === 0) ks.push(k); } } catch (e) {}
+    return ks;
+  }
+  function dropCache() { cacheKeys().forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); }
+  function keep(key, rows) {
+    if (!key) return;
+    try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: rows })); }
+    catch (e) { dropCache(); return; }   // storage full: start the copies over
+    var ks = cacheKeys();
+    if (ks.length <= CACHE_MAX) return;
+    // each week viewed makes its own copy; forget the ones used longest ago
+    var aged = ks.map(function (k) { var t = 0; try { t = JSON.parse(localStorage.getItem(k)).t || 0; } catch (e) {} return { k: k, t: t }; });
+    aged.sort(function (a, b) { return a.t - b.t; }).slice(0, ks.length - CACHE_MAX).forEach(function (x) { try { localStorage.removeItem(x.k); } catch (e) {} });
+  }
   function errOf(e) {
     var msg = (e && e.response && e.response.message) || (e && e.message) || "Request failed";
     return { message: msg, status: e && e.status };
@@ -55,6 +74,11 @@
     Query.prototype.eq = function (k, v) { return this._f(k, "=", v === null ? "" : v); };
     Query.prototype.gte = function (k, v) { return this._f(k, ">=", v); };
     Query.prototype.lte = function (k, v) { return this._f(k, "<=", v); };
+    // rows from a date on, plus rows with no date at all
+    Query.prototype.onOrAfter = function (k, v) {
+      var key = "p" + (this.n++);
+      this.filters.push("(" + k + " = '' || " + k + " >= {:" + key + "})"); this.params[key] = v; return this;
+    };
     Query.prototype.order = function (col, o) { this.sort = (o && o.ascending === false ? "-" : "") + col; return this; };
     Query.prototype.single = function () { this.one = true; return this; };
     Query.prototype.insert = function (d) { this.op = "insert"; this.rows = d; return this; };
@@ -66,6 +90,18 @@
       return this.filters.length === 1 && /^id = /.test(this.filters[0]) ? this.params.p0 : null;
     };
     Query.prototype.then = function (ok, bad) { return this.run().then(ok, bad); };
+    // What this same select returned last time on this phone (or null), so a page can show it
+    // straight away on a slow connection while the fresh copy loads.
+    Query.prototype.cacheKey = function () {
+      var rec = pb.authStore.record;
+      return rec ? CACHE + rec.id + ":" + this.t + "|" + this.filterText() + "|" + this.sort : null;
+    };
+    Query.prototype.cached = function () {
+      var k = this.cacheKey(), hit = null;
+      try { hit = k && JSON.parse(localStorage.getItem(k) || "null"); } catch (e) {}
+      if (!hit || !Array.isArray(hit.d)) return null;
+      return this.one ? (hit.d[0] || null) : hit.d;
+    };
     Query.prototype.run = function () {
       var q = this, col = pb.collection(q.t);
       var list = function () {
@@ -74,7 +110,7 @@
       };
       var p;
       if (q.op === "select") {
-        p = list().then(function (rs) { var d = rs.map(fromPB); return q.one ? (d[0] || null) : d; });
+        p = list().then(function (rs) { var d = rs.map(fromPB); keep(q.cacheKey(), d); return q.one ? (d[0] || null) : d; });
       } else if (q.op === "insert") {
         var many = Array.isArray(q.rows), rows = many ? q.rows : [q.rows];
         p = Promise.all(rows.map(function (r) {
@@ -132,7 +168,7 @@
     }
     var listeners = [];
     pb.authStore.onChange(function (token) {
-      if (!token) listeners.forEach(function (cb) { cb("SIGNED_OUT", null); });
+      if (!token) { dropCache(); listeners.forEach(function (cb) { cb("SIGNED_OUT", null); }); }
     });
 
     return {
@@ -147,14 +183,18 @@
       },
       auth: {
         getSession: function () {
-          if (!pb.authStore.isValid) return Promise.resolve({ data: { session: null } });
-          // refresh the login (and pick up a changed role); keep the saved one if the network is down
-          return pb.collection("users").authRefresh().then(function () {
-            return { data: { session: session() } };
+          if (!pb.authStore.isValid) return Promise.resolve({ data: { session: null } });   // also when the saved login has run out
+          // Open straight away with the saved login and refresh it in the background, so a slow
+          // connection doesn't hold the app on a blank screen. A refused login signs out (back to
+          // the sign-in page); a changed role or household reloads the app so it shows the right things.
+          var before = session();
+          pb.collection("users").authRefresh().then(function () {
+            var after = session(), a = before && before.user, b = after && after.user;
+            if (a && b && (a.role !== b.role || a.household !== b.household || a.site_admin !== b.site_admin)) location.reload();
           }, function (e) {
             if (e && (e.status === 401 || e.status === 403 || e.status === 404)) pb.authStore.clear();
-            return { data: { session: session() } };
           });
+          return Promise.resolve({ data: { session: before } });
         },
         signInWithPassword: function (c) {
           return pb.collection("users").authWithPassword(c.email, c.password).then(function () {

@@ -284,8 +284,9 @@ HB.register("todos", {
       $("addType").value = ""; HB.setTaskTypes(ts); renderTypes(); render();
     });
 
+    function query() { return db.from("todos").select("*"); }
     function loadAll() {
-      return db.from("todos").select("*").then(function (r) {
+      return query().then(function (r) {
         if (r.error) { toast("Couldn't load tasks."); return; }
         todos = (r.data || []).filter(notPending);
         if (!openId && !settleT) render();
@@ -302,6 +303,7 @@ HB.register("todos", {
       if (started) { loadAll(); return; }
       started = true;
       db.channel("todos" + "-live").on("postgres_changes", { event: "*", schema: "public", table: "todos" }, soon).subscribe();
+      var seen = query().cached(); if (seen) todos = seen.filter(notPending);   // last copy on this phone, until the fresh one arrives
       render(); loadAll();
     }
 

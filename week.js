@@ -405,17 +405,21 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       });
       box.addEventListener("focusout", function () { setTimeout(function () { if (renderAgendaSoon.later && !box.contains(document.activeElement)) { renderAgendaSoon.later = false; renderAgenda(); } }, 0); });
     })();
+    function plansQuery() { return db.from("plans").select("*").gte("date", iso(weekStart)).lte("date", iso(addDays(weekStart, 6))); }
+    function datedPlans(rows) { return (rows || []).filter(function (p) { return p.date && !p.idea; }); }
     function loadPlans() {
-      var from = iso(weekStart), to = iso(addDays(weekStart, 6));
-      return db.from("plans").select("*").gte("date", from).lte("date", to).then(function (res) {
+      var seen = plansQuery().cached(); if (seen) { weekPlans = datedPlans(seen); renderAgenda(); }   // last copy on this phone, until the fresh one arrives
+      return plansQuery().then(function (res) {
         if (res.error) return;
-        weekPlans = (res.data || []).filter(function (p) { return p.date && !p.idea; });
+        weekPlans = datedPlans(res.data);
         renderAgenda();
       });
     }
     var mealsLive = false;
+    function mealsQuery() { return db.from("meals").select("*").onOrAfter("date", iso(addDays(thisWeek, -7))); }   // the weeks the arrows reach, plus meals with only a weekday
     function loadMeals() {
-      db.from("meals").select("*").then(function (res) { if (!res.error) { meals = res.data || []; renderAgenda(); } });
+      var seen = mealsQuery().cached(); if (seen && !meals.length) { meals = seen; renderAgenda(); }
+      mealsQuery().then(function (res) { if (!res.error) { meals = res.data || []; renderAgenda(); } });
       if (mealsLive) return; mealsLive = true;
       db.channel("meals-glance").on("postgres_changes", { event: "*", schema: "public", table: "meals" }, function () { clearTimeout(loadMeals.t); loadMeals.t = setTimeout(loadMeals, 300); }).subscribe();
     }
@@ -424,10 +428,12 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       clearTimeout(plansT); plansT = setTimeout(loadPlans, 300);
     }).subscribe();
 
+    function daysQuery() { return db.from("days").select("*").gte("date", iso(weekStart)).lte("date", iso(addDays(weekStart, 6))); }
     function loadWeek() {
       loadPlans();
-      var from = iso(weekStart), to = iso(addDays(weekStart, 6));
-      return db.from("days").select("*").gte("date", from).lte("date", to).then(function (res) {
+      var seen = daysQuery().cached();
+      if (seen) { seen.forEach(function (row) { if (!data[row.date]) { data[row.date] = row; applyRow(row.date); } }); renderAgenda(); }
+      return daysQuery().then(function (res) {
         if (res.error) { toast("Couldn't load the week."); return; }
         res.data.forEach(function (row) { data[row.date] = row; applyRow(row.date); });
         renderAgenda();
