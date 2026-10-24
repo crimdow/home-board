@@ -109,6 +109,8 @@ body::before {
 }
 
 /* ---- bottom tab bar: this phone's pinned pages + More ---- */
+/* --pin pushes bottom-pinned things back down when iOS leaves the page shorter than the screen (see pinBottom) */
+.bottom, .fab, .undo { translate: 0 var(--pin, 0px); }
 .bottom {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -1695,6 +1697,27 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   document.addEventListener("focusout", snapBack);
   window.addEventListener("resize", snapBack);
   if (window.visualViewport) visualViewport.addEventListener("resize", snapBack);
+
+  // iOS home-screen apps can keep the page's viewport shorter than the screen after the keyboard closes, so the
+  // tab bar, + and Undo (all pinned to its bottom) float partway up the screen, most visibly at the end of a long
+  // page. pinBottom measures the real visible area and moves them back down to the true bottom edge.
+  var pinNow = 0, lastVV = 0;
+  function pinBottom() {
+    pinNow = 0;
+    var vv = window.visualViewport; if (!vv) return;
+    var gap = Math.round(vv.height + vv.offsetTop - window.innerHeight);   // > 0: the screen reaches past the page's viewport
+    document.documentElement.style.setProperty("--pin", (gap > 1 ? gap : 0) + "px");
+    // the keyboard just closed: a one-pixel nudge makes iOS work out the page's height again
+    if (lastVV && vv.height - lastVV > 120) requestAnimationFrame(function () { window.scrollBy(0, 1); window.scrollBy(0, -1); });
+    lastVV = vv.height;
+  }
+  function pinSoon() { if (!pinNow) pinNow = requestAnimationFrame(pinBottom); }
+  if (window.visualViewport) { visualViewport.addEventListener("resize", pinSoon); visualViewport.addEventListener("scroll", pinSoon); }
+  window.addEventListener("scroll", pinSoon, { passive: true });
+  window.addEventListener("resize", pinSoon);
+  window.addEventListener("pageshow", pinSoon);
+  document.addEventListener("focusout", function () { setTimeout(pinBottom, 300); });
+  pinBottom();
 
   // ================= light / dark and colour theme =================
   var SKINS = [
