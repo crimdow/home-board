@@ -52,6 +52,7 @@ The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also
   - Each meal has a real `date` (YYYY-MM-DD). The legacy `day` field counts as this week.
   - Keep the single list with **tap-to-cycle day pills** plus the week slider (two weeks back to six ahead). Ben rejected a layout grouped by day as too cumbersome.
 - **Plans:** start and end time, a location, and `idea` (true when there's no date). Binder's "+ Plans" creates rows here.
+- **Tab bar stays at the bottom:** iOS home-screen apps can keep the page's viewport shorter than the screen after the keyboard closes, which floats the tab bar, + and Undo partway up. `pinBottom()` compares `visualViewport` with `innerHeight` and sets `--pin`, which `.bottom`, `.fab` and `.undo` use as `translate`, and nudges the scroll by a pixel when the keyboard closes. Keep their own `transform`s separate from that `translate`.
 - **Zoom:** locked with viewport `minimum-scale=1, maximum-scale=1, user-scalable=no`, plus `body{overflow-x:clip}`.
 
 ## Look (shared by all the family apps)
