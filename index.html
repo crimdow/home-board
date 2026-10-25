@@ -576,6 +576,35 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 .gate .join-sub { margin: -6px 0 4px; color: var(--muted); font-size: 15px; }
 .gate .join-link { color: var(--muted); font-size: 14px; font-weight: 600; }
 
+/* ---- landscape tablet / laptop (Surface Pro and up): tabs down the left side, roomier pages ----
+   Phones never match (even sideways they're under 1000px wide). HB.wide / HB.onLayout use the same query,
+   so turning the tablet switches layouts live. */
+@media (min-width: 1000px) and (orientation: landscape) {
+  :root { --rail: 88px; }
+  .bottom {
+    top: 0; right: auto; translate: none;   /* full height, so the iOS keyboard nudge (--pin) doesn't apply */ width: var(--rail); border-top: 0; border-right: 0.5px solid var(--hair);
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 0 calc(18px + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column;
+  }
+  .tabs { flex-direction: column; justify-content: flex-start; gap: 6px; max-width: none; margin: 0; padding: 0; }
+  .tabs a { flex: none; padding: 12px 0 8px; }
+  .wrap {
+    max-width: none; margin: 0 0 0 var(--rail);
+    padding: 2px 40px calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+  body.has-fab .wrap { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+  .page { max-width: 860px; margin: 0 auto; }
+  .top { margin-left: -40px; margin-right: -40px; padding-left: 40px; padding-right: 40px; }
+  .fab { left: calc(100% - 100px); bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+  .toast { left: calc(50% + var(--rail) / 2); bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .undo { left: calc(var(--rail) + 40px); bottom: calc(36px + env(safe-area-inset-bottom, 0px)); max-width: 460px; }
+  #more { left: calc(50% + var(--rail) / 2); max-width: 560px; }
+  /* each page's own add sheet and Undo bar */
+  body #pages .sheet { left: calc(50% + var(--rail) / 2); max-width: 560px; }
+  body #pages .sheet:not(.show) { box-shadow: none; }   /* no tab bar along the bottom to hide its shadow */
+  body #pages .undo { left: calc(50% + var(--rail) / 2); bottom: calc(36px + env(safe-area-inset-bottom, 0px)); }
+  .doc-sheet .dbar, .doc-sheet .dbody { max-width: 760px; }
+}
 
 @media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
 </style>
@@ -646,7 +675,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-19";
+  var VERSION = "2026-10-25";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -693,6 +722,15 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (waiting[id]) waiting[id](mod);
     }
   };
+  // Landscape tablet or laptop (Surface Pro and up): tabs down the side and roomier pages; phones never match.
+  // The CSS uses the same query. Pages that lay out differently read HB.wide and listen with HB.onLayout.
+  var wideMQ = window.matchMedia ? matchMedia("(min-width: 1000px) and (orientation: landscape)") : null, layoutListeners = [];
+  HB.wide = !!(wideMQ && wideMQ.matches);
+  HB.onLayout = function (fn) { layoutListeners.push(fn); };
+  if (wideMQ && wideMQ.addEventListener) wideMQ.addEventListener("change", function () {
+    HB.wide = wideMQ.matches;
+    layoutListeners.forEach(function (fn) { try { fn(HB.wide); } catch (e) {} });
+  });
 
   // ================= shared list helpers (Groceries, Meals, TODOS, Plans) =================
   // Swipe a row left to reveal Delete; tap Delete (or swipe all the way) to remove it.
@@ -1776,6 +1814,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   // the round + sits right above the last tab (the ☰), and only on pages that add things
   var fab = document.getElementById("fab");
   function placeFab() {
+    if (HB.wide) { fab.style.left = ""; return; }   // landscape tablet: bottom right corner (CSS)
     var last = document.querySelector("#tabs a:last-child"); if (!last) return;
     var r = last.getBoundingClientRect();
     fab.style.left = Math.round(r.left + r.width / 2 - 28) + "px";

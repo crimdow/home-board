@@ -13,14 +13,14 @@ The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also
 - **Logins:** PocketBase `users`. Each user has a `household` (relation) and a `role` (editor or viewer). Every table row carries `household`, and the hooks set it on create. `hearts_role` on users is for Hearts.
 
 ## Files
-- `_index.src.html` is the app shell (gate, tab bar, More sheet, theme, shared helpers). Build `index.html` from it with `python3 _build.py`; it inlines `_docs.*`, `_family.*`, `_skins.css` and `_gate.css`. Always ship both files.
+- `index.html` is the app shell (gate, tab bar, More sheet, theme, shared helpers). Edit it directly. The old `_index.src.html` + `_build.py` build step is retired, so don't ask for those files.
 - Page modules are loaded as `src + "?v=" + VERSION`:
   - `week.js` (At a Glance)
   - `groceries.js`
   - `meals.js`
   - `todos.js`
   - `plans.js`
-- **Bump `VERSION` in `_index.src.html` whenever any page JS changes.** Otherwise phones keep the cached old file, and it looks like "the change isn't working".
+- **Bump `VERSION` in `index.html` whenever any page JS changes.** Otherwise phones keep the cached old file, and it looks like "the change isn't working".
 - `pb-client.js` is a small `db.from(...)` layer over `pocketbase.umd.js`.
   - It's loaded as `pb-client.js?v=…`; bump that too when it changes.
   - **Fast open:** `getSession()` answers at once from the saved login and refreshes it in the background. A refused login signs out; a changed role, household or site admin reloads the app. Don't put the server check back in front of the first draw.
@@ -36,11 +36,12 @@ The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also
 - `server/pb_migrations/`: one file per schema change, numbered by timestamp. Add new ones and never edit old ones.
 - Old root copies of `hb_lib.js`, `main.pb.js`, `house.js`, `notes.js` and `recipes.js` are leftovers and are no longer used.
 
-## Shared helpers (in `_index.src.html`)
+## Shared helpers (in `index.html`)
 - `HB.swipeable(el, onDelete)`: swipe a row left to show Delete; a full swipe deletes.
 - `HB.deleteWithUndo`: shows the Undo bar.
 - `HB.weekOffset`: the shared week. The Meals week slider follows At a Glance and the reverse.
 - Each page can have a `refresh` hook, which runs when the page is shown again.
+- `HB.wide` / `HB.onLayout(fn)`: true on a landscape tablet or laptop (`min-width: 1000px` and landscape, e.g. a Surface Pro). The CSS uses the same media query: the tab bar becomes a rail down the left and pages get wider. At a Glance shows the Grid and Day by day side by side. Turning the tablet switches live. Phones never match.
 - Theme:
   - `homeboard-theme` holds light, dark or nothing; nothing means Auto.
   - `homeboard-skin` holds the colour theme: Classic, Barbie, Espresso or Halloween.

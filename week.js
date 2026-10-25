@@ -140,6 +140,30 @@ body.viewonly #pg-week .days { pointer-events: none; }
 body.viewonly #pg-week .cell { cursor: default; }
 body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 
+/* landscape tablet: the Grid on the left and every day's plans and meals as cards on the right, no switch */
+@media (min-width: 1000px) and (orientation: landscape) {
+  #pg-week.page:not([hidden]) { max-width: 1240px; --wkc: minmax(400px, 480px) minmax(0, 1fr); display: grid; grid-template-columns: var(--wkc); column-gap: 36px; align-items: start; }
+  #pg-week > .top { grid-column: 1 / -1; display: grid; grid-template-columns: var(--wkc); column-gap: 36px; }
+  #pg-week > .top > header { grid-column: 1 / -1; padding-bottom: 6px; }
+  #pg-week .vsw { display: none; }
+  #pg-week .cols { grid-column: 1; grid-row: 2; }
+  #pg-week > .top::after {
+    content: "Day by day"; grid-column: 2; grid-row: 2; align-self: end;
+    padding: 8px 0 6px; border-bottom: 0.5px solid var(--hair); font-size: 13px; font-weight: 700; color: var(--muted);
+  }
+  #pg-week .days { grid-column: 1; }
+  #pg-week .day { min-height: 76px; }
+  #pg-week .cell { width: 48px; height: 48px; border-radius: 24px; }
+  #pg-week .agenda { display: grid; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 12px 0 8px; }
+  #pg-week .ag-day { background: var(--sheet); border: 0; border-radius: 16px; padding: 12px 14px 10px; min-height: 104px; transition: background-color .35s; }
+  #pg-week .ag-day.today { box-shadow: inset 0 0 0 2px var(--today); }
+  #pg-week .ag-head { cursor: default; }
+  #pg-week .ag-plan { background: color-mix(in srgb, var(--pc) 16%, var(--sheet)); }
+  /* who's doing what and the notes live in the Grid beside it */
+  #pg-week .ag-mini, #pg-week .ag-note { display: none; }
+  #pg-week .ag-day:not(:has(.ag-plan, .ag-meal))::after { content: "Nothing planned"; display: block; color: var(--muted); opacity: .7; font-size: 13.5px; font-weight: 600; padding: 2px 2px 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #pg-week .notes-panel, #pg-week .cell { transition: none; }
   #pg-week .cell:active { transform: none; }
@@ -350,7 +374,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     var agT = null;
     function renderAgendaSoon() { clearTimeout(agT); agT = setTimeout(renderAgenda, 60); }
     function renderAgenda() {
-      if (mode !== "agenda") return;
+      if (mode !== "agenda" && !HB.wide) return;   // a landscape tablet always shows it, beside the Grid
       var box = root.querySelector(".agenda");
       if (box.contains(document.activeElement)) { renderAgendaSoon.later = true; return; }   // don't redraw under your fingers
       var fam = HB.family(), cols = fam.columns.filter(function (c) { return c.on; });
@@ -386,7 +410,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
       var box = root.querySelector(".agenda");
       box.addEventListener("click", function (e) {
         var head = e.target.closest(".ag-head");
-        if (head && !HB.viewer) {   // tap a day to add (or hide) its note
+        if (head && !HB.viewer && !HB.wide) {   // tap a day to add (or hide) its note (on a landscape tablet, notes are in the Grid)
           if (box.contains(document.activeElement)) document.activeElement.blur();
           var key = head.closest(".ag-day").dataset.key;
           agOpen[key] = !agOpen[key]; renderAgenda();
@@ -483,6 +507,10 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     // Family settings changed (here or on another phone): redraw with the new people / columns
     HB.onFamily(function () { render(); renderAgenda(); });
 
-    render(); paintArrows(); setMode(mode); loadWeek();
+    // turning the tablet: landscape shows the Grid and Day by day together, portrait goes back to the switch
+    function fitLayout() { if (HB.wide) { if (mode !== "grid") setMode("grid"); loadMeals(); renderAgenda(); } }
+    HB.onLayout(fitLayout);
+
+    render(); paintArrows(); setMode(mode); loadWeek(); fitLayout();
   }
 });
