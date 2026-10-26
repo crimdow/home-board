@@ -18,7 +18,8 @@ HB.register("weather", {
 #pg-weather .wx-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 #pg-weather .wx-stat { background: var(--sheet); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; transition: background-color .35s; }
 #pg-weather .wx-stat b { white-space: nowrap; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
-#pg-weather .wx-stat span { font-size: 18px; font-weight: 800; white-space: nowrap; }
+#pg-weather .wx-stat span { font-size: 18px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pg-weather .wx-stat span small { font-size: .6em; font-weight: 800; color: var(--muted); margin-left: 2px; }   /* "Moderate" stays small so it never gets cut off */
 #pg-weather h2 { margin: 0 0 10px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
 #pg-weather .wx-hours { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 0 4px; }
 #pg-weather .wx-hours::-webkit-scrollbar { display: none; }
@@ -122,7 +123,7 @@ HB.register("weather", {
         '<section class="wx-stats">' +
           stat("Rain", (rainNow == null ? "--" : rainNow) + "%") + stat("Wind", deg(c.wind_speed_10m) + " mph") +
           stat("Humidity", deg(c.relative_humidity_2m) + "%") +
-          stat("UV", d.uv_index_max && d.uv_index_max[0] != null ? Math.round(d.uv_index_max[0]) + " " + uvWord(d.uv_index_max[0]) : "--") +
+          stat("UV index", d.uv_index_max && d.uv_index_max[0] != null ? Math.round(d.uv_index_max[0]) + ' <small>' + uvWord(d.uv_index_max[0]) + '</small>' : "--") +
         '</section>' +
         '<section class="wx-card"><h2>Hour by hour</h2><div class="wx-hours">' +
           hours.map(function (k, n) {
