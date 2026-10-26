@@ -776,7 +776,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-26f";
+  var VERSION = "2026-10-26g";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1563,6 +1563,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     s.panel = Object.assign({ after: 5, every: 30, info: true, ha: "" }, s.panel && typeof s.panel === "object" ? s.panel : {});
     // night: the screensaver is a plain black screen between these hours (no photos, no clock)
     s.panel.night = Object.assign({ on: true, from: 23, to: 5 }, s.panel.night && typeof s.panel.night === "object" ? s.panel.night : {});
+    // quotes: family-written messages for the panel's Today view, one a day ({ text, by })
+    s.panel.quotes = (Array.isArray(s.panel.quotes) ? s.panel.quotes : []).filter(function (q) { return q && q.text; }).slice(0, 100);
     return s;
   }
   var family = null, familyId = "", familyListeners = [], famSaveT = null, famOpen = false;

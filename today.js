@@ -48,6 +48,10 @@ HB.register("today", {
 #pg-today .td-plan .nm { flex: 1; min-width: 0; font-size: 25px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pg-today .td-plan .at { flex: none; max-width: 34%; font-size: 18px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* the family's quote of the day (☰ → Screensaver → Quotes on the panel) */
+#pg-today .td-quote .qt { font-size: 27px; font-weight: 800; line-height: 1.3; }
+#pg-today .td-quote .qb { margin-top: 8px; font-size: 19px; font-weight: 700; color: var(--muted); }
+
 /* tomorrow */
 #pg-today .td-tmw { display: flex; align-items: center; gap: 22px; }
 #pg-today .td-tmw .mini { display: flex; gap: 14px; flex: none; }
@@ -142,6 +146,12 @@ HB.register("today", {
       });
       return '<section class="td-card td-plans"><h2>Plans</h2>' + (rows.length ? rows.join("") : '<div class="td-none">Nothing planned today.</div>') + '</section>';
     }
+    function quoteCard(k) {
+      var list = HB.family().panel.quotes || [];
+      if (!list.length) return "";
+      var n = Math.floor(new Date(k.t.getFullYear(), k.t.getMonth(), k.t.getDate()).getTime() / 86400000 + 0.5), q = list[n % list.length];
+      return '<section class="td-card td-quote"><div class="qt">“' + HB.esc(q.text) + '”</div>' + (q.by ? '<div class="qb">— ' + HB.esc(q.by) + '</div>' : '') + '</section>';
+    }
     function tomorrowCard(k) {
       var row = days[k.tomorrow] || {}, cols = colsFor(k.m), note = (row.notes || "").trim();
       var who = cols.map(function (c) { return { c: c, w: HB.whoInfo(row[c.key] || "") }; }).filter(function (x) { return x.w; });
@@ -153,7 +163,7 @@ HB.register("today", {
     }
     function render() {
       var k = keys();
-      box.innerHTML = weatherCard() + whoCard(k) + plansCard() + tomorrowCard(k);
+      box.innerHTML = weatherCard() + whoCard(k) + plansCard() + quoteCard(k) + tomorrowCard(k);
     }
 
     HB.onWeather(render);

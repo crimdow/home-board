@@ -43,6 +43,18 @@ body.viewonly #pg-screensaver .hrs select { pointer-events: none; opacity: .6; }
 #pg-screensaver .ha input:focus { outline: 2px solid var(--ben); }
 #pg-screensaver .ha p { margin: 0; color: var(--muted); font-size: 13px; font-weight: 600; line-height: 1.4; }
 #pg-screensaver .ha p.warn { color: var(--ash); }
+#pg-screensaver .quotes { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+#pg-screensaver .qadd { display: flex; flex-direction: column; gap: 8px; }
+#pg-screensaver .qadd textarea, #pg-screensaver .qadd input { width: 100%; border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; padding: 10px 12px; resize: none; }
+#pg-screensaver .qadd textarea:focus, #pg-screensaver .qadd input:focus { outline: 2px solid var(--ben); }
+#pg-screensaver .qrow { display: flex; gap: 8px; align-items: center; }
+#pg-screensaver .qitem { display: flex; align-items: flex-start; gap: 10px; padding: 10px 2px; border-top: 0.5px solid var(--hair); }
+#pg-screensaver .qitem > div { flex: 1; min-width: 0; }
+#pg-screensaver .qt { font-size: 15.5px; font-weight: 700; line-height: 1.35; }
+#pg-screensaver .qb { margin-top: 3px; font-size: 13.5px; font-weight: 700; color: var(--muted); }
+#pg-screensaver .qitem .x { flex: none; width: 30px; height: 30px; border-radius: 15px; border: 0; background: var(--chip); color: var(--ash); display: grid; place-items: center; cursor: pointer; padding: 0; }
+#pg-screensaver .qitem .x svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 3; stroke-linecap: round; fill: none; }
+#pg-screensaver .qnone { color: var(--muted); font-size: 14px; font-weight: 600; padding: 4px 2px; }
 body.viewonly #pg-screensaver .ed-only { display: none !important; }
 body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointer-events: none; opacity: .6; }
 
@@ -96,6 +108,10 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
         '<h2><span>Photos <small id="ssCount"></small></span><button type="button" class="pill ed-only" id="ssAdd">+ Add photos</button></h2>' +
         '<input type="file" id="ssFile" accept="image/*" multiple hidden>' +
         '<div id="ssGrid"></div>' +
+        '<h2><span>Quotes on the panel <small id="ssQCount"></small></span></h2>' +
+        '<div class="grp quotes"><div class="qadd ed-only"><textarea id="ssQText" rows="2" maxlength="240" placeholder="Add a quote or a message for the family"></textarea>' +
+          '<div class="qrow"><input id="ssQBy" maxlength="60" placeholder="Who said it (optional)"><button type="button" class="pill" id="ssQAdd">Add</button></div></div>' +
+          '<div id="ssQList"></div></div>' +
         '<h2>Home Assistant on the panel</h2>' +
         '<div class="grp ha"><input type="url" id="ssHa" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="http://192.168.1.50:8123">' +
           '<p id="ssHaNote">Its address, starting with https://. The panel then gets a Home Assistant button.</p></div>' +
@@ -115,6 +131,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       root.querySelector("#ssTo").value = String(p.night.to);
       root.querySelector("#ssHours").classList.toggle("off", !p.night.on);
       if (document.activeElement !== haIn) haIn.value = p.ha || "";
+      paintQuotes();
       paintHaNote();
     }
     root.querySelectorAll(".chips").forEach(function (c) {
@@ -145,6 +162,28 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       var v = haIn.value.trim().replace(/\/+$/, "");
       if (v && !/^[a-z]+:\/\//i.test(v)) v = "http://" + v;   // Home Assistant on the home network is usually plain http
       haIn.value = v; HB.setPanel({ ha: v }); paintHaNote(); toast(v ? "Saved the Home Assistant address." : "Removed Home Assistant from the panel.");
+    });
+
+    // ---- quotes (one a day on the panel's Today view) ----
+    function paintQuotes() {
+      var list = HB.family().panel.quotes || [], box = root.querySelector("#ssQList");
+      root.querySelector("#ssQCount").textContent = list.length ? "· " + list.length : "";
+      box.innerHTML = list.length ? list.map(function (q, i) {
+        return '<div class="qitem"><div><div class="qt">“' + HB.esc(q.text) + '”</div>' + (q.by ? '<div class="qb">— ' + HB.esc(q.by) + '</div>' : '') + '</div>' +
+          '<button type="button" class="x ed-only" data-i="' + i + '" aria-label="Remove quote">' + X + '</button></div>';
+      }).join("") : '<div class="qnone">No quotes yet. The panel shows one each day, taking turns.</div>';
+    }
+    root.querySelector("#ssQAdd").addEventListener("click", function () {
+      var t = root.querySelector("#ssQText"), by = root.querySelector("#ssQBy"), text = t.value.trim().replace(/^["“]|["”]$/g, "");
+      if (!text) { t.focus(); return; }
+      HB.setPanel({ quotes: (HB.family().panel.quotes || []).concat([{ text: text, by: by.value.trim() }]) });
+      t.value = ""; by.value = ""; paintQuotes(); toast("Quote added.");
+    });
+    root.querySelector("#ssQList").addEventListener("click", function (e) {
+      var b = e.target.closest(".x"); if (!b || HB.viewer) return;
+      if (!confirm("Remove this quote?")) return;
+      var list = (HB.family().panel.quotes || []).slice(); list.splice(+b.dataset.i, 1);
+      HB.setPanel({ quotes: list }); paintQuotes();
     });
 
     // ---- photos ----
