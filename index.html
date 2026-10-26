@@ -776,7 +776,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-26e";
+  var VERSION = "2026-10-26f";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -916,7 +916,31 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       return true;
     }, function () { holWait[y] = null; return false; });
   }
-  HB.holiday = function (iso) { return holMap[iso] || ""; };
+  // Fun family days the public list leaves out (worked out here, every year)
+  var funDays = {};
+  function funFor(y) {
+    if (funDays[y]) return funDays[y];
+    function key(m, d) { return y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0"); }
+    function nthSunday(m, n) { var first = new Date(y, m - 1, 1).getDay(); return 1 + (7 - first) % 7 + 7 * (n - 1); }
+    // Easter Sunday (anonymous Gregorian algorithm)
+    var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3),
+        h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+        em = Math.floor((h + l - 7 * m + 114) / 31), ed = ((h + l - 7 * m + 114) % 31) + 1;
+    var o = {};
+    o[key(2, 2)] = "Groundhog Day";
+    o[key(2, 14)] = "Valentine’s Day";
+    o[key(3, 17)] = "St. Patrick’s Day";
+    o[key(4, 1)] = "April Fools’ Day";
+    o[key(em, ed)] = "Easter";
+    o[key(4, 22)] = "Earth Day";
+    o[key(5, nthSunday(5, 2))] = "Mother’s Day";
+    o[key(6, nthSunday(6, 3))] = "Father’s Day";
+    o[key(10, 31)] = "Halloween";
+    o[key(12, 24)] = "Christmas Eve";
+    o[key(12, 31)] = "New Year’s Eve";
+    return funDays[y] = o;
+  }
+  HB.holiday = function (iso) { return holMap[iso] || (iso ? funFor(+iso.slice(0, 4))[iso] || "" : ""); };
   HB.onHolidays = function (fn) { holListeners.push(fn); };
   HB.loadHolidays = function () {
     return Promise.all(holYears().map(holFetch)).then(function (got) {
