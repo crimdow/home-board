@@ -774,7 +774,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-25j";
+  var VERSION = "2026-10-26a";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -2154,6 +2154,22 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         if (m && m.refresh) m.refresh();
       }
       if (HB.weatherAge() > 15 * 60000) HB.loadWeather();
+      if (Date.now() - lastCheck > 5 * 60000) { lastCheck = Date.now(); checkForUpdate(); }
+    }
+    // Nobody reopens a wall panel, so it never gets new Home Board code on its own. Every 5 minutes it looks
+    // at the deployed index.html; when VERSION has changed it reloads, once nobody has touched it for a minute.
+    var lastCheck = Date.now(), lastTouch = Date.now(), newer = false;
+    ["pointerdown", "touchstart", "keydown"].forEach(function (k) { document.addEventListener(k, function () { lastTouch = Date.now(); }, { passive: true, capture: true }); });
+    function checkForUpdate() {
+      if (newer) { reloadWhenIdle(); return; }
+      fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
+        var m = t.match(/var VERSION = "([^"]+)"/);
+        if (m && m[1] !== VERSION) { newer = true; reloadWhenIdle(); }
+      }, function () {});
+    }
+    function reloadWhenIdle() {
+      if (Date.now() - lastTouch > 60000) location.reload();
+      else setTimeout(reloadWhenIdle, 15000);
     }
     function paintWx(w) {
       w = w || HB.weather();
