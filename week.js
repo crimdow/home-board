@@ -164,6 +164,27 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
   #pg-week .ag-day:not(:has(.ag-plan, .ag-meal))::after { content: "Nothing planned"; display: block; color: var(--muted); opacity: .7; font-size: 13.5px; font-weight: 600; padding: 2px 2px 0; }
 }
 
+/* wall panel (?panel, the Surface in portrait): the Grid only, sized to read from across the room */
+:root.panel #pg-week .vsw { display: none; }
+:root.panel #pg-week header { padding-bottom: 10px; }
+:root.panel #pg-week .wk-nav { height: 64px; border-radius: 32px; padding: 0 4px; }
+:root.panel #pg-week .wk-nav button { width: 56px; height: 56px; border-radius: 28px; }
+:root.panel #pg-week .wk-nav button svg { width: 24px; height: 24px; }
+:root.panel #pg-week .range { font-size: 24px; font-weight: 800; min-width: 170px; }
+:root.panel #pg-week .vo { height: 56px; padding: 0 16px; border-radius: 28px; font-size: 18px; }
+:root.panel #pg-week .cols { font-size: 24px; padding: 10px 0 12px; }
+:root.panel #pg-week .day { min-height: 124px; padding: 10px 0; }
+:root.panel #pg-week .dname .dow { font-size: 20px; }
+:root.panel #pg-week .dname .num { font-size: 36px; min-width: 54px; height: 54px; border-radius: 27px; margin-left: -9px; margin-top: 4px; }
+:root.panel #pg-week .home { width: 52px; height: 52px; right: 6px; bottom: 6px; }
+:root.panel #pg-week .home svg { width: 46px; height: 46px; }
+:root.panel #pg-week .cell { width: 88px; height: 88px; border-radius: 44px; font-size: 38px; }
+:root.panel #pg-week .cell.long { font-size: 20px; }
+:root.panel #pg-week .cell svg.both-ic { width: 50px; height: 50px; }
+:root.panel #pg-week .cell svg:not(.both-ic) { width: 36px; height: 36px; }
+:root.panel #pg-week textarea { font-size: 24px; border-radius: 16px; padding: 12px 20px; margin: 8px 0 2px; }
+:root.panel #pg-week .day.weekend .wk-hint { font-size: 24px; padding-left: 20px; }
+
 @media (prefers-reduced-motion: reduce) {
   #pg-week .notes-panel, #pg-week .cell { transition: none; }
   #pg-week .cell:active { transform: none; }
@@ -256,7 +277,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
     function render() {
       readFields();
       daysEl.innerHTML = ""; refs = {};
-      var grid = "62px" + (FIELDS.length ? " repeat(" + FIELDS.length + ", 1fr)" : " 1fr");
+      var grid = (HB.panel ? "150px" : "62px") + (FIELDS.length ? " repeat(" + FIELDS.length + ", 1fr)" : " 1fr");   // the wall panel's dates are bigger
       var colsEl = root.querySelector(".cols");
       colsEl.hidden = !FIELDS.length;
       colsEl.style.gridTemplateColumns = grid;

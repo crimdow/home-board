@@ -22,6 +22,8 @@
     if (t !== "light" && t !== "dark") t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", t);
     if (k) document.documentElement.setAttribute("data-skin", k);
+    // ?panel = the wall-mounted Surface: big portrait grid, clock, Weather, no phone tab bar
+    if (/[?&]panel(?:[=&]|$)/.test(location.search)) document.documentElement.classList.add("panel");
   })();
 </script>
 <title>Home Board</title>
@@ -606,6 +608,54 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   .doc-sheet .dbar, .doc-sheet .dbody { max-width: 760px; }
 }
 
+/* ---- wall panel (?panel): the Surface mounted in portrait ----
+   A clock bar across the top, big icon buttons along the bottom, no phone tab bar or round +. */
+.phead, .pbar { display: none; }
+:root.panel body.locked .phead, :root.panel body.checking .phead, :root.panel body.locked .pbar, :root.panel body.checking .pbar { display: none; }
+:root.panel { --phead: 128px; --pbar: 118px; }
+:root.panel body { font-size: 20px; }
+:root.panel .bottom, :root.panel .fab { display: none !important; }
+:root.panel .wrap { max-width: none; padding: var(--phead) 40px calc(var(--pbar) + 24px); }
+:root.panel .top { top: var(--phead); margin: 0 -40px; padding: 8px 40px 0; }
+:root.panel .title h1 { font-size: 44px; font-weight: 800; letter-spacing: -1px; }
+:root.panel .phead {
+  display: flex; align-items: center; gap: 16px; position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  height: var(--phead); padding: 0 40px; background: var(--bg); transition: background-color .35s ease;
+}
+:root.panel .phead .ptime { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 18px; }
+:root.panel .phead .ptime b { font-size: 76px; font-weight: 800; letter-spacing: -2.5px; line-height: 1; font-variant-numeric: tabular-nums; }
+:root.panel .phead .ptime span { font-size: 26px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+:root.panel .phead button {
+  appearance: none; border: 0; cursor: pointer; font: inherit; color: var(--ink); background: var(--sheet);
+  height: 72px; border-radius: 36px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background-color .35s;
+}
+:root.panel .phead .pwx { padding: 0 24px 0 18px; font-size: 34px; font-weight: 800; }
+:root.panel .phead .pwx svg { width: 44px; height: 44px; }
+:root.panel .phead .plook { width: 72px; padding: 0; }
+:root.panel .phead .plook svg { width: 32px; height: 32px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+:root.panel .pbar {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; height: var(--pbar);
+  padding: 16px 40px 22px; background: var(--bg); border-top: 0.5px solid var(--hair); transition: background-color .35s;
+}
+:root.panel .pbar a {
+  display: flex; align-items: center; justify-content: center; border-radius: 40px;
+  background: var(--sheet); color: var(--ink); text-decoration: none; transition: background-color .35s, color .35s;
+}
+:root.panel .pbar a.on { background: var(--accent); color: var(--on-accent); }
+:root.panel .pbar svg { width: 44px; height: 44px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+:root.panel .toast { bottom: calc(var(--pbar) + 20px); font-size: 18px; }
+:root.panel #more { max-width: 560px; zoom: 1.25; }   /* the same menu, bigger fingers-on-the-wall targets */
+:root.panel .undo { bottom: calc(var(--pbar) + 16px); }
+/* weather icons (header, Weather page) */
+.wxi { overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.wxi .sun { stroke: #e0a53a; }
+.wxi .moon { stroke: var(--muted); }
+.wxi .cloud { stroke: var(--muted); fill: var(--bg); }
+.wxi .drop { stroke: var(--s1); }
+.wxi .flake { stroke: var(--s1); }
+.wxi .bolt { stroke: #e0a53a; }
+
 @media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
 </style>
 <!-- the database: PocketBase on our own server (pb-client.js gives the pages the same db.from(...) calls as before) -->
@@ -645,6 +695,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 
 <div class="bottom"><nav class="tabs" id="tabs"></nav></div>
 
+<!-- wall panel only (?panel): clock bar on top, big icon buttons along the bottom -->
+<div class="phead" id="phead">
+  <div class="ptime"><b id="pClock"></b><span id="pDate"></span></div>
+  <button type="button" class="pwx" id="pWx" aria-label="Weather"></button>
+  <button type="button" class="plook" id="pLook" aria-label="Look and settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.6-1.3-.6-2.1 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4C21 6.8 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg></button>
+</div>
+<nav class="pbar" id="pbar" aria-label="Panel pages"></nav>
+
 <div class="more-bg" id="moreBg"></div>
 <div class="more-sheet" id="more" role="dialog" aria-modal="true" aria-label="More">
   <div class="grab"></div>
@@ -675,7 +733,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-25";
+  var VERSION = "2026-10-25b";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -691,6 +749,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     recipes: '<path d="M12 6.5C10.5 5 8 4.5 4 4.5v14c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-14c-4 0-6.5.5-8 2z"/><path d="M12 6.5v14"/>',
     house: '<path d="M3.5 11.5L12 4.5l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5.5h4V20"/>',
     notes: '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8h5M9 12.5h7M9 16h5"/>',
+    weather: '<path d="M7 18.5h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18.5z"/>',
     more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'
   };
   var PAGES = [
@@ -698,8 +757,12 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     { id: "groceries", name: "Groceries",   src: "groceries.js" },
     { id: "meals",     name: "Meals",       src: "meals.js" },
     { id: "todos",     name: "Tasks",       src: "todos.js" },
-    { id: "plans",     name: "Plans",       src: "plans.js" }
+    { id: "plans",     name: "Plans",       src: "plans.js" },
+    { id: "weather",   name: "Weather",     src: "weather.js" }
   ];
+  // the wall panel's own buttons along the bottom (?panel)
+  var PANEL = document.documentElement.classList.contains("panel");
+  var PANEL_PAGES = ["week", "weather"];
   var MAX_PINS = 5;
   function page(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return null; }
   function svg(id) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[id] + '</svg>'; }
@@ -714,7 +777,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   }
   var waiting = {}, mods = {};
   window.HB = {
-    db: db, toast: toast, viewer: false,
+    db: db, toast: toast, viewer: false, panel: PANEL,
     // a page file calls this once it has loaded
     register: function (id, mod) {
       if (mod.css) { var st = document.createElement("style"); st.textContent = mod.css; document.head.appendChild(st); }
@@ -731,6 +794,59 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     HB.wide = wideMQ.matches;
     layoutListeners.forEach(function (fn) { try { fn(HB.wide); } catch (e) {} });
   });
+
+  // ================= weather (Open-Meteo: free, no account or key) =================
+  // Shared by the Weather page and the panel's clock bar. Saved on this device and fetched again after 15 minutes.
+  var WX_AT = { lat: 41.3766, lon: -81.7873, name: "Cleveland area · 44130" };
+  var wxData = null, wxWhen = 0, wxWait = null, wxListeners = [];
+  try { var wxSaved = JSON.parse(read("homeboard-wx")); if (wxSaved && wxSaved.lat === WX_AT.lat && wxSaved.lon === WX_AT.lon) { wxData = wxSaved.data; wxWhen = wxSaved.t || 0; } } catch (e) {}
+  HB.weatherAt = WX_AT;
+  HB.weather = function () { return wxData; };
+  HB.weatherAge = function () { return wxWhen ? Date.now() - wxWhen : Infinity; };
+  HB.onWeather = function (fn) { wxListeners.push(fn); };
+  HB.loadWeather = function (force) {
+    if (!force && wxData && Date.now() - wxWhen < 15 * 60000) return Promise.resolve(wxData);
+    if (wxWait) return wxWait;
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + WX_AT.lat + "&longitude=" + WX_AT.lon +
+      "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day" +
+      "&hourly=temperature_2m,weather_code,precipitation_probability,is_day" +
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max" +
+      "&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=7";
+    wxWait = fetch(url).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }).then(function (d) {
+      wxData = d; wxWhen = Date.now(); wxWait = null;
+      store("homeboard-wx", JSON.stringify({ lat: WX_AT.lat, lon: WX_AT.lon, t: wxWhen, data: d }));
+      wxListeners.forEach(function (fn) { try { fn(d); } catch (e) {} });
+      return d;
+    }, function () { wxWait = null; return wxData; });
+    return wxWait;
+  };
+  // WMO weather codes -> words and a little picture
+  HB.wxText = function (c) {
+    return c === 0 ? "Clear" : c === 1 ? "Mostly clear" : c === 2 ? "Partly cloudy" : c === 3 ? "Cloudy" :
+      c === 45 || c === 48 ? "Fog" : c >= 51 && c <= 57 ? "Drizzle" : c >= 61 && c <= 67 ? "Rain" :
+      c >= 71 && c <= 77 ? "Snow" : c >= 80 && c <= 82 ? "Showers" : c === 85 || c === 86 ? "Snow showers" :
+      c >= 95 ? "Thunderstorms" : "—";
+  };
+  HB.wxIcon = function (c, day) {
+    var sun = '<circle class="sun" cx="12" cy="12" r="4.2"/><path class="sun" d="M12 2.8v2M12 19.2v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.8 12h2M19.2 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>';
+    var moon = '<path class="moon" d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/>';
+    var smallSun = '<circle class="sun" cx="8.5" cy="8.5" r="3.2"/><path class="sun" d="M8.5 2.5v1.3M3.2 4.2l.9.9M2.5 8.5h1.3M13.8 4.2l-.9.9"/>';
+    var smallMoon = '<path class="moon" d="M12.5 9.6A4.6 4.6 0 0 1 6.9 4a4.6 4.6 0 1 0 5.6 5.6z"/>';
+    var cloud = '<path class="cloud" d="M7.5 19h9.5a3.8 3.8 0 0 0 .4-7.6 5.4 5.4 0 0 0-10.4 1.4A3.1 3.1 0 0 0 7.5 19z"/>';
+    var hiCloud = '<path class="cloud" d="M7.5 15.5h9.5a3.8 3.8 0 0 0 .4-7.6 5.4 5.4 0 0 0-10.4 1.4A3.1 3.1 0 0 0 7.5 15.5z"/>';
+    var g = "";
+    if (c === 0 || c === 1) g = day === 0 ? moon : sun;
+    else if (c === 2) g = (day === 0 ? smallMoon : smallSun) + cloud;
+    else if (c === 3) g = cloud;
+    else if (c === 45 || c === 48) g = hiCloud + '<path class="cloud" d="M5 19h14M7 22h10"/>';
+    else if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) g = hiCloud + '<path class="drop" d="M9 18.5 8 21.5M13 18.5l-1 3M17 18.5l-1 3"/>';
+    else if ((c >= 71 && c <= 77) || c === 85 || c === 86) g = hiCloud + '<path class="flake" d="M9 19.5v2.5M7.9 20.7h2.2M15 19.5v2.5M13.9 20.7h2.2"/>';
+    else if (c >= 95) g = hiCloud + '<path class="bolt" d="M12.5 16 10 20h3.5L11 23.5"/>';
+    else g = cloud;
+    return '<svg class="wxi" viewBox="0 0 24 24" aria-hidden="true">' + g + '</svg>';
+  };
+  // "2026-10-25T07:51" -> "7:51 AM"
+  HB.wxClock = function (s) { if (!s) return "—"; var h = +s.slice(11, 13), m = s.slice(14, 16); return (h % 12 || 12) + ":" + m + (h < 12 ? " AM" : " PM"); };
 
   // ================= shared list helpers (Groceries, Meals, TODOS, Plans) =================
   // Swipe a row left to reveal Delete; tap Delete (or swipe all the way) to remove it.
@@ -1841,6 +1957,49 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     go(id);
   });
 
+  // ================= wall panel (?panel): clock bar and big buttons =================
+  function paintPanel() {
+    if (!PANEL) return;
+    document.getElementById("pbar").innerHTML = PANEL_PAGES.map(function (id) {
+      var x = page(id);
+      return '<a data-id="' + id + '" href="#' + id + '" class="' + (id === current ? "on" : "") + '" aria-label="' + x.name + '"' + (id === current ? ' aria-current="page"' : '') + '>' + svg(id) + '</a>';
+    }).join("");
+  }
+  if (PANEL) (function () {
+    var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    var clock = document.getElementById("pClock"), dateEl = document.getElementById("pDate"), wxBtn = document.getElementById("pWx");
+    var lastDay = new Date().toDateString(), lastRefresh = Date.now();
+    function tick() {
+      var d = new Date();
+      clock.textContent = (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0");
+      dateEl.textContent = DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate();
+      // nobody "opens" a wall panel, so it catches up by itself: at midnight, and every 10 minutes
+      var m = current && mods[current];
+      if (d.toDateString() !== lastDay || Date.now() - lastRefresh > 10 * 60000) {
+        lastDay = d.toDateString(); lastRefresh = Date.now();
+        if (m && m.refresh) m.refresh();
+      }
+      if (HB.weatherAge() > 15 * 60000) HB.loadWeather();
+    }
+    function paintWx(w) {
+      w = w || HB.weather();
+      var c = w && w.current;
+      wxBtn.innerHTML = c ? HB.wxIcon(c.weather_code, c.is_day) + '<span>' + Math.round(c.temperature_2m) + '°</span>' : HB.wxIcon(3, 1) + '<span>--°</span>';
+    }
+    HB.onWeather(paintWx);
+    wxBtn.addEventListener("click", function () { go("weather"); });
+    document.getElementById("pLook").addEventListener("click", function () { openMore(); });
+    document.getElementById("pbar").addEventListener("click", function (e) {
+      var a = e.target.closest("a"); if (!a) return;
+      e.preventDefault();
+      if (a.dataset.id === current) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+      go(a.dataset.id);
+    });
+    paintWx(); tick(); HB.loadWeather();
+    setInterval(tick, 15000);
+  })();
+
   // ================= More menu =================
   var editingTabs = false;
   var UP = '<svg viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/></svg>',
@@ -1963,7 +2122,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       var old = mods[current]; if (old && old.hidden) old.hidden();
       scrolls[current] = window.scrollY; boxes[current].hidden = true;
     }
-    current = p.id; paintTabs(); paintFab();
+    current = p.id; paintTabs(); paintPanel(); paintFab();
     document.title = p.name;
     var box = boxes[p.id];
     if (!box) {
