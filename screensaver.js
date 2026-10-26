@@ -43,6 +43,7 @@ body.viewonly #pg-screensaver .hrs select { pointer-events: none; opacity: .6; }
 #pg-screensaver .ha input:focus { outline: 2px solid var(--ben); }
 #pg-screensaver .ha p { margin: 0; color: var(--muted); font-size: 13px; font-weight: 600; line-height: 1.4; }
 #pg-screensaver .ha p.warn { color: var(--ash); }
+#pg-screensaver .ha .halbl { margin-top: 8px; font-size: 13px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
 #pg-screensaver .quotes { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 #pg-screensaver .qadd { display: flex; flex-direction: column; gap: 8px; }
 #pg-screensaver .qadd textarea, #pg-screensaver .qadd input { width: 100%; border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; padding: 10px 12px; resize: none; }
@@ -114,7 +115,10 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
           '<div id="ssQList"></div></div>' +
         '<h2>Home Assistant on the panel</h2>' +
         '<div class="grp ha"><input type="url" id="ssHa" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="http://192.168.1.50:8123">' +
-          '<p id="ssHaNote">Its address, starting with https://. The panel then gets a Home Assistant button.</p></div>' +
+          '<p id="ssHaNote">Its address, starting with https://. The panel then gets a Home Assistant button.</p>' +
+          '<label class="halbl" for="ssHaPanel">Wall panel only (optional)</label>' +
+          '<input type="url" id="ssHaPanel" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="http://192.168.1.50">' +
+          '<p>Home Assistant’s address on your home network, used only by the wall panel. With the Surface in Home Assistant’s trusted networks, it opens with no login. Phones keep using the address above.</p></div>' +
       '</div>';
     var grid = root.querySelector("#ssGrid"), fileIn = root.querySelector("#ssFile"), haIn = root.querySelector("#ssHa");
 
@@ -131,6 +135,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       root.querySelector("#ssTo").value = String(p.night.to);
       root.querySelector("#ssHours").classList.toggle("off", !p.night.on);
       if (document.activeElement !== haIn) haIn.value = p.ha || "";
+      var hp = root.querySelector("#ssHaPanel"); if (document.activeElement !== hp) hp.value = p.haPanel || "";
       paintQuotes();
       paintHaNote();
     }
@@ -152,8 +157,8 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       var bad = v && !/^https?:\/\/[^\s/]+/i.test(v);
       note.classList.toggle("warn", !!bad);
       note.textContent = bad ? "That doesn't look like an address. It should look like http://192.168.1.50:8123."
-        : /^http:/i.test(v) ? "Saved. Because it's http://, the panel's browser needs one setting to allow it (see the setup notes). Also set http: use_x_frame_options: false in Home Assistant."
-        : v ? "The panel shows a Home Assistant button. In Home Assistant, set http: use_x_frame_options: false so it can show here."
+        : /^http:/i.test(v) ? "Saved. Because it's http://, only the wall panel can show it inside Home Board; phones get an Open button."
+        : v ? "Shows inside Home Board. In Home Assistant, Send X-Frame-Options must be off (Settings → System → Network)."
         : "Its address, like http://192.168.1.50:8123. The panel then gets a Home Assistant button.";
     }
     haIn.readOnly = HB.viewer;
@@ -162,6 +167,15 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       var v = haIn.value.trim().replace(/\/+$/, "");
       if (v && !/^[a-z]+:\/\//i.test(v)) v = "http://" + v;   // Home Assistant on the home network is usually plain http
       haIn.value = v; HB.setPanel({ ha: v }); paintHaNote(); toast(v ? "Saved the Home Assistant address." : "Removed Home Assistant from the panel.");
+    });
+
+    var haPanelIn = root.querySelector("#ssHaPanel");
+    haPanelIn.readOnly = HB.viewer;
+    haPanelIn.addEventListener("change", function () {
+      var v = haPanelIn.value.trim().replace(/\/+$/, "");
+      if (v && !/^[a-z]+:\/\//i.test(v)) v = "http://" + v;   // the home-network address is plain http
+      haPanelIn.value = v; HB.setPanel({ haPanel: v });
+      toast(v ? "Saved the panel’s Home Assistant address." : "The panel uses the main address again.");
     });
 
     // ---- quotes (one a day on the panel's Today view) ----

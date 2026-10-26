@@ -776,7 +776,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-26h";
+  var VERSION = "2026-10-26i";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -811,7 +811,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   // the wall panel's own buttons along the bottom (?panel)
   var PANEL = document.documentElement.classList.contains("panel");
   // Home Assistant joins once its address is set (☰ → Screensaver)
-  function panelPages() { return ["week", "today", "weather"].concat(family && family.panel && family.panel.ha ? ["ha"] : []); }
+  function panelPages() { return ["week", "today", "weather"].concat(family && family.panel && (family.panel.ha || family.panel.haPanel) ? ["ha"] : []); }
   var MAX_PINS = 5;
   function page(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return null; }
   function svg(id) {
@@ -1567,7 +1567,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     s.taskTypes = s.taskTypes.filter(function (t) { return t && t.id; }).slice(0, MAX_TYPES);
     s.taskTypes.forEach(function (t) { if (["daily", "weekly", "none"].indexOf(t.repeat) < 0) t.repeat = "none"; });
     // the wall panel: screensaver timing and the Home Assistant address (☰ → Screensaver)
-    s.panel = Object.assign({ after: 5, every: 30, info: true, ha: "" }, s.panel && typeof s.panel === "object" ? s.panel : {});
+    // ha: Home Assistant for everyone; haPanel: a home-network address only the wall panel uses (HA trusted networks: no login)
+    s.panel = Object.assign({ after: 5, every: 30, info: true, ha: "", haPanel: "" }, s.panel && typeof s.panel === "object" ? s.panel : {});
     // night: the screensaver is a plain black screen between these hours (no photos, no clock)
     s.panel.night = Object.assign({ on: true, from: 23, to: 5 }, s.panel.night && typeof s.panel.night === "object" ? s.panel.night : {});
     // quotes: family-written messages for the panel's Today view, one a day ({ text, by })

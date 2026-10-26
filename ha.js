@@ -1,5 +1,7 @@
 /* Home Board: Home Assistant (☰ → Home Assistant, and a button on the wall panel).
-   Shows the family's own Home Assistant (address set in ☰ → Screensaver) inside Home Board,
+   Shows the family's own Home Assistant (address set in ☰ → Screensaver) inside Home Board.
+   The panel can have its own address (haPanel, e.g. http://192.168.x.x): HA's trusted networks then
+   let the Surface straight in, with no keyboard needed. Everyone else uses the main address.
    and stays loaded while you switch pages, so Home Assistant keeps its place.
    An http:// address (Home Assistant on the home network) only shows inside Home Board on the panel, whose
    Chromium allows it for home.jermins.com (policy InsecureContentAllowedForUrls). Phones and laptops can't show
@@ -20,7 +22,8 @@ HB.register("ha", {
   mount: function (root) {
     var shown = "";
     function render() {
-      var url = (HB.family().panel || {}).ha || "";
+      // the wall panel uses its own home-network address when one is set (so HA's trusted networks let it in without a login)
+      var p = HB.family().panel || {}, url = (HB.panel && p.haPanel) || p.ha || "";
       if (url === shown && root.firstChild) return;   // same address: leave Home Assistant where it is
       shown = url;
       if (!url) {
