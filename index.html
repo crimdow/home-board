@@ -686,6 +686,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 .wxi .drop { stroke: var(--s1); }
 .wxi .flake { stroke: var(--s1); }
 .wxi .bolt { stroke: #e0a53a; }
+.moonic .moondark { fill: color-mix(in srgb, var(--muted) 22%, transparent); stroke: var(--muted); stroke-width: 1.2; }
+.moonic .moonlit { fill: #efe6c6; stroke: none; }
 
 @media (prefers-reduced-motion: reduce) { #more, #moreBg, body, .top { transition: none !important; } }
 </style>
@@ -774,7 +776,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-26b";
+  var VERSION = "2026-10-26c";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -897,6 +899,47 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     else g = cloud;
     return '<svg class="wxi" viewBox="0 0 24 24" aria-hidden="true">' + g + '</svg>';
   };
+  // ================= holidays (Nager.Date: free, no account or key) =================
+  // US nationwide public holidays for this year and next, saved on this device and fetched again monthly.
+  // HB.holiday("2026-11-26") -> "Thanksgiving Day" (or ""). Shown on the panel's Today view and Grid, not in Plans.
+  var holMap = {}, holWait = {}, holListeners = [];
+  function holYears() { var y = new Date().getFullYear(); return [y, y + 1]; }
+  holYears().forEach(function (y) { try { var c = JSON.parse(read("homeboard-hol-" + y)); if (c && c.map) Object.assign(holMap, c.map); } catch (e) {} });
+  function holFetch(y) {
+    var saved = null; try { saved = JSON.parse(read("homeboard-hol-" + y)); } catch (e) {}
+    if (saved && saved.map && Date.now() - (saved.t || 0) < 30 * 86400000) return Promise.resolve(false);
+    if (holWait[y]) return holWait[y];
+    return holWait[y] = fetch("https://date.nager.at/api/v3/PublicHolidays/" + y + "/US").then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (list) {
+      var map = {};
+      (list || []).forEach(function (h) { if (h && h.date && h.global !== false && !map[h.date]) map[h.date] = h.localName || h.name; });
+      store("homeboard-hol-" + y, JSON.stringify({ t: Date.now(), map: map })); Object.assign(holMap, map); holWait[y] = null;
+      return true;
+    }, function () { holWait[y] = null; return false; });
+  }
+  HB.holiday = function (iso) { return holMap[iso] || ""; };
+  HB.onHolidays = function (fn) { holListeners.push(fn); };
+  HB.loadHolidays = function () {
+    return Promise.all(holYears().map(holFetch)).then(function (got) {
+      if (got.some(Boolean)) holListeners.forEach(function (fn) { try { fn(); } catch (e) {} });
+    });
+  };
+
+  // ================= the moon (worked out here, no service needed) =================
+  // phase: 0 = new, .25 = first quarter, .5 = full, .75 = last quarter
+  HB.moon = function (d) {
+    var days = ((d || new Date()).getTime() - Date.UTC(2000, 0, 6, 18, 14)) / 86400000, len = 29.530588853;
+    var phase = ((days % len) + len) % len / len;
+    var names = ["New moon", "Waxing crescent", "First quarter", "Waxing gibbous", "Full moon", "Waning gibbous", "Last quarter", "Waning crescent"];
+    return { phase: phase, name: names[Math.floor(phase * 8 + 0.5) % 8] };
+  };
+  HB.moonIcon = function (phase) {
+    var r = 9, k = Math.cos(2 * Math.PI * phase), rx = (Math.abs(k) * r).toFixed(2), waxing = phase < 0.5, lit;
+    if (Math.abs(phase - 0.5) < 0.02) lit = '<circle cx="12" cy="12" r="9" class="moonlit"/>';
+    else if (phase < 0.02 || phase > 0.98) lit = "";
+    else lit = '<path class="moonlit" d="M12 3A9 9 0 0 ' + (waxing ? 1 : 0) + ' 12 21A' + rx + ' 9 0 0 ' + (waxing ? (k > 0 ? 0 : 1) : (k > 0 ? 1 : 0)) + ' 12 3z"/>';
+    return '<svg class="moonic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" class="moondark"/>' + lit + '</svg>';
+  };
+
   // "2026-10-25T07:51" -> "7:51 AM"
   HB.wxClock = function (s) { if (!s) return "—"; var h = +s.slice(11, 13), m = s.slice(14, 16); return (h % 12 || 12) + ":" + m + (h < 12 ? " AM" : " PM"); };
 
@@ -2149,7 +2192,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       // nobody "opens" a wall panel, so it catches up by itself: at midnight, and every 10 minutes
       var m = current && mods[current];
       if (d.toDateString() !== lastDay || Date.now() - lastRefresh > 10 * 60000) {
-        if (d.toDateString() !== lastDay) paintPanel();   // the Today button shows the new date
+        if (d.toDateString() !== lastDay) { paintPanel(); HB.loadHolidays(); }   // the Today button shows the new date
         lastDay = d.toDateString(); lastRefresh = Date.now();
         if (m && m.refresh) m.refresh();
       }
@@ -2201,7 +2244,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         go(pp[((i < 0 ? 0 : i) + (dx < 0 ? 1 : -1) + n) % n]);
       }, { passive: true });
     })();
-    paintWx(); tick(); HB.loadWeather();
+    paintWx(); tick(); HB.loadWeather(); HB.loadHolidays();
     setInterval(tick, 15000);
   })();
 

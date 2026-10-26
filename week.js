@@ -178,7 +178,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 :root.panel #pg-week .vo { height: 52px; padding: 0 16px; border-radius: 26px; font-size: 18px; }
 :root.panel #pg-week .cols { font-size: 21px; padding: 6px 0 10px; }
 :root.panel #pg-week .days { flex: 1; min-height: 0; }
-:root.panel #pg-week .day { flex: 1 1 0; min-height: 0; padding: 4px 0; overflow: clip; border-bottom-color: color-mix(in srgb, var(--hair) 70%, transparent); }
+:root.panel #pg-week .day { flex: 1 1 auto; min-height: 0; padding: 4px 0; overflow: clip; border-bottom-color: color-mix(in srgb, var(--hair) 70%, transparent); }
 :root.panel #pg-week .day:last-child { border-bottom: 0; }
 :root.panel #pg-week .dname .dow { font-size: 18px; }
 :root.panel #pg-week .dname .num { font-size: 32px; min-width: 48px; height: 48px; border-radius: 24px; margin-left: -4px; margin-top: 2px; }
@@ -191,6 +191,9 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 :root.panel #pg-week .cell:not(.filled) { background: transparent; box-shadow: inset 0 0 0 2px var(--chip); }   /* empty bubbles stay quiet */
 :root.panel #pg-week .cell:not(.filled) svg { opacity: .45; }
 :root.panel #pg-week .day.weekend .wk-hint { display: none; }
+#pg-week .holline { display: none; }   /* holiday names: the wall panel only (phones have no room) */
+:root.panel #pg-week .holline { display: block; align-self: flex-start; margin: 6px 0 0 150px; padding: 5px 16px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-size: 18px; font-weight: 800; }
 :root.panel #pg-week .day:not(.has-note) .notes-panel { display: none !important; }
 :root.panel #pg-week textarea { font-size: 20px; border-radius: 14px; padding: 9px 18px; margin: 6px 0 2px; height: 44px !important; min-height: 0;
   white-space: pre; overflow: hidden; pointer-events: none; }
@@ -313,6 +316,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
         dn.className = "dname";
         dn.setAttribute("aria-expanded", "false");
         dn.setAttribute("aria-label", label + " " + date.getDate() + ", show notes");
+        var hol = HB.holiday ? HB.holiday(key) : "";
         dn.innerHTML = '<span class="dow">' + label + '</span><span class="num">' + date.getDate() + '</span>';
         var dc = document.createElement("div"); dc.className = "dcell";
         dc.appendChild(dn);
@@ -361,6 +365,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
           r.appendChild(b);
         });
         day.appendChild(r);
+        if (hol) { var hl = document.createElement("div"); hl.className = "holline"; hl.textContent = hol; day.appendChild(hl); }   // shown on the panel
 
         var t = document.createElement("textarea");
         t.rows = 1; t.placeholder = "Notes";
@@ -537,6 +542,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 
     // Family settings changed (here or on another phone): redraw with the new people / columns
     HB.onFamily(function () { render(); renderAgenda(); });
+    if (HB.onHolidays) HB.onHolidays(function () { render(); });   // holiday names under the date (panel)
 
     // turning the tablet: landscape shows the Grid and Day by day together, portrait goes back to the switch
     function fitLayout() { if (HB.wide) { if (mode !== "grid") setMode("grid"); loadMeals(); renderAgenda(); } }

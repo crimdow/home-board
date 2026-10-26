@@ -11,6 +11,10 @@ HB.register("weather", {
 #pg-weather .wx-now { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
 #pg-weather .wx-now > .wxi { width: 62px; height: 62px; }
 #pg-weather .wx-now .sun { display: flex; flex-direction: column; gap: 8px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); }
+#pg-weather .wx-now .moon { display: flex; align-items: center; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+#pg-weather .wx-now .moon .moonic { width: 18px; height: 18px; flex: none; }
+:root.panel #pg-weather .wx-now .moon { gap: 8px; }
+:root.panel #pg-weather .wx-now .moon .moonic { width: 26px; height: 26px; }
 #pg-weather .wx-now .sun b { display: block; color: var(--ink); font-size: 16px; font-weight: 800; white-space: nowrap; }
 #pg-weather .wx-now .t { font-size: 56px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
 #pg-weather .wx-now .c { font-size: 20px; font-weight: 800; margin-top: 4px; }
@@ -115,13 +119,15 @@ HB.register("weather", {
       var count = 24, hours = [];   // a day ahead; slide the strip sideways for the later hours
       for (var j = start; j < Math.min(h.time.length, start + count); j++) hours.push(j);
       var rainNow = h.precipitation_probability ? h.precipitation_probability[start] : null;
+      var moon = HB.moon();
 
       body.innerHTML =
         '<section class="wx-card wx-now">' + HB.wxIcon(c.weather_code, c.is_day) +
           '<div><div class="t">' + deg(c.temperature_2m) + '°</div>' +
           '<div class="c">' + HB.wxText(c.weather_code) + '</div>' +
           '<div class="f">Feels like ' + deg(c.apparent_temperature) + '° · H ' + deg(d.temperature_2m_max[0]) + '° L ' + deg(d.temperature_2m_min[0]) + '°</div></div>' +
-          '<div class="sun"><div>Sunrise<b>' + HB.wxClock(d.sunrise[0]) + '</b></div><div>Sunset<b>' + HB.wxClock(d.sunset[0]) + '</b></div></div>' +
+          '<div class="sun"><div>Sunrise<b>' + HB.wxClock(d.sunrise[0]) + '</b></div><div>Sunset<b>' + HB.wxClock(d.sunset[0]) + '</b></div>' +
+            '<div class="moon">' + HB.moonIcon(moon.phase) + '<span>' + moon.name + '</span></div></div>' +
         '</section>' +
         '<section class="wx-stats">' +
           stat("Rain", (rainNow == null ? "--" : rainNow) + "%") + stat("Wind", deg(c.wind_speed_10m) + " mph") +
