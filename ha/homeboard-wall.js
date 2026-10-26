@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.0.0";
+  var VERSION = "1.0.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -207,10 +207,10 @@
       return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill">' + tiles.join("") + "</div></div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
-      return '<button class="big' + (warn ? " warn" : "") + '" data-go="' + go + '">' +
+      return '<div role="button" tabindex="0" class="big' + (warn ? " warn" : "") + '" data-go="' + go + '">' +
         '<span class="ic" style="background:' + (active ? color : "var(--chip)") + ";color:" + (active ? "#fff" : color) + '">' + icon(ic, 54) + "</span>" +
         (big ? '<span class="bignum">' + esc(big) + "</span>" : "") +
-        '<span class="words"><b>' + esc(name) + "</b><i>" + esc(line) + "</i></span></button>";
+        '<span class="words"><b>' + esc(name) + "</b><i>" + esc(line) + "</i></span></div>";
     }
     _doorWord(s) { return { open: "Open", closed: "Closed", opening: "Opening…", closing: "Closing…" }[s] || s; }
 
@@ -413,7 +413,7 @@
       }
     }
     _click(e) {
-      var b = e.target.closest && e.target.closest("button, .shade"); if (!b) return;
+      var b = e.target.closest && e.target.closest('button, [role="button"], .shade'); if (!b) return;
       this._touched = Date.now();
       var ds = b.dataset, c = this._config;
       if (ds.go) { var p = ds.go.split("/"); this._route = p[0] === "room" ? ["room", +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
@@ -492,9 +492,9 @@ ha-icon { display: flex; }
 .stack { display: flex; flex-direction: column; gap: 18px; }
 
 /* Home */
-.big { background: var(--card); border-radius: 32px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; position: relative; min-height: 260px; transition: transform .12s; }
+.big { cursor: pointer; background: var(--card); border-radius: 32px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; position: relative; min-height: 260px; transition: transform .12s; }
 .big .ic { width: 112px; height: 112px; border-radius: 56px; display: flex; align-items: center; justify-content: center; }
-.big .words { display: flex; flex-direction: column; gap: 6px; }
+.big .words { flex: none; display: flex; flex-direction: column; gap: 6px; }
 .big b { font-size: 40px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
 .big i { font-style: normal; font-size: 25px; font-weight: 700; color: var(--muted); }
 .big.warn i { color: ${C.amber}; }
