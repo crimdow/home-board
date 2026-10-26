@@ -1,16 +1,19 @@
-/* Home Board: Home Assistant, on the wall panel only.
-   An http:// address works on the panel because its Chromium allows it for home.jermins.com
-   (policy InsecureContentAllowedForUrls on the Surface); phones never show this page.
-   Shows the family's own Home Assistant (address set in ☰ → Screensaver) filling the screen under the clock bar.
-   The page stays loaded while you switch to the Grid and back, so Home Assistant keeps its place. */
+/* Home Board: Home Assistant (☰ → Home Assistant, and a button on the wall panel).
+   Shows the family's own Home Assistant (address set in ☰ → Screensaver) inside Home Board,
+   and stays loaded while you switch pages, so Home Assistant keeps its place.
+   An http:// address (Home Assistant on the home network) only shows inside Home Board on the panel, whose
+   Chromium allows it for home.jermins.com (policy InsecureContentAllowedForUrls). Phones and laptops can't show
+   an http:// page inside an https:// one, so there it's an "Open Home Assistant" button instead. */
 HB.register("ha", {
   title: "Home Assistant",
 
   css: `
 #pg-ha:not([hidden]) { height: calc(100dvh - var(--phead, 0px) - var(--pbar, 84px) - 24px); }
 #pg-ha .ha-frame { flex: 1; min-height: 0; border: 0; width: 100%; border-radius: 22px; background: var(--sheet); }
-#pg-ha .ha-msg { margin: auto; max-width: 560px; text-align: center; color: var(--muted); font-size: 20px; font-weight: 600; line-height: 1.5; padding: 40px 20px; }
-#pg-ha .ha-msg b { display: block; color: var(--ink); font-size: 30px; font-weight: 800; margin-bottom: 8px; }
+#pg-ha .ha-msg { margin: auto; max-width: 560px; text-align: center; color: var(--muted); font-size: 16px; font-weight: 600; line-height: 1.5; padding: 40px 16px; }
+#pg-ha .ha-msg b { display: block; color: var(--ink); font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+:root.panel #pg-ha .ha-msg { font-size: 20px; }
+:root.panel #pg-ha .ha-msg b { font-size: 30px; }
 #pg-ha .ha-msg button { margin-top: 18px; border: 0; border-radius: 999px; background: var(--chip); color: var(--ink); font: inherit; font-size: 18px; font-weight: 800; padding: 12px 22px; cursor: pointer; }
 `,
 
@@ -21,7 +24,13 @@ HB.register("ha", {
       if (url === shown && root.firstChild) return;   // same address: leave Home Assistant where it is
       shown = url;
       if (!url) {
-        root.innerHTML = '<div class="ha-msg"><b>Home Assistant</b>Add its address on a phone: ☰ → Screensaver → Home Assistant on the panel.</div>';
+        root.innerHTML = '<div class="ha-msg"><b>Home Assistant</b>Add its address in ☰ → Screensaver → Home Assistant on the panel.</div>';
+        return;
+      }
+      if (!HB.panel && location.protocol === "https:" && /^http:/i.test(url)) {
+        root.innerHTML = '<div class="ha-msg"><b>Home Assistant</b>Its address is on the home network (' + HB.esc(url) + '), which a phone can’t show inside Home Board. ' +
+          'It opens on its own instead, while you’re home.<br><button type="button">Open Home Assistant</button></div>';
+        root.querySelector("button").onclick = function () { window.open(url, "_blank", "noopener"); };
         return;
       }
       root.innerHTML = '<iframe class="ha-frame" title="Home Assistant" allow="fullscreen; autoplay; microphone; camera" referrerpolicy="no-referrer"></iframe>';
