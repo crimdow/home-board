@@ -776,7 +776,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-26g";
+  var VERSION = "2026-10-26h";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -866,7 +866,12 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       "&hourly=temperature_2m,weather_code,precipitation_probability,is_day" +
       "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max" +
       "&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=7";
+    // air quality (US AQI) comes from Open-Meteo's sister service; if it's down, the weather still shows
+    var aqUrl = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + WX_AT.lat + "&longitude=" + WX_AT.lon + "&current=us_aqi&timezone=auto";
+    var aq = fetch(aqUrl).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && j.current && j.current.us_aqi != null ? j.current.us_aqi : null; }, function () { return null; });
     wxWait = fetch(url).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }).then(function (d) {
+      return aq.then(function (v) { d.us_aqi = v; return d; });
+    }).then(function (d) {
       wxData = d; wxWhen = Date.now(); wxWait = null;
       store("homeboard-wx", JSON.stringify({ lat: WX_AT.lat, lon: WX_AT.lon, t: wxWhen, data: d }));
       wxListeners.forEach(function (fn) { try { fn(d); } catch (e) {} });
@@ -964,6 +969,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     return '<svg class="moonic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" class="moondark"/>' + lit + '</svg>';
   };
 
+  // US AQI -> the EPA's words (shortened to fit a tile)
+  HB.aqiWord = function (v) { return v <= 50 ? "Good" : v <= 100 ? "Moderate" : v <= 150 ? "Sensitive groups" : v <= 200 ? "Unhealthy" : v <= 300 ? "Very unhealthy" : "Hazardous"; };
   // "2026-10-25T07:51" -> "7:51 AM"
   HB.wxClock = function (s) { if (!s) return "—"; var h = +s.slice(11, 13), m = s.slice(14, 16); return (h % 12 || 12) + ":" + m + (h < 12 ? " AM" : " PM"); };
 

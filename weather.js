@@ -23,7 +23,7 @@ HB.register("weather", {
 #pg-weather .wx-stat { background: var(--sheet); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; transition: background-color .35s; }
 #pg-weather .wx-stat b { white-space: nowrap; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
 #pg-weather .wx-stat span { font-size: 18px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#pg-weather .wx-stat span small { font-size: .6em; font-weight: 800; color: var(--muted); margin-left: 2px; }   /* "Moderate" stays small so it never gets cut off */
+#pg-weather .wx-stat span small { display: block; font-size: .6em; font-weight: 800; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; }   /* "Moderate", "Good": on their own line so they never get cut off */   /* "Moderate" stays small so it never gets cut off */
 #pg-weather h2 { margin: 0 0 10px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
 #pg-weather .wx-hours { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 0 4px; }
 #pg-weather .wx-hours::-webkit-scrollbar { display: none; }
@@ -125,13 +125,14 @@ HB.register("weather", {
         '<section class="wx-card wx-now">' + HB.wxIcon(c.weather_code, c.is_day) +
           '<div><div class="t">' + deg(c.temperature_2m) + '°</div>' +
           '<div class="c">' + HB.wxText(c.weather_code) + '</div>' +
-          '<div class="f">Feels like ' + deg(c.apparent_temperature) + '° · H ' + deg(d.temperature_2m_max[0]) + '° L ' + deg(d.temperature_2m_min[0]) + '°</div></div>' +
+          '<div class="f">Feels like ' + deg(c.apparent_temperature) + '° · Humidity ' + deg(c.relative_humidity_2m) + '%</div>' +
+          '<div class="f">High ' + deg(d.temperature_2m_max[0]) + '° · Low ' + deg(d.temperature_2m_min[0]) + '°</div></div>' +
           '<div class="sun"><div>Sunrise<b>' + HB.wxClock(d.sunrise[0]) + '</b></div><div>Sunset<b>' + HB.wxClock(d.sunset[0]) + '</b></div>' +
             '<div class="moon">' + HB.moonIcon(moon.phase) + '<span>' + moon.name + '</span></div></div>' +
         '</section>' +
         '<section class="wx-stats">' +
           stat("Rain", (rainNow == null ? "--" : rainNow) + "%") + stat("Wind", deg(c.wind_speed_10m) + " mph") +
-          stat("Humidity", deg(c.relative_humidity_2m) + "%") +
+          stat("Air quality", w.us_aqi != null ? Math.round(w.us_aqi) + ' <small>' + HB.aqiWord(w.us_aqi) + '</small>' : "--") +
           stat("UV index", d.uv_index_max && d.uv_index_max[0] != null ? Math.round(d.uv_index_max[0]) + ' <small>' + uvWord(d.uv_index_max[0]) + '</small>' : "--") +
         '</section>' +
         '<section class="wx-card"><h2>Hour by hour</h2><div class="wx-hours" data-hscroll>' +
