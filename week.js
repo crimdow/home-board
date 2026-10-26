@@ -161,7 +161,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
   #pg-week .ag-plan { background: color-mix(in srgb, var(--pc) 16%, var(--sheet)); }
   /* who's doing what and the notes live in the Grid beside it */
   #pg-week .ag-mini, #pg-week .ag-note { display: none; }
-  #pg-week .ag-day:not(:has(.ag-plan, .ag-meal))::after { content: "Nothing planned"; display: block; color: var(--muted); opacity: .7; font-size: 13.5px; font-weight: 600; padding: 2px 2px 0; }
+  #pg-week .ag-day:not(:has(.ag-plan, .ag-meal, .ag-hol))::after { content: "Nothing planned"; display: block; color: var(--muted); opacity: .7; font-size: 13.5px; font-weight: 600; padding: 2px 2px 0; }
 }
 
 /* wall panel (?panel, the Surface in portrait): the Grid only, sized to read from across the room.
@@ -191,7 +191,10 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 :root.panel #pg-week .cell:not(.filled) { background: transparent; box-shadow: inset 0 0 0 2px var(--chip); }   /* empty bubbles stay quiet */
 :root.panel #pg-week .cell:not(.filled) svg { opacity: .45; }
 :root.panel #pg-week .day.weekend .wk-hint { display: none; }
-#pg-week .holline { display: none; }   /* holiday names: the wall panel only (phones have no room) */
+/* a holiday (Nager.Date, see HB.holiday): an orange line where the day's note goes */
+#pg-week .holline { margin: 4px 0 2px; padding: 7px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent); font-size: 15px; font-weight: 800; line-height: 1.3; }
+#pg-week .ag-hol { margin: 2px 0 6px; color: var(--accent); font-size: 14px; font-weight: 800; }
 :root.panel #pg-week .holline { display: block; margin: 6px 0 2px; padding: 9px 18px; border-radius: 14px;   /* lined up with the day's notes */
   background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-size: 20px; font-weight: 800; line-height: 1.3; }
 :root.panel #pg-week .day:not(.has-note) .notes-panel { display: none !important; }
@@ -432,6 +435,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
                 return w ? '<i style="background:' + HB.colorVar(w.color) + '" title="' + HB.esc(c.name + ": " + w.name) + '">' + HB.whoHtml(w) + '</i>' : '<i class="off" title="' + HB.esc(c.name) + '"></i>';
               }).join("")) +
             '</span></div>' +
+          (HB.holiday && HB.holiday(key) ? '<div class="ag-hol">' + HB.esc(HB.holiday(key)) + '</div>' : '') +
           plans.map(function (p) {
             var cal = HB.calOf(p.cal || "");
             return '<button type="button" class="ag-plan" data-id="' + HB.esc(p.id) + '" style="--pc:' + HB.colorVar(HB.calColor(cal)) + '"><span class="nm">' + HB.esc(p.name) + '</span></button>';
@@ -542,12 +546,13 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 
     // Family settings changed (here or on another phone): redraw with the new people / columns
     HB.onFamily(function () { render(); renderAgenda(); });
-    if (HB.onHolidays) HB.onHolidays(function () { render(); });   // holiday names under the date (panel)
+    if (HB.onHolidays) HB.onHolidays(function () { render(); renderAgenda(); });   // holiday names (see .holline)
 
     // turning the tablet: landscape shows the Grid and Day by day together, portrait goes back to the switch
     function fitLayout() { if (HB.wide) { if (mode !== "grid") setMode("grid"); loadMeals(); renderAgenda(); } }
     HB.onLayout(fitLayout);
 
     render(); paintArrows(); setMode(mode); loadWeek(); fitLayout();
+    if (HB.loadHolidays) HB.loadHolidays();   // saved on the phone; fetched again monthly
   }
 });
