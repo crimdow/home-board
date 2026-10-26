@@ -8,14 +8,16 @@ HB.register("weather", {
 #pg-weather .wx-place { color: var(--muted); font-size: 13px; font-weight: 700; text-align: right; line-height: 1.3; padding-top: 6px; }
 #pg-weather .wx-body { display: flex; flex-direction: column; gap: 12px; padding: 12px 0 8px; }
 #pg-weather .wx-card { background: var(--sheet); border-radius: 18px; padding: 14px 16px; transition: background-color .35s; }
-#pg-weather .wx-now { display: flex; align-items: center; gap: 16px; }
-#pg-weather .wx-now .wxi { width: 84px; height: 84px; flex: none; }
-#pg-weather .wx-now .t { font-size: 64px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+#pg-weather .wx-now { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+#pg-weather .wx-now > .wxi { width: 62px; height: 62px; }
+#pg-weather .wx-now .sun { display: flex; flex-direction: column; gap: 8px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); }
+#pg-weather .wx-now .sun b { display: block; color: var(--ink); font-size: 16px; font-weight: 800; white-space: nowrap; }
+#pg-weather .wx-now .t { font-size: 56px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
 #pg-weather .wx-now .c { font-size: 20px; font-weight: 800; margin-top: 4px; }
 #pg-weather .wx-now .f { font-size: 14px; font-weight: 700; color: var(--muted); margin-top: 2px; }
-#pg-weather .wx-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+#pg-weather .wx-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 #pg-weather .wx-stat { background: var(--sheet); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; transition: background-color .35s; }
-#pg-weather .wx-stat b { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+#pg-weather .wx-stat b { white-space: nowrap; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
 #pg-weather .wx-stat span { font-size: 18px; font-weight: 800; white-space: nowrap; }
 #pg-weather h2 { margin: 0 0 10px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
 #pg-weather .wx-hours { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 0 4px; }
@@ -45,21 +47,25 @@ HB.register("weather", {
 :root.panel #pg-weather .wx-body { flex: 1; min-height: 0; }
 :root.panel #pg-weather .wx-body > section:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: clip; }
 :root.panel #pg-weather .wx-body > section:last-child .wx-day { flex: 1 1 0; min-height: 44px; }
-:root.panel #pg-weather .wx-place { font-size: 18px; padding-top: 10px; }
+:root.panel #pg-weather .title { display: none; }   /* the clock bar already says where you are */
+:root.panel #pg-weather header { justify-content: flex-end; }
+:root.panel #pg-weather .wx-place { font-size: 17px; padding-top: 6px; }
 :root.panel #pg-weather .wx-body { gap: 14px; padding-top: 10px; }
 :root.panel #pg-weather .wx-card { border-radius: 26px; padding: 18px 28px; }
 :root.panel #pg-weather .wx-now { gap: 28px; }
-:root.panel #pg-weather .wx-now .wxi { width: 108px; height: 108px; }
+:root.panel #pg-weather .wx-now > .wxi { width: 120px; height: 120px; }
+:root.panel #pg-weather .wx-now .sun { font-size: 18px; gap: 14px; }
+:root.panel #pg-weather .wx-now .sun b { font-size: 27px; }
 :root.panel #pg-weather .wx-now .t { font-size: 92px; letter-spacing: -3px; }
 :root.panel #pg-weather .wx-now .c { font-size: 32px; }
 :root.panel #pg-weather .wx-now .f { font-size: 22px; margin-top: 4px; }
-:root.panel #pg-weather .wx-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
-:root.panel #pg-weather .wx-stat { border-radius: 20px; padding: 14px 14px; gap: 4px; }
-:root.panel #pg-weather .wx-stat b { font-size: 14px; }
-:root.panel #pg-weather .wx-stat span { font-size: 23px; }
+:root.panel #pg-weather .wx-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+:root.panel #pg-weather .wx-stat { border-radius: 22px; padding: 16px 22px; gap: 4px; }
+:root.panel #pg-weather .wx-stat b { font-size: 15px; }
+:root.panel #pg-weather .wx-stat span { font-size: 28px; }
 :root.panel #pg-weather h2 { font-size: 18px; margin-bottom: 12px; }
 :root.panel #pg-weather .wx-hours { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; overflow: visible; }
-:root.panel #pg-weather .wx-hr { gap: 4px; padding: 10px 0; border-radius: 18px; background: var(--bg); }
+:root.panel #pg-weather .wx-hr { gap: 4px; padding: 10px 0; border-radius: 18px; }   /* only "Now" gets a tile: calmer */
 :root.panel #pg-weather .wx-hr.now { background: var(--accent); }
 :root.panel #pg-weather .wx-hr .h { font-size: 19px; }
 :root.panel #pg-weather .wx-hr .wxi { width: 40px; height: 40px; }
@@ -111,12 +117,12 @@ HB.register("weather", {
           '<div><div class="t">' + deg(c.temperature_2m) + '°</div>' +
           '<div class="c">' + HB.wxText(c.weather_code) + '</div>' +
           '<div class="f">Feels like ' + deg(c.apparent_temperature) + '° · H ' + deg(d.temperature_2m_max[0]) + '° L ' + deg(d.temperature_2m_min[0]) + '°</div></div>' +
+          '<div class="sun"><div>Sunrise<b>' + HB.wxClock(d.sunrise[0]) + '</b></div><div>Sunset<b>' + HB.wxClock(d.sunset[0]) + '</b></div></div>' +
         '</section>' +
         '<section class="wx-stats">' +
-          stat("Sunrise", HB.wxClock(d.sunrise[0])) + stat("Sunset", HB.wxClock(d.sunset[0])) +
           stat("Rain", (rainNow == null ? "--" : rainNow) + "%") + stat("Wind", deg(c.wind_speed_10m) + " mph") +
           stat("Humidity", deg(c.relative_humidity_2m) + "%") +
-          stat("UV index", d.uv_index_max && d.uv_index_max[0] != null ? Math.round(d.uv_index_max[0]) + " " + uvWord(d.uv_index_max[0]) : "--") +
+          stat("UV", d.uv_index_max && d.uv_index_max[0] != null ? Math.round(d.uv_index_max[0]) + " " + uvWord(d.uv_index_max[0]) : "--") +
         '</section>' +
         '<section class="wx-card"><h2>Hour by hour</h2><div class="wx-hours">' +
           hours.map(function (k, n) {
