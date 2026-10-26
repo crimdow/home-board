@@ -774,7 +774,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-26a";
+  var VERSION = "2026-10-26b";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -2189,7 +2189,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     (function () {
       var el = document.getElementById("pages"), x0 = null, y0 = 0;
       el.addEventListener("touchstart", function (e) {
-        x0 = e.touches.length === 1 && !e.target.closest("textarea, input") ? e.touches[0].clientX : null;
+        // a swipe on something that scrolls sideways itself (Weather's hours: data-hscroll) scrolls it instead
+        x0 = e.touches.length === 1 && !e.target.closest("textarea, input, [data-hscroll]") ? e.touches[0].clientX : null;
         y0 = x0 === null ? 0 : e.touches[0].clientY;
       }, { passive: true });
       el.addEventListener("touchend", function (e) {

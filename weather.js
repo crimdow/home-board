@@ -65,7 +65,10 @@ HB.register("weather", {
 :root.panel #pg-weather .wx-stat b { font-size: 15px; }
 :root.panel #pg-weather .wx-stat span { font-size: 28px; }
 :root.panel #pg-weather h2 { font-size: 18px; margin-bottom: 12px; }
-:root.panel #pg-weather .wx-hours { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; overflow: visible; }
+:root.panel #pg-weather .wx-hours { gap: 10px; margin: 0 -28px; padding: 0 28px; scroll-padding: 0 28px; touch-action: pan-x;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 64px), transparent);
+          mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 64px), transparent); }   /* slide sideways for later hours */
+:root.panel #pg-weather .wx-hr { flex: 0 0 calc((100% - 70px) / 8); }   /* 8 hours in view */
 :root.panel #pg-weather .wx-hr { gap: 4px; padding: 10px 0; border-radius: 18px; }   /* only "Now" gets a tile: calmer */
 :root.panel #pg-weather .wx-hr.now { background: var(--accent); }
 :root.panel #pg-weather .wx-hr .h { font-size: 19px; }
@@ -109,7 +112,7 @@ HB.register("weather", {
       // the hour we're in, then the next ones
       var nowKey = (c.time || "").slice(0, 13), start = 0;
       for (var i = 0; i < h.time.length; i++) if (h.time[i].slice(0, 13) === nowKey) { start = i; break; }
-      var count = HB.panel ? 8 : 12, hours = [];
+      var count = 24, hours = [];   // a day ahead; slide the strip sideways for the later hours
       for (var j = start; j < Math.min(h.time.length, start + count); j++) hours.push(j);
       var rainNow = h.precipitation_probability ? h.precipitation_probability[start] : null;
 
@@ -125,7 +128,7 @@ HB.register("weather", {
           stat("Humidity", deg(c.relative_humidity_2m) + "%") +
           stat("UV index", d.uv_index_max && d.uv_index_max[0] != null ? Math.round(d.uv_index_max[0]) + ' <small>' + uvWord(d.uv_index_max[0]) + '</small>' : "--") +
         '</section>' +
-        '<section class="wx-card"><h2>Hour by hour</h2><div class="wx-hours">' +
+        '<section class="wx-card"><h2>Hour by hour</h2><div class="wx-hours" data-hscroll>' +
           hours.map(function (k, n) {
             var p = h.precipitation_probability ? h.precipitation_probability[k] : null;
             return '<div class="wx-hr' + (n === 0 ? ' now' : '') + '"><span class="h">' + (n === 0 ? "Now" : hourLabel(h.time[k])) + '</span>' +
