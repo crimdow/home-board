@@ -41,7 +41,11 @@ HB.register("weather", {
 #pg-weather .wx-msg button { margin-top: 10px; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-weight: 700; padding: 10px 16px; cursor: pointer; }
 
 /* wall panel: the same page, sized to fit the portrait Surface without scrolling */
-:root.panel #pg-weather .wx-place { font-size: 20px; padding-top: 12px; }
+:root.panel #pg-weather:not([hidden]) { height: calc(100dvh - var(--phead) - var(--pbar) - 24px); overflow: clip; }   /* clip, not hidden: hidden would trap the sticky title */
+:root.panel #pg-weather .wx-body { flex: 1; min-height: 0; }
+:root.panel #pg-weather .wx-body > section:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: clip; }
+:root.panel #pg-weather .wx-body > section:last-child .wx-day { flex: 1 1 0; min-height: 44px; }
+:root.panel #pg-weather .wx-place { font-size: 18px; padding-top: 10px; }
 :root.panel #pg-weather .wx-body { gap: 14px; padding-top: 10px; }
 :root.panel #pg-weather .wx-card { border-radius: 26px; padding: 18px 28px; }
 :root.panel #pg-weather .wx-now { gap: 28px; }
@@ -55,13 +59,13 @@ HB.register("weather", {
 :root.panel #pg-weather .wx-stat span { font-size: 23px; }
 :root.panel #pg-weather h2 { font-size: 18px; margin-bottom: 12px; }
 :root.panel #pg-weather .wx-hours { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; overflow: visible; }
-:root.panel #pg-weather .wx-hr { gap: 6px; padding: 12px 0; border-radius: 18px; background: var(--bg); }
+:root.panel #pg-weather .wx-hr { gap: 4px; padding: 10px 0; border-radius: 18px; background: var(--bg); }
 :root.panel #pg-weather .wx-hr.now { background: var(--accent); }
 :root.panel #pg-weather .wx-hr .h { font-size: 19px; }
 :root.panel #pg-weather .wx-hr .wxi { width: 40px; height: 40px; }
 :root.panel #pg-weather .wx-hr .v { font-size: 27px; }
 :root.panel #pg-weather .wx-hr .p { font-size: 16px; }
-:root.panel #pg-weather .wx-day { grid-template-columns: 110px 52px minmax(0, 1fr) 86px 76px; gap: 16px; min-height: 58px; }
+:root.panel #pg-weather .wx-day { grid-template-columns: 110px 52px minmax(0, 1fr) 86px 76px; gap: 16px; }
 :root.panel #pg-weather .wx-day .d { font-size: 27px; }
 :root.panel #pg-weather .wx-day .wxi { width: 42px; height: 42px; }
 :root.panel #pg-weather .wx-day .c { font-size: 21px; }

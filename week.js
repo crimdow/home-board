@@ -173,7 +173,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 :root.panel #pg-week .range { font-size: 24px; font-weight: 800; min-width: 170px; }
 :root.panel #pg-week .vo { height: 56px; padding: 0 16px; border-radius: 28px; font-size: 18px; }
 :root.panel #pg-week .cols { font-size: 24px; padding: 10px 0 12px; }
-:root.panel #pg-week .day { min-height: 124px; padding: 10px 0; }
+:root.panel #pg-week .day { min-height: 118px; padding: 8px 0; }
 :root.panel #pg-week .dname .dow { font-size: 20px; }
 :root.panel #pg-week .dname .num { font-size: 36px; min-width: 54px; height: 54px; border-radius: 27px; margin-left: -9px; margin-top: 4px; }
 :root.panel #pg-week .home { width: 52px; height: 52px; right: 6px; bottom: 6px; }

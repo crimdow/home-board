@@ -644,6 +644,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 }
 :root.panel .pbar a.on { background: var(--accent); color: var(--on-accent); }
 :root.panel .pbar svg { width: 44px; height: 44px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+/* pages that fit the screen exactly (Weather) don't scroll at all */
+:root.panel.panel-fit, :root.panel.panel-fit body { overflow: hidden; height: 100%; overscroll-behavior: none; }
 :root.panel .toast { bottom: calc(var(--pbar) + 20px); font-size: 18px; }
 :root.panel #more { max-width: 560px; zoom: 1.25; }   /* the same menu, bigger fingers-on-the-wall targets */
 :root.panel .undo { bottom: calc(var(--pbar) + 16px); }
@@ -733,7 +735,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-25b";
+  var VERSION = "2026-10-25c";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1966,6 +1968,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     }).join("");
   }
   if (PANEL) (function () {
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";   // a reload starts at the top
     var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     var clock = document.getElementById("pClock"), dateEl = document.getElementById("pDate"), wxBtn = document.getElementById("pWx");
@@ -1996,6 +1999,21 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (a.dataset.id === current) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
       go(a.dataset.id);
     });
+    // swipe left or right anywhere on the page to flip to the next panel page
+    (function () {
+      var el = document.getElementById("pages"), x0 = null, y0 = 0;
+      el.addEventListener("touchstart", function (e) {
+        x0 = e.touches.length === 1 && !e.target.closest("textarea, input") ? e.touches[0].clientX : null;
+        y0 = x0 === null ? 0 : e.touches[0].clientY;
+      }, { passive: true });
+      el.addEventListener("touchend", function (e) {
+        if (x0 === null) return;
+        var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+        if (Math.abs(dx) < 140 || Math.abs(dx) < Math.abs(dy) * 2) return;
+        var i = PANEL_PAGES.indexOf(current), n = PANEL_PAGES.length;
+        go(PANEL_PAGES[((i < 0 ? 0 : i) + (dx < 0 ? 1 : -1) + n) % n]);
+      }, { passive: true });
+    })();
     paintWx(); tick(); HB.loadWeather();
     setInterval(tick, 15000);
   })();
@@ -2123,6 +2141,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       scrolls[current] = window.scrollY; boxes[current].hidden = true;
     }
     current = p.id; paintTabs(); paintPanel(); paintFab();
+    document.documentElement.classList.toggle("panel-fit", PANEL && p.id === "weather");
+    if (PANEL && p.id === "weather") { window.scrollTo(0, 0); scrolls[p.id] = 0; }
     document.title = p.name;
     var box = boxes[p.id];
     if (!box) {
