@@ -48,12 +48,6 @@ HB.register("today", {
 #pg-today .td-plan .nm { flex: 1; min-width: 0; font-size: 25px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pg-today .td-plan .at { flex: none; max-width: 34%; font-size: 18px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* joke or fun fact of the day (tap to see the answer) */
-#pg-today .td-fun { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-#pg-today .td-fun .q { font-size: 25px; font-weight: 800; line-height: 1.3; }
-#pg-today .td-fun .a { margin-top: 8px; font-size: 23px; font-weight: 700; color: var(--accent); line-height: 1.3; }
-#pg-today .td-fun .tap { margin-top: 8px; font-size: 17px; font-weight: 700; color: var(--muted); }
-
 /* tomorrow */
 #pg-today .td-tmw { display: flex; align-items: center; gap: 22px; }
 #pg-today .td-tmw .mini { display: flex; gap: 14px; flex: none; }
@@ -67,71 +61,6 @@ HB.register("today", {
     var db = HB.db;
     var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     var days = {}, plans = [], meals = [];
-    // Joke or fun fact of the day: hand-picked and kid-friendly (no outside service, so nothing unexpected).
-    // A joke one day, a true fact the next; the same one all day on every screen.
-    var JOKES = [
-      ["Why did the cookie go to the doctor?", "Because it felt crummy."],
-      ["What do you call a bear with no teeth?", "A gummy bear."],
-      ["Why can’t a bicycle stand up by itself?", "It’s two-tired."],
-      ["What do you call cheese that isn’t yours?", "Nacho cheese."],
-      ["Why did the scarecrow win an award?", "He was outstanding in his field."],
-      ["What did the ocean say to the beach?", "Nothing. It just waved."],
-      ["Why do bees have sticky hair?", "Because they use honeycombs."],
-      ["What do you call a sleeping dinosaur?", "A dino-snore."],
-      ["What kind of tree fits in your hand?", "A palm tree."],
-      ["Why did the math book look sad?", "It had too many problems."],
-      ["What do you call a fish with no eyes?", "A fsh."],
-      ["What has ears but can’t hear?", "A cornfield."],
-      ["Why are fish so smart?", "They live in schools."],
-      ["What did one plate say to the other plate?", "Dinner’s on me!"],
-      ["Why did the banana go to the doctor?", "It wasn’t peeling well."],
-      ["What do you call a pig that does karate?", "A pork chop."],
-      ["Why don’t eggs tell jokes?", "They’d crack each other up."],
-      ["What’s a cat’s favorite color?", "Purr-ple."],
-      ["What do you call a dog magician?", "A labracadabrador."],
-      ["What do elves learn in school?", "The elf-abet."],
-      ["Why did the student eat her homework?", "The teacher said it was a piece of cake."],
-      ["Why do cows wear bells?", "Because their horns don’t work."],
-      ["What do you call a train carrying bubblegum?", "A chew-chew train."],
-      ["What’s orange and sounds like a parrot?", "A carrot."],
-      ["Why did the teddy bear say no to dessert?", "It was already stuffed."],
-      ["What kind of shoes do frogs wear?", "Open-toad shoes."],
-      ["Where do pencils go on vacation?", "Pencil-vania."],
-      ["How does the moon cut its hair?", "Eclipse it."],
-      ["What do you call a snowman in summer?", "A puddle."],
-      ["Why did the golfer bring two pairs of pants?", "In case he got a hole in one."]
-    ];
-    var FACTS = [
-      "An octopus has three hearts.",
-      "A group of flamingos is called a flamboyance.",
-      "Bananas count as berries, but strawberries don’t.",
-      "A day on Venus is longer than its whole year.",
-      "Sea otters hold hands while they sleep so they don’t drift apart.",
-      "Butterflies taste with their feet.",
-      "An ostrich’s eye is bigger than its brain.",
-      "The Eiffel Tower grows about 6 inches taller in summer, because metal stretches when it’s hot.",
-      "Koalas have fingerprints that look almost exactly like ours.",
-      "Wombat poop is shaped like little cubes.",
-      "A shrimp’s heart is in its head.",
-      "Hummingbirds can fly backwards.",
-      "Jupiter is so big that all the other planets could fit inside it.",
-      "A bolt of lightning is about five times hotter than the surface of the Sun.",
-      "Giraffes have the same number of neck bones as people: seven.",
-      "Sea stars don’t have blood. They pump sea water through their bodies instead.",
-      "Owls can’t move their eyes, so they turn their heads almost all the way around.",
-      "Dolphins sleep with one half of their brain at a time.",
-      "The Moon moves about an inch and a half farther from Earth every year.",
-      "A newborn kangaroo is about the size of a jelly bean.",
-      "Frogs drink water through their skin.",
-      "Polar bears have black skin under their white fur.",
-      "Saturn is so light for its size that it would float in a giant bathtub.",
-      "Some turtles can breathe through their bottoms.",
-      "Cats have 32 muscles in each ear.",
-      "Emperor penguins can dive deeper than 500 meters (over 1,600 feet).",
-      "Crocodiles can’t stick out their tongues.",
-      "Honeybees do a little dance to tell each other where the flowers are."
-    ];
-    var funOpen = "";   // the day whose answer is showing
     root.innerHTML = '<div class="td"></div>';
     var box = root.querySelector(".td");
 
@@ -213,18 +142,6 @@ HB.register("today", {
       });
       return '<section class="td-card td-plans"><h2>Plans</h2>' + (rows.length ? rows.join("") : '<div class="td-none">Nothing planned today.</div>') + '</section>';
     }
-    function funCard(k) {
-      var n = Math.floor(new Date(k.t.getFullYear(), k.t.getMonth(), k.t.getDate()).getTime() / 86400000 + 0.5);
-      var joke = n % 2 === 0, list = joke ? JOKES : FACTS, item = list[Math.floor(n / 2) % list.length];
-      if (!joke) return '<section class="td-card td-fun"><h2>Fun fact</h2><div class="q">' + item + '</div></section>';
-      var open = funOpen === k.today;
-      return '<section class="td-card td-fun" role="button" tabindex="0" aria-label="Joke of the day. Tap for the answer."><h2>Joke of the day</h2><div class="q">' + item[0] + '</div>' +
-        (open ? '<div class="a">' + item[1] + '</div>' : '<div class="tap">Tap for the answer</div>') + '</section>';
-    }
-    box.addEventListener("click", function (e) {
-      if (!e.target.closest(".td-fun")) return;
-      var k = keys(); funOpen = funOpen === k.today ? "" : k.today; render();
-    });
     function tomorrowCard(k) {
       var row = days[k.tomorrow] || {}, cols = colsFor(k.m), note = (row.notes || "").trim();
       var who = cols.map(function (c) { return { c: c, w: HB.whoInfo(row[c.key] || "") }; }).filter(function (x) { return x.w; });
@@ -236,7 +153,7 @@ HB.register("today", {
     }
     function render() {
       var k = keys();
-      box.innerHTML = weatherCard() + whoCard(k) + plansCard() + funCard(k) + tomorrowCard(k);
+      box.innerHTML = weatherCard() + whoCard(k) + plansCard() + tomorrowCard(k);
     }
 
     HB.onWeather(render);

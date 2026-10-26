@@ -192,8 +192,8 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 :root.panel #pg-week .cell:not(.filled) svg { opacity: .45; }
 :root.panel #pg-week .day.weekend .wk-hint { display: none; }
 #pg-week .holline { display: none; }   /* holiday names: the wall panel only (phones have no room) */
-:root.panel #pg-week .holline { display: block; align-self: flex-start; margin: 6px 0 0 150px; padding: 5px 16px; border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-size: 18px; font-weight: 800; }
+:root.panel #pg-week .holline { display: block; margin: 6px 0 2px; padding: 9px 18px; border-radius: 14px;   /* lined up with the day's notes */
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-size: 20px; font-weight: 800; line-height: 1.3; }
 :root.panel #pg-week .day:not(.has-note) .notes-panel { display: none !important; }
 :root.panel #pg-week textarea { font-size: 20px; border-radius: 14px; padding: 9px 18px; margin: 6px 0 2px; height: 44px !important; min-height: 0;
   white-space: pre; overflow: hidden; pointer-events: none; }
