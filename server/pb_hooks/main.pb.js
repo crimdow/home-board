@@ -83,7 +83,7 @@ onRecordCreateRequest((e) => {
     e.record.set("household", e.auth ? e.auth.getString("household") : "");
   }
   return e.next();
-}, "days", "grocery_stores", "grocery_items", "meals", "todos", "plans", "recipes", "house_items", "notes", "app_settings");
+}, "days", "grocery_stores", "grocery_items", "meals", "todos", "plans", "recipes", "house_items", "notes", "app_settings", "panel_photos");
 
 // ---- invites (household editors) ----
 routerAdd("GET", "/api/hb/invites", (e) => {

@@ -649,6 +649,33 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 :root.panel .toast { bottom: calc(var(--pbar) + 20px); font-size: 18px; }
 :root.panel #more { max-width: 560px; zoom: 1.25; }   /* the same menu, bigger fingers-on-the-wall targets */
 :root.panel .undo { bottom: calc(var(--pbar) + 16px); }
+/* ---- screensaver ---- */
+.saver { position: fixed; inset: 0; z-index: 90; background: #111; color: #fff; opacity: 0; visibility: hidden; transition: opacity .5s, visibility 0s linear .5s; cursor: pointer; overflow: hidden; }
+.saver.show { opacity: 1; visibility: visible; transition: opacity .5s, visibility 0s; }
+.saver .ss-photo { position: absolute; inset: 0; overflow: hidden; opacity: 0; transition: opacity 1.4s ease; }
+.saver .ss-photo.on { opacity: 1; }
+.saver .ss-photo img { position: absolute; }
+.saver .ss-glass {
+  position: absolute; background: rgba(20, 20, 24, .42); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, .18); box-shadow: 0 18px 50px rgba(0, 0, 0, .25); border-radius: 36px;
+}
+.saver .ss-clock { top: 6vh; left: 5vw; padding: 2.2vh 4vw; display: flex; flex-direction: column; }
+.saver .ss-clock b { font-size: min(14vw, 10vh); font-weight: 800; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.saver .ss-clock span { font-size: min(3.4vw, 2.3vh); font-weight: 700; margin-top: .6vh; }
+.saver .ss-wx { top: 6vh; right: 5vw; padding: 1.4vh 3vw 1.4vh 2.2vw; border-radius: 999px; display: flex; align-items: center; gap: 1vw; }
+.saver .ss-wx[hidden], .saver .ss-day[hidden], .saver .ss-info[hidden] { display: none; }
+.saver .ss-wx svg { width: min(6vw, 4vh); height: min(6vw, 4vh); }
+.saver .ss-wx b { font-size: min(5.5vw, 3.6vh); font-weight: 800; }
+.saver .wxi .cloud { fill: none; stroke: rgba(255,255,255,.85); }
+.saver .wxi .moon { stroke: rgba(255,255,255,.85); }
+.saver .ss-day { left: 5vw; right: 5vw; bottom: 6vh; padding: 2.4vh 4vw; display: flex; flex-direction: column; gap: 1.6vh; }
+.saver .ss-day h3 { margin: 0; font-size: min(2.6vw, 1.8vh); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.saver .ss-who { display: flex; flex-wrap: wrap; gap: 1.4vh 4vw; }
+.saver .ss-who span { display: inline-flex; align-items: center; gap: 1.4vw; font-size: min(2.9vw, 2vh); font-weight: 700; }
+.saver .ss-who i { font-style: normal; width: min(8vw, 5.4vh); height: min(8vw, 5.4vh); border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: min(3.8vw, 2.6vh); font-weight: 800; }
+.saver .ss-who i svg { width: 60%; height: 60%; fill: currentColor; stroke: none; }
+.saver .ss-day p { margin: 0; background: rgba(255, 255, 255, .12); border-radius: 18px; padding: 1.2vh 2.6vw; font-size: min(2.9vw, 2vh); font-weight: 600; }
+
 /* weather icons (header, Weather page) */
 .wxi { overflow: visible; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .wxi .sun { stroke: #e0a53a; }
@@ -705,6 +732,16 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 </div>
 <nav class="pbar" id="pbar" aria-label="Panel pages"></nav>
 
+<!-- screensaver: family photos with the clock, weather and the day floating on frosted glass. A tap wakes it. -->
+<div class="saver" id="saver" role="button" aria-label="Screensaver. Tap to wake.">
+  <div class="ss-photo"><img alt=""></div><div class="ss-photo"><img alt=""></div>
+  <div class="ss-info">
+    <div class="ss-glass ss-clock"><b></b><span></span></div>
+    <div class="ss-glass ss-wx"></div>
+    <div class="ss-glass ss-day" hidden></div>
+  </div>
+</div>
+
 <div class="more-bg" id="moreBg"></div>
 <div class="more-sheet" id="more" role="dialog" aria-modal="true" aria-label="More">
   <div class="grab"></div>
@@ -735,7 +772,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-25c";
+  var VERSION = "2026-10-25d";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -752,6 +789,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     house: '<path d="M3.5 11.5L12 4.5l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5.5h4V20"/>',
     notes: '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8h5M9 12.5h7M9 16h5"/>',
     weather: '<path d="M7 18.5h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18.5z"/>',
+    screensaver: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>',
+    ha: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
     more: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'
   };
   var PAGES = [
@@ -760,11 +799,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     { id: "meals",     name: "Meals",       src: "meals.js" },
     { id: "todos",     name: "Tasks",       src: "todos.js" },
     { id: "plans",     name: "Plans",       src: "plans.js" },
-    { id: "weather",   name: "Weather",     src: "weather.js" }
+    { id: "weather",   name: "Weather",     src: "weather.js" },
+    { id: "screensaver", name: "Screensaver", src: "screensaver.js" },
+    { id: "ha",        name: "Home Assistant", src: "ha.js", panelOnly: true }   // only on the wall panel
   ];
   // the wall panel's own buttons along the bottom (?panel)
   var PANEL = document.documentElement.classList.contains("panel");
-  var PANEL_PAGES = ["week", "weather"];
+  // Home Assistant joins once its address is set (☰ → Screensaver)
+  function panelPages() { return ["week", "weather"].concat(family && family.panel && family.panel.ha ? ["ha"] : []); }
   var MAX_PINS = 5;
   function page(id) { for (var i = 0; i < PAGES.length; i++) if (PAGES[i].id === id) return PAGES[i]; return null; }
   function svg(id) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[id] + '</svg>'; }
@@ -1442,6 +1484,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     if (!Array.isArray(s.taskTypes) || !s.taskTypes.length) s.taskTypes = clone(TASK_TYPES_DEFAULT);
     s.taskTypes = s.taskTypes.filter(function (t) { return t && t.id; }).slice(0, MAX_TYPES);
     s.taskTypes.forEach(function (t) { if (["daily", "weekly", "none"].indexOf(t.repeat) < 0) t.repeat = "none"; });
+    // the wall panel: screensaver timing and the Home Assistant address (☰ → Screensaver)
+    s.panel = Object.assign({ after: 5, every: 30, info: true, ha: "" }, s.panel && typeof s.panel === "object" ? s.panel : {});
     return s;
   }
   var family = null, familyId = "", familyListeners = [], famSaveT = null, famOpen = false;
@@ -1487,6 +1531,105 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     return col;
   };
   HB.setCalendars = function (list) { family.calendars = list; saveFamily(); };
+  HB.setPanel = function (o) { Object.assign(family.panel, o); saveFamily(); };
+  HB.onFamily(function () { paintPanel(); });
+
+  // ================= screensaver photos: framing =================
+  // A photo is drawn to fill a frame (the panel's screen) like "cover", then zoomed in by rec.zoom and moved so
+  // the point (focus_x, focus_y) sits in the middle, without ever leaving a gap at the edges.
+  // Returns percentages of the frame, so the same framing fits a thumbnail, the editor and the wall.
+  HB.frameOf = function (rec, W, H) {
+    var iw = rec.w || 1, ih = rec.h || 1, z = Math.max(1, Math.min(4, rec.zoom || 1));
+    var sc = Math.max(W / iw, H / ih) * z, dw = iw * sc, dh = ih * sc;
+    var fx = rec.focus_x >= 0 && rec.focus_x <= 1 ? rec.focus_x : 0.5, fy = rec.focus_y >= 0 && rec.focus_y <= 1 ? rec.focus_y : 0.5;
+    var left = Math.min(0, Math.max(W - dw, W / 2 - fx * dw)), top = Math.min(0, Math.max(H - dh, H / 2 - fy * dh));
+    return { left: left / W * 100, top: top / H * 100, width: dw / W * 100, height: dh / H * 100, dw: dw, dh: dh };
+  };
+  HB.placePhoto = function (img, rec, W, H) {
+    var f = HB.frameOf(rec, W, H);
+    img.style.cssText = "position:absolute;max-width:none;left:" + f.left + "%;top:" + f.top + "%;width:" + f.width + "%;height:" + f.height + "%";
+  };
+  HB.photoUrl = function (rec) { return db.pb.files.getURL(rec, rec.image); };
+  HB.panelAspect = 2 / 3;   // the Surface Pro 6 mounted in portrait (1824 × 2736)
+
+  // ================= the screensaver (the panel starts it by itself; ☰ → Screensaver → Start now anywhere) =================
+  (function () {
+    var el = document.getElementById("saver"), layers = el.querySelectorAll(".ss-photo"), info = el.querySelector(".ss-info");
+    var on = false, idleT = null, flipT = null, clockT = null, photos = [], order = [], at = -1, front = 0;
+    var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function shuffle(n) { var a = []; for (var i = 0; i < n; i++) a.push(i); for (var j = n - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = a[j]; a[j] = a[k]; a[k] = t; } return a; }
+    function loadPhotos() {
+      return db.pb.collection("panel_photos").getFullList({ sort: "-added" }).then(function (list) { photos = list; return list; }, function () { return photos; });
+    }
+    function showNext() {
+      if (!photos.length) { layers.forEach(function (l) { l.classList.remove("on"); }); return; }
+      if (!order.length || at >= order.length - 1) { order = shuffle(photos.length); at = -1; }
+      var rec = photos[order[++at]], back = layers[1 - front], img = back.querySelector("img");
+      var W = window.innerWidth, H = window.innerHeight;
+      img.onload = function () {
+        HB.placePhoto(img, rec, W, H);
+        back.classList.add("on"); layers[front].classList.remove("on"); front = 1 - front;
+      };
+      img.onerror = function () { clearTimeout(flipT); flipT = setTimeout(showNext, 3000); };
+      img.src = HB.photoUrl(rec);
+      clearTimeout(flipT);
+      flipT = setTimeout(showNext, Math.max(10, family.panel.every || 30) * 1000);
+    }
+    function paintInfo() {
+      var d = new Date(), w = HB.weather(), c = w && w.current;
+      el.querySelector(".ss-clock b").textContent = (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0");
+      el.querySelector(".ss-clock span").textContent = DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate();
+      el.querySelector(".ss-wx").innerHTML = c ? HB.wxIcon(c.weather_code, c.is_day) + "<b>" + Math.round(c.temperature_2m) + "°</b>" : "";
+      el.querySelector(".ss-wx").hidden = !c;
+    }
+    // the day card: who's on drop off / pick up / dinner, and the note. Today until 3 pm, then tomorrow.
+    function paintDay() {
+      var card = el.querySelector(".ss-day"), d = new Date(), tomorrow = d.getHours() >= 15;
+      if (tomorrow) d.setDate(d.getDate() + 1);
+      var key = iso(d), cols = family.columns.filter(function (c) { return c.on; });
+      var weekend = d.getDay() === 0 || d.getDay() === 6, noCols = !cols.length || (weekend && !family.weekendColumns);
+      db.from("days").select("*").eq("date", key).then(function (r) {
+        var row = (r.data && r.data[0]) || {}, note = (row.notes || "").trim();
+        var people = noCols ? [] : cols.map(function (c) { return { c: c, w: HB.whoInfo(row[c.key] || "") }; }).filter(function (x) { return x.w; });
+        card.hidden = !people.length && !note;
+        card.innerHTML = '<h3>' + (tomorrow ? "Tomorrow" : "Today") + ' · ' + SHORT[d.getDay()] + ' ' + d.getDate() + '</h3>' +
+          (people.length ? '<div class="ss-who">' + people.map(function (x) {
+            return '<span><i style="background:' + HB.colorVar(x.w.color) + '">' + HB.whoHtml(x.w) + '</i>' + esc(x.c.name) + '</span>';
+          }).join("") + '</div>' : '') +
+          (note ? '<p>' + esc(note) + '</p>' : '');
+      });
+    }
+    function start() {
+      if (on || document.body.classList.contains("locked") || document.body.classList.contains("checking")) return;
+      on = true; clearTimeout(idleT);
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      info.hidden = family.panel.info === false;
+      paintInfo(); paintDay();
+      clockT = setInterval(function () { paintInfo(); if (new Date().getMinutes() % 10 === 0) paintDay(); }, 15000);
+      el.classList.add("show");
+      loadPhotos().then(function () { order = []; showNext(); });
+    }
+    function stop() {
+      if (!on) return;
+      on = false; clearTimeout(flipT); clearInterval(clockT);
+      el.classList.remove("show");
+      setTimeout(function () { if (!on) layers.forEach(function (l) { l.classList.remove("on"); l.querySelector("img").removeAttribute("src"); }); }, 600);
+      idle();
+    }
+    // a tap wakes it; the tap lands on the screensaver, never on the grid underneath
+    el.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); stop(); });
+    function idle() {
+      clearTimeout(idleT);
+      if (!PANEL) return;
+      idleT = setTimeout(start, Math.max(1, family.panel.after || 5) * 60000);
+    }
+    ["pointerdown", "keydown", "touchstart"].forEach(function (k) { document.addEventListener(k, function () { if (!on) idle(); }, { passive: true, capture: true }); });
+    HB.onFamily(function () { if (!on) idle(); });
+    HB.screensaver = { start: start, stop: stop, on: function () { return on; } };
+    idle();
+  })();
   // ---- task types (Tasks) ----
   HB.taskTypes = function () { return family.taskTypes; };
   HB.setTaskTypes = function (list) { family.taskTypes = list; saveFamily(); };
@@ -1915,7 +2058,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   function pins() {
     var p = null;
     try { p = JSON.parse(read("homeboard-tabs")); } catch (e) {}
-    if (Array.isArray(p)) { p = p.filter(function (id, i) { return page(id) && p.indexOf(id) === i; }).slice(0, MAX_PINS); if (p.length) return p; }
+    if (Array.isArray(p)) { p = p.filter(function (id, i) { return page(id) && !page(id).panelOnly && p.indexOf(id) === i; }).slice(0, MAX_PINS); if (p.length) return p; }
     return PAGES.slice(0, MAX_PINS).map(function (x) { return x.id; });
   }
   function setPins(p) { store("homeboard-tabs", JSON.stringify(p)); paintTabs(); placeFab(); renderList(); }
@@ -1962,7 +2105,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   // ================= wall panel (?panel): clock bar and big buttons =================
   function paintPanel() {
     if (!PANEL) return;
-    document.getElementById("pbar").innerHTML = PANEL_PAGES.map(function (id) {
+    document.getElementById("pbar").innerHTML = panelPages().map(function (id) {
       var x = page(id);
       return '<a data-id="' + id + '" href="#' + id + '" class="' + (id === current ? "on" : "") + '" aria-label="' + x.name + '"' + (id === current ? ' aria-current="page"' : '') + '>' + svg(id) + '</a>';
     }).join("");
@@ -2010,8 +2153,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         if (x0 === null) return;
         var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
         if (Math.abs(dx) < 140 || Math.abs(dx) < Math.abs(dy) * 2) return;
-        var i = PANEL_PAGES.indexOf(current), n = PANEL_PAGES.length;
-        go(PANEL_PAGES[((i < 0 ? 0 : i) + (dx < 0 ? 1 : -1) + n) % n]);
+        var pp = panelPages(), i = pp.indexOf(current), n = pp.length;
+        go(pp[((i < 0 ? 0 : i) + (dx < 0 ? 1 : -1) + n) % n]);
       }, { passive: true });
     })();
     paintWx(); tick(); HB.loadWeather();
@@ -2030,7 +2173,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       '<span class="ico">' + svg(id) + '</span><span class="nm">' + x.name + '</span>' + (ctl || "") + '</div>';
   }
   function renderList() {
-    var p = pins(), rest = PAGES.map(function (x) { return x.id; }).filter(function (id) { return p.indexOf(id) < 0; });
+    var p = pins(), rest = PAGES.filter(function (x) { return !x.panelOnly || PANEL; }).map(function (x) { return x.id; }).filter(function (id) { return p.indexOf(id) < 0; });
     var el = document.getElementById("pageList"), html;
     if (!editingTabs) {
       html = '<div class="group">' + p.concat(rest).map(function (id) { return row(id); }).join("") + '</div>';
@@ -2141,8 +2284,9 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       scrolls[current] = window.scrollY; boxes[current].hidden = true;
     }
     current = p.id; paintTabs(); paintPanel(); paintFab();
-    document.documentElement.classList.toggle("panel-fit", PANEL && p.id === "weather");
-    if (PANEL && p.id === "weather") { window.scrollTo(0, 0); scrolls[p.id] = 0; }
+    var fit = PANEL && (p.id === "weather" || p.id === "ha");   // these fill the screen exactly, no scrolling
+    document.documentElement.classList.toggle("panel-fit", fit);
+    if (fit) { window.scrollTo(0, 0); scrolls[p.id] = 0; }
     document.title = p.name;
     var box = boxes[p.id];
     if (!box) {
