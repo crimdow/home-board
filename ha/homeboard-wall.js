@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.0.1";
+  var VERSION = "1.0.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -272,7 +272,7 @@
     }
     _slider(kind, ids, val) {
       return '<div class="sl ' + kind + '" data-sl="' + kind + '" data-ids="' + esc(ids.join(",")) + '" data-v="' + val + '">' +
-        '<div class="fill" style="width:' + (kind === "bri" ? val : 100) + '%"></div><div class="knob" style="left:' + val + '%"></div>' +
+        '<div class="fill" style="width:' + (kind === "ct" ? 100 : val) + '%"></div><div class="knob" style="left:' + val + '%"></div>' +
         (kind === "bri" ? '<span class="val">' + (val ? val + "%" : "Off") + "</span>" : "") + "</div>";
     }
 
@@ -394,7 +394,8 @@
       var d = this._drag, r = d.el.getBoundingClientRect();
       var v = Math.round(clamp((clientX - r.left) / r.width * 100, 0, 100));
       d.v = v;
-      if (d.kind === "bri") { d.el.querySelector(".fill").style.width = v + "%"; var t = d.el.querySelector(".val"); if (t) t.textContent = v ? v + "%" : "Off"; }
+      if (d.kind !== "ct") d.el.querySelector(".fill").style.width = v + "%";
+      if (d.kind === "bri") { var t = d.el.querySelector(".val"); if (t) t.textContent = v ? v + "%" : "Off"; }
       d.el.querySelector(".knob").style.left = v + "%";
       var now = Date.now();
       if (final || now - d.sent > 450) { d.sent = now; this._send(d.kind, d.ids, v); }
