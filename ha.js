@@ -1,4 +1,6 @@
 /* Home Board: Home Assistant, on the wall panel only.
+   An http:// address works on the panel because its Chromium allows it for home.jermins.com
+   (policy InsecureContentAllowedForUrls on the Surface); phones never show this page.
    Shows the family's own Home Assistant (address set in ☰ → Screensaver) filling the screen under the clock bar.
    The page stays loaded while you switch to the Grid and back, so Home Assistant keeps its place. */
 HB.register("ha", {
@@ -20,10 +22,6 @@ HB.register("ha", {
       shown = url;
       if (!url) {
         root.innerHTML = '<div class="ha-msg"><b>Home Assistant</b>Add its address on a phone: ☰ → Screensaver → Home Assistant on the panel.</div>';
-        return;
-      }
-      if (!/^https:\/\//i.test(url) && location.protocol === "https:") {
-        root.innerHTML = '<div class="ha-msg"><b>Needs an https:// address</b>' + HB.esc(url) + ' starts with http://, which the browser won’t show inside Home Board. Use Home Assistant’s https:// address instead.</div>';
         return;
       }
       root.innerHTML = '<iframe class="ha-frame" title="Home Assistant" allow="fullscreen; autoplay; microphone; camera" referrerpolicy="no-referrer"></iframe>';

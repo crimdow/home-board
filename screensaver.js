@@ -87,7 +87,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
         '<input type="file" id="ssFile" accept="image/*" multiple hidden>' +
         '<div id="ssGrid"></div>' +
         '<h2>Home Assistant on the panel</h2>' +
-        '<div class="grp ha"><input type="url" id="ssHa" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://your-home-assistant-address">' +
+        '<div class="grp ha"><input type="url" id="ssHa" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="http://192.168.1.50:8123">' +
           '<p id="ssHaNote">Its address, starting with https://. The panel then gets a Home Assistant button.</p></div>' +
       '</div>';
     var grid = root.querySelector("#ssGrid"), fileIn = root.querySelector("#ssFile"), haIn = root.querySelector("#ssHa");
@@ -114,17 +114,18 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
 
     function paintHaNote() {
       var v = haIn.value.trim(), note = root.querySelector("#ssHaNote");
-      var bad = v && !/^https:\/\/[^\s/]+/i.test(v);
+      var bad = v && !/^https?:\/\/[^\s/]+/i.test(v);
       note.classList.toggle("warn", !!bad);
-      note.textContent = bad ? "This needs to start with https:// to show inside Home Board (an http:// address is blocked by the browser)."
+      note.textContent = bad ? "That doesn't look like an address. It should look like http://192.168.1.50:8123."
+        : /^http:/i.test(v) ? "Saved. Because it's http://, the panel's browser needs one setting to allow it (see the setup notes). Also set http: use_x_frame_options: false in Home Assistant."
         : v ? "The panel shows a Home Assistant button. In Home Assistant, set http: use_x_frame_options: false so it can show here."
-        : "Its address, starting with https://. The panel then gets a Home Assistant button.";
+        : "Its address, like http://192.168.1.50:8123. The panel then gets a Home Assistant button.";
     }
     haIn.readOnly = HB.viewer;
     haIn.addEventListener("input", paintHaNote);
     haIn.addEventListener("change", function () {
       var v = haIn.value.trim().replace(/\/+$/, "");
-      if (v && !/^[a-z]+:\/\//i.test(v)) v = "https://" + v;
+      if (v && !/^[a-z]+:\/\//i.test(v)) v = "http://" + v;   // Home Assistant on the home network is usually plain http
       haIn.value = v; HB.setPanel({ ha: v }); paintHaNote(); toast(v ? "Saved the Home Assistant address." : "Removed Home Assistant from the panel.");
     });
 
