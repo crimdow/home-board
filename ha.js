@@ -19,6 +19,13 @@ HB.register("ha", {
 #pg-ha .ha-msg button { margin-top: 18px; border: 0; border-radius: 999px; background: var(--chip); color: var(--ink); font: inherit; font-size: 18px; font-weight: 800; padding: 12px 22px; cursor: pointer; }
 `,
 
+  // When you come back to this page after half an hour, Home Assistant loads afresh, so changes made in
+  // Home Assistant (a new dashboard add-on, say) reach the wall panel without anyone reloading it.
+  shown: function () {
+    var f = document.querySelector("#pg-ha .ha-frame");
+    if (f && Date.now() - (f._loaded || 0) > 30 * 60000) { f._loaded = Date.now(); f.src = f.src; }
+  },
+
   mount: function (root) {
     var shown = "";
     function render() {
@@ -37,7 +44,7 @@ HB.register("ha", {
         return;
       }
       root.innerHTML = '<iframe class="ha-frame" title="Home Assistant" allow="fullscreen; autoplay; microphone; camera" referrerpolicy="no-referrer"></iframe>';
-      root.querySelector("iframe").src = url;
+      var f = root.querySelector("iframe"); f._loaded = Date.now(); f.src = url;
     }
     HB.onFamily(render);
     render();
