@@ -164,26 +164,36 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
   #pg-week .ag-day:not(:has(.ag-plan, .ag-meal))::after { content: "Nothing planned"; display: block; color: var(--muted); opacity: .7; font-size: 13.5px; font-weight: 600; padding: 2px 2px 0; }
 }
 
-/* wall panel (?panel, the Surface in portrait): the Grid only, sized to read from across the room */
+/* wall panel (?panel, the Surface in portrait): the Grid only, sized to read from across the room.
+   The week fills the screen exactly (no scrolling) and the seven days share the height evenly,
+   so a day with a note doesn't push the others off the bottom. Notes show on one line; editing is for phones. */
+:root.panel #pg-week:not([hidden]) { height: calc(100dvh - var(--phead) - var(--pbar) - 24px); overflow: clip; }
 :root.panel #pg-week .vsw { display: none; }
-:root.panel #pg-week header { padding-bottom: 10px; }
-:root.panel #pg-week .wk-nav { height: 64px; border-radius: 32px; padding: 0 4px; }
-:root.panel #pg-week .wk-nav button { width: 56px; height: 56px; border-radius: 28px; }
-:root.panel #pg-week .wk-nav button svg { width: 24px; height: 24px; }
-:root.panel #pg-week .range { font-size: 24px; font-weight: 800; min-width: 170px; }
-:root.panel #pg-week .vo { height: 56px; padding: 0 16px; border-radius: 28px; font-size: 18px; }
-:root.panel #pg-week .cols { font-size: 24px; padding: 10px 0 12px; }
-:root.panel #pg-week .day { min-height: 118px; padding: 8px 0; }
-:root.panel #pg-week .dname .dow { font-size: 20px; }
-:root.panel #pg-week .dname .num { font-size: 36px; min-width: 54px; height: 54px; border-radius: 27px; margin-left: -9px; margin-top: 4px; }
-:root.panel #pg-week .home { width: 52px; height: 52px; right: 6px; bottom: 6px; }
-:root.panel #pg-week .home svg { width: 46px; height: 46px; }
-:root.panel #pg-week .cell { width: 88px; height: 88px; border-radius: 44px; font-size: 38px; }
-:root.panel #pg-week .cell.long { font-size: 20px; }
-:root.panel #pg-week .cell svg.both-ic { width: 50px; height: 50px; }
-:root.panel #pg-week .cell svg:not(.both-ic) { width: 36px; height: 36px; }
-:root.panel #pg-week textarea { font-size: 24px; border-radius: 16px; padding: 12px 20px; margin: 8px 0 2px; }
-:root.panel #pg-week .day.weekend .wk-hint { font-size: 24px; padding-left: 20px; }
+:root.panel #pg-week .title { display: none; }   /* the clock bar already says where you are */
+:root.panel #pg-week header { justify-content: flex-end; padding: 4px 0 6px; }
+:root.panel #pg-week .wk-nav { height: 60px; border-radius: 30px; padding: 0 4px; }
+:root.panel #pg-week .wk-nav button { width: 52px; height: 52px; border-radius: 26px; }
+:root.panel #pg-week .wk-nav button svg { width: 22px; height: 22px; }
+:root.panel #pg-week .range { font-size: 23px; font-weight: 800; min-width: 160px; }
+:root.panel #pg-week .vo { height: 52px; padding: 0 16px; border-radius: 26px; font-size: 18px; }
+:root.panel #pg-week .cols { font-size: 21px; padding: 6px 0 10px; }
+:root.panel #pg-week .days { flex: 1; min-height: 0; }
+:root.panel #pg-week .day { flex: 1 1 0; min-height: 0; padding: 4px 0; overflow: clip; border-bottom-color: color-mix(in srgb, var(--hair) 70%, transparent); }
+:root.panel #pg-week .day:last-child { border-bottom: 0; }
+:root.panel #pg-week .dname .dow { font-size: 18px; }
+:root.panel #pg-week .dname .num { font-size: 32px; min-width: 48px; height: 48px; border-radius: 24px; margin-left: -4px; margin-top: 2px; }
+:root.panel #pg-week .home { width: 46px; height: 46px; right: 10px; bottom: auto; top: 50%; translate: 0 -50%; }
+:root.panel #pg-week .home svg { width: 40px; height: 40px; }
+:root.panel #pg-week .cell { width: 74px; height: 74px; border-radius: 37px; font-size: 32px; }
+:root.panel #pg-week .cell.long { font-size: 18px; }
+:root.panel #pg-week .cell svg.both-ic { width: 42px; height: 42px; }
+:root.panel #pg-week .cell svg:not(.both-ic) { width: 30px; height: 30px; }
+:root.panel #pg-week .cell:not(.filled) { background: transparent; box-shadow: inset 0 0 0 2px var(--chip); }   /* empty bubbles stay quiet */
+:root.panel #pg-week .cell:not(.filled) svg { opacity: .45; }
+:root.panel #pg-week .day.weekend .wk-hint { display: none; }
+:root.panel #pg-week .day:not(.has-note) .notes-panel { display: none !important; }
+:root.panel #pg-week textarea { font-size: 20px; border-radius: 14px; padding: 9px 18px; margin: 6px 0 2px; height: 44px !important; min-height: 0;
+  white-space: pre; overflow: hidden; pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
   #pg-week .notes-panel, #pg-week .cell { transition: none; }
