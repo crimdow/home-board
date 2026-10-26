@@ -45,7 +45,20 @@ HB.register("ha", {
       }
       root.innerHTML = '<iframe class="ha-frame" title="Home Assistant" allow="fullscreen; autoplay; microphone; camera" referrerpolicy="no-referrer"></iframe>';
       var f = root.querySelector("iframe"); f._loaded = Date.now(); f.src = url;
+      f.onload = sendLook;
     }
+    // The Home Board wall card in Home Assistant (ha/homeboard-wall.js) paints itself in Home Board's colours:
+    // send them over whenever they change (skin, light or dark, night mode).
+    var sentLook = "";
+    function sendLook() {
+      var f = root.querySelector("iframe"); if (!f || !f.contentWindow) return;
+      var cs = getComputedStyle(document.documentElement), v = function (k) { return cs.getPropertyValue(k).trim(); };
+      var look = { bg: v("--bg"), ink: v("--ink"), muted: v("--muted"), chip: v("--chip"), sheet: v("--sheet"), field: v("--field"), accent: v("--accent"), onAccent: v("--on-accent") };
+      var key = JSON.stringify(look); if (key === sentLook && !sendLook.force) return;
+      sentLook = key; sendLook.force = false;
+      try { f.contentWindow.postMessage({ hb: "look", look: look }, new URL(f.src).origin); } catch (e) {}
+    }
+    setInterval(function () { sendLook.force = true; sendLook(); }, 5000);
     HB.onFamily(render);
     render();
   }

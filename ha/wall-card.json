@@ -1,0 +1,47 @@
+{
+  "type": "custom:homeboard-wall",
+  "title": "Home",
+  "rooms": [
+    {"name": "Living Room", "icon": "mdi:sofa", "group": "light.living_room_lights",
+     "lights": [{"entity": "light.living_room_west", "name": "West"}, {"entity": "light.living_room_living_room_east", "name": "East"}]},
+    {"name": "Family Room", "icon": "mdi:television", "group": "light.family_room_lights",
+     "lights": [{"entity": "light.family_room_east", "name": "East"}, {"entity": "light.family_room_west", "name": "West"}]},
+    {"name": "Kitchen", "icon": "mdi:silverware-fork-knife",
+     "lights": [{"entity": "light.kitchen_cottonwood_range_light", "name": "Range light"}]},
+    {"name": "Primary Bedroom", "icon": "mdi:bed-king", "group": "light.primary_bedroom_lights",
+     "lights": [{"entity": "light.primary_bed_left", "name": "Bed left"}, {"entity": "light.primary_bed_right", "name": "Bed right"}, {"entity": "light.primary_chest_lamp", "name": "Chest lamp"}, {"entity": "light.primary_bedroom_light", "name": "Hatch light", "icon": "mdi:weather-night"}]},
+    {"name": "Stella’s Room", "icon": "mdi:teddy-bear", "main": ["light.stellas_lamp"],
+     "lights": [{"entity": "light.stellas_lamp", "name": "Lamp", "icon": "mdi:lamp"}, {"entity": "light.stellas_hatch_light", "name": "Hatch light", "icon": "mdi:weather-night"}, {"entity": "light.stella_s_room_nanit_stella_night_light", "name": "Nanit night light", "icon": "mdi:cctv"}]},
+    {"name": "Evie’s Room", "icon": "mdi:duck", "main": ["light.evies_room"],
+     "lights": [{"entity": "light.evies_room", "name": "Lamp", "icon": "mdi:lamp"}, {"entity": "light.evies_hatch_light", "name": "Hatch light", "icon": "mdi:weather-night"}, {"entity": "light.evalyn_s_room_nanit_evie_night_light", "name": "Nanit night light", "icon": "mdi:cctv"}]},
+    {"name": "Outside", "icon": "mdi:pine-tree", "main": ["light.outside_accent_lights", "light.lamp_post", "light.deck_slider_door", "light.laundry_room_door"],
+     "lights": [{"entity": "light.outside_accent_lights", "name": "Accent lights", "icon": "mdi:led-strip-variant"}, {"entity": "light.front_yard_front_flood_lights", "name": "Flood lights", "icon": "mdi:light-flood-down"}, {"entity": "light.lamp_post", "name": "Lamp post", "icon": "mdi:post-lamp"}, {"entity": "light.deck_slider_door", "name": "Deck slider door", "icon": "mdi:door-sliding"}, {"entity": "light.laundry_room_door", "name": "Laundry room door", "icon": "mdi:door"}],
+     "buttons": [
+       {"name": "Candlelight", "icon": "mdi:candle", "action": "light.turn_on", "data": {"entity_id": "light.outside_accent_lights", "effect": "Candlelight"}},
+       {"name": "Orange", "icon": "mdi:pumpkin", "action": "script.outside_lights_color", "data": {"color": [255, 100, 0]}},
+       {"name": "Purple", "icon": "mdi:ghost-outline", "action": "script.outside_lights_color", "data": {"color": [140, 0, 255]}},
+       {"name": "Warm White", "icon": "mdi:lightbulb-on-outline", "action": "script.outside_lights_color", "data": {"color": [255, 180, 100]}},
+       {"name": "Red", "icon": "mdi:heart-outline", "action": "script.outside_lights_color", "data": {"color": [255, 0, 0]}},
+       {"name": "Green", "icon": "mdi:clover", "action": "script.outside_lights_color", "data": {"color": [0, 255, 0]}},
+       {"name": "Blue", "icon": "mdi:snowflake", "action": "script.outside_lights_color", "data": {"color": [0, 80, 255]}},
+       {"name": "Pink", "icon": "mdi:flower-outline", "action": "script.outside_lights_color", "data": {"color": [255, 60, 150]}}
+     ]},
+    {"name": "Garage", "icon": "mdi:garage-variant",
+     "lights": [{"entity": "light.ratgdo32_7aad0c_light", "name": "Garage light"}]}
+  ],
+  "thermostat": "climate.honeywell_t9",
+  "garage": {"doors": [{"entity": "cover.ratgdo32_7aad0c_door", "name": "Garage door"}], "light": "light.ratgdo32_7aad0c_light"},
+  "noise": [
+    {"name": "Evie", "icon": "mdi:duck", "player": "media_player.evies_hatch_media_player", "volume": "input_number.evie_hatch_volume", "light": "light.evies_hatch_light",
+     "buttons": [{"name": "Brown noise", "icon": "mdi:waveform", "action": "script.hatch_brown_noise", "data": {"target": "media_player.evies_hatch_media_player", "volume_entity": "input_number.evie_hatch_volume"}},
+                 {"name": "Off", "icon": "mdi:power", "off": true, "action": "media_player.media_stop", "data": {"entity_id": "media_player.evies_hatch_media_player"}}]},
+    {"name": "Stella", "icon": "mdi:teddy-bear", "player": "media_player.stellas_hatch_media_player", "volume": "input_number.stella_hatch_volume", "light": "light.stellas_hatch_light",
+     "buttons": [{"name": "Brown noise", "icon": "mdi:waveform", "action": "script.hatch_brown_noise", "data": {"target": "media_player.stellas_hatch_media_player", "volume_entity": "input_number.stella_hatch_volume"}},
+                 {"name": "Off", "icon": "mdi:power", "off": true, "action": "media_player.media_stop", "data": {"entity_id": "media_player.stellas_hatch_media_player"}}]},
+    {"name": "Primary Bedroom", "icon": "mdi:bed-king", "player": "media_player.primary_bedroom_media_player", "light": "light.primary_bedroom_light",
+     "buttons": [{"name": "White noise", "icon": "mdi:waveform", "action": "scene.turn_on", "data": {"entity_id": "scene.primary_bedroom_white_noise"}},
+                 {"name": "Rain", "icon": "mdi:weather-rainy", "action": "scene.turn_on", "data": {"entity_id": "scene.primary_bedroom_rain"}},
+                 {"name": "Goodnight", "icon": "mdi:star-crescent", "action": "scene.turn_on", "data": {"entity_id": "scene.primary_bedroom_goodnight_starlight"}},
+                 {"name": "Off", "icon": "mdi:power", "off": true, "action": "media_player.media_stop", "data": {"entity_id": "media_player.primary_bedroom_media_player"}}]}
+  ]
+}
