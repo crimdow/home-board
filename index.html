@@ -652,6 +652,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 /* ---- screensaver ---- */
 .saver { position: fixed; inset: 0; z-index: 90; background: #111; color: #fff; opacity: 0; visibility: hidden; transition: opacity .5s, visibility 0s linear .5s; cursor: pointer; overflow: hidden; }
 .saver.show { opacity: 1; visibility: visible; transition: opacity .5s, visibility 0s; }
+.saver.night { background: #000; }
+.saver.night .ss-photo, .saver.night .ss-info { display: none; }
 .saver .ss-photo { position: absolute; inset: 0; overflow: hidden; opacity: 0; transition: opacity 1.4s ease; }
 .saver .ss-photo.on { opacity: 1; }
 .saver .ss-photo img { position: absolute; }
@@ -772,7 +774,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-25h";
+  var VERSION = "2026-10-25i";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1492,6 +1494,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     s.taskTypes.forEach(function (t) { if (["daily", "weekly", "none"].indexOf(t.repeat) < 0) t.repeat = "none"; });
     // the wall panel: screensaver timing and the Home Assistant address (☰ → Screensaver)
     s.panel = Object.assign({ after: 5, every: 30, info: true, ha: "" }, s.panel && typeof s.panel === "object" ? s.panel : {});
+    // night: the screensaver is a plain black screen between these hours (no photos, no clock)
+    s.panel.night = Object.assign({ on: true, from: 23, to: 5 }, s.panel.night && typeof s.panel.night === "object" ? s.panel.night : {});
     return s;
   }
   var family = null, familyId = "", familyListeners = [], famSaveT = null, famOpen = false;
@@ -1565,6 +1569,18 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function isNight() {
+      var n = family.panel.night, h = new Date().getHours();
+      if (!n || !n.on || n.from === n.to) return false;
+      return n.from > n.to ? (h >= n.from || h < n.to) : (h >= n.from && h < n.to);
+    }
+    var night = false;
+    // switch between photos and the black night screen (also while it's already showing, at 11 PM / 5 AM)
+    function setNight(v) {
+      night = v; el.classList.toggle("night", v);
+      if (v) { clearTimeout(flipT); layers.forEach(function (l) { l.classList.remove("on"); }); }
+      else if (on) loadPhotos().then(function () { order = []; showNext(); });
+    }
     function shuffle(n) { var a = []; for (var i = 0; i < n; i++) a.push(i); for (var j = n - 1; j > 0; j--) { var k = Math.floor(Math.random() * (j + 1)), t = a[j]; a[j] = a[k]; a[k] = t; } return a; }
     function loadPhotos() {
       return db.pb.collection("panel_photos").getFullList({ sort: "-added" }).then(function (list) { photos = list; return list; }, function () { return photos; });
@@ -1613,9 +1629,13 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       info.hidden = family.panel.info === false;
       paintInfo(); paintDay();
-      clockT = setInterval(function () { paintInfo(); if (new Date().getMinutes() % 10 === 0) paintDay(); }, 15000);
+      clockT = setInterval(function () {
+        paintInfo(); if (new Date().getMinutes() % 10 === 0) paintDay();
+        if (isNight() !== night) setNight(!night);
+      }, 15000);
       el.classList.add("show");
-      loadPhotos().then(function () { order = []; showNext(); });
+      night = isNight(); el.classList.toggle("night", night);
+      if (!night) loadPhotos().then(function () { order = []; if (!night) showNext(); });
     }
     function stop() {
       if (!on) return;

@@ -23,6 +23,12 @@ HB.register("screensaver", {
 #pg-screensaver .sw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 14px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); transition: transform .2s; }
 #pg-screensaver .sw input:checked + i { background: var(--both); }
 #pg-screensaver .sw input:checked + i::after { transform: translateX(20px); }
+#pg-screensaver .hrs { display: flex; align-items: center; gap: 8px; }
+#pg-screensaver .hrs em { font-style: normal; color: var(--muted); font-size: 15px; font-weight: 700; }
+#pg-screensaver .hrs select { appearance: none; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-size: 15px; font-weight: 750; padding: 8px 12px; cursor: pointer; }
+#pg-screensaver #ssHours.off { opacity: .4; pointer-events: none; }
+body.viewonly #pg-screensaver .hrs select { pointer-events: none; opacity: .6; }
+:root.panel #pg-screensaver .hrs select, :root.panel #pg-screensaver .hrs em { font-size: 20px; }
 #pg-screensaver .pill { border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 14px; font-weight: 800; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
 #pg-screensaver .pill.ghost { background: var(--chip); color: var(--ink); }
 #pg-screensaver .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -72,6 +78,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
     var X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
     var photos = [], busy = 0;
     var AFTER = [2, 5, 10, 30], EVERY = [15, 30, 60, 300];
+    function hourOpts() { var o = ""; for (var h = 0; h < 24; h++) o += '<option value="' + h + '">' + (h % 12 || 12) + (h < 12 ? " AM" : " PM") + '</option>'; return o; }
 
     root.innerHTML =
       '<div class="top"><header><div class="title"><h1>Screensaver</h1></div>' +
@@ -82,6 +89,9 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
           '<div class="rowx"><span>Start after</span><div class="chips" data-k="after">' + AFTER.map(function (m) { return '<button type="button" data-v="' + m + '">' + m + ' min</button>'; }).join("") + '</div></div>' +
           '<div class="rowx"><span>Next photo every</span><div class="chips" data-k="every">' + EVERY.map(function (s) { return '<button type="button" data-v="' + s + '">' + (s < 60 ? s + " s" : s / 60 + " min") + '</button>'; }).join("") + '</div></div>' +
           '<div class="rowx"><span>Show the time, weather and day</span><label class="sw"><input type="checkbox" id="ssInfo"><i></i></label></div>' +
+          '<div class="rowx"><span>Dark at night</span><label class="sw"><input type="checkbox" id="ssNight"><i></i></label></div>' +
+          '<div class="rowx" id="ssHours"><span>From</span><span class="hrs"><select id="ssFrom" aria-label="Dark from">' + hourOpts() + '</select>' +
+            '<em>to</em><select id="ssTo" aria-label="Dark until">' + hourOpts() + '</select></span></div>' +
         '</div>' +
         '<h2><span>Photos <small id="ssCount"></small></span><button type="button" class="pill ed-only" id="ssAdd">+ Add photos</button></h2>' +
         '<input type="file" id="ssFile" accept="image/*" multiple hidden>' +
@@ -100,6 +110,10 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
         c.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", +b.dataset.v === v); });
       });
       root.querySelector("#ssInfo").checked = p.info !== false;
+      root.querySelector("#ssNight").checked = !!p.night.on;
+      root.querySelector("#ssFrom").value = String(p.night.from);
+      root.querySelector("#ssTo").value = String(p.night.to);
+      root.querySelector("#ssHours").classList.toggle("off", !p.night.on);
       if (document.activeElement !== haIn) haIn.value = p.ha || "";
       paintHaNote();
     }
@@ -110,6 +124,10 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       });
     });
     root.querySelector("#ssInfo").addEventListener("change", function (e) { HB.setPanel({ info: e.target.checked }); });
+    function setNight(o) { HB.setPanel({ night: Object.assign({}, HB.family().panel.night, o) }); paintSettings(); }
+    root.querySelector("#ssNight").addEventListener("change", function (e) { setNight({ on: e.target.checked }); });
+    root.querySelector("#ssFrom").addEventListener("change", function (e) { setNight({ from: +e.target.value }); });
+    root.querySelector("#ssTo").addEventListener("change", function (e) { setNight({ to: +e.target.value }); });
     root.querySelector("#ssNow").addEventListener("click", function () { HB.screensaver.start(); });
 
     function paintHaNote() {
