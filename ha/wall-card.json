@@ -98,22 +98,12 @@
       ],
       "quick": [
         {
-          "name": "Lights",
-          "ids": [
-            "light.outside_accent_lights",
-            "light.lamp_post",
-            "light.deck_slider_door",
-            "light.laundry_room_door"
-          ]
-        },
-        {
           "name": "Flood",
           "ids": [
             "light.front_yard_front_flood_lights"
           ]
         }
       ],
-      "buttons_label": "Colors",
       "buttons": [
         {
           "name": "Candlelight",
@@ -270,6 +260,34 @@
           "name": "Flood lights",
           "icon": "mdi:light-flood-down",
           "controls": []
+        }
+      ],
+      "toggles": [
+        {
+          "name": "All",
+          "icon": "mdi:home-lightbulb",
+          "ids": [
+            "light.outside_accent_lights",
+            "light.lamp_post",
+            "light.deck_slider_door",
+            "light.laundry_room_door",
+            "light.front_yard_front_flood_lights"
+          ]
+        },
+        {
+          "name": "Backyard",
+          "icon": "mdi:pine-tree",
+          "ids": [
+            "light.deck_slider_door",
+            "light.laundry_room_door"
+          ]
+        },
+        {
+          "name": "Flood",
+          "icon": "mdi:light-flood-down",
+          "ids": [
+            "light.front_yard_front_flood_lights"
+          ]
         }
       ]
     }

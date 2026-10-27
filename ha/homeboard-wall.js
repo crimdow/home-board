@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.9.0";
+  var VERSION = "1.9.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -263,7 +263,7 @@
       var cards = this._rooms().map((r, i) => {
         var ids = this._roomIds(r), main = this._roomMain(r);
         var on = this._onCount(ids), bri = this._bri(main), glow = this._glow(main.concat(ids));
-        var state = on ? (this._dimmable(main) && this._bri(main) ? bri + "%" : "On") + (ids.length > 1 && on < ids.length ? " · " + on + " of " + ids.length + " on" : "") : "Off";
+        var state = on ? (this._dimmable(main) && this._bri(main) ? bri + "%" : "On") + (ids.length > 1 && on < ids.length && !r.quick ? " · " + on + " of " + ids.length + " on" : "") : "Off";
         var nav = r.inline ? "" : ' data-go="room/' + i + '"';
         if (r.guard) {   // kids' rooms: no switches here, so nobody turns them on by accident at night
           return '<button class="room guard' + (on ? " lit" : "") + '"' + nav + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
@@ -272,7 +272,7 @@
             '<span class="more">' + icon("mdi:chevron-right", 30) + "</span></button>";
         }
         var h = '<div class="room' + (on ? " lit" : "") + (r.inline ? " inline" : "") + (r.quick ? " quick" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
-          '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '" aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
+          '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '"' + (r.quick ? ' data-full="1"' : "") + ' aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
           '<button class="words"' + (r.inline ? ' data-toggle="' + esc(main.join(",")) + '"' : nav) + "><b>" + esc(r.inline && r.whole_name ? r.whole_name : r.name) + "</b><i>" + esc(state) + "</i></button>" +
           (r.inline ? this._roomLights(r).map((l) => {   // extra lights (Flood lights) as on/off pills
             var lon = this._on(l.entity);
@@ -281,7 +281,7 @@
         if (r.quick) {   // on/off buttons (Outside: all the outdoor lights at warm 100%, and the floods)
           h += '<div class="levels">' + r.quick.map((q) => {
             var qon = this._onCount(q.ids) > 0;
-            return '<button class="lvl' + (qon ? " on" : "") + '" data-toggle="' + esc(q.ids.join(",")) + '" data-full="1">' + esc(q.name) + " · " + (qon ? "On" : "Off") + "</button>";
+            return '<button class="lvl' + (qon ? " on" : "") + '" data-toggle="' + esc(q.ids.join(",")) + '" data-full="1">' + esc(q.name) + "</button>";
           }).join("") + "</div>";
         } else if (r.inline && (r.buttons || []).length) {   // colour buttons right on the Lights page
           h += '<div class="dots">' + r.buttons.map(function (b, k) {
@@ -334,6 +334,16 @@
       if (!r) { this._route = ["lights"]; return this._lightsPage(); }
       var lights = this._roomLights(r), main = this._roomMain(r), out = [];
       var whole = r.group ? [r.group] : r.main ? r.main : lights.map(function (l) { return l.entity; });
+      if (r.toggles) {   // a simple page: on/off toggles on top, colour circles below
+        out.push('<div class="card simple"><div class="levels t' + r.toggles.length + '">' + r.toggles.map((t) => {
+          var ton = this._onCount(this._members(t.ids).concat(t.ids)) > 0;
+          return '<button class="lvl tog' + (ton ? " on" : "") + '" data-toggle="' + esc(t.ids.join(",")) + '" data-full="1">' + (t.icon ? icon(t.icon, 30) : "") + "<span>" + esc(t.name) + "</span><i>" + (ton ? "On" : "Off") + "</i></button>";
+        }).join("") + "</div>" + ((r.buttons || []).length ? '<div class="dots big">' + r.buttons.map(function (b, k) {
+          var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
+          return '<button class="dot" data-rbtn="' + k + '" aria-label="' + esc(b.name) + '"><span class="sw" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></span></button>';
+        }).join("") + "</div>" : "") + "</div>");
+        return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
+      }
       if (lights.length > 1 || r.group || r.main) out.push(this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls, !!r.quick));
       // scenes: bright colour tiles (each button can carry its own colours)
       var scenesHtml = (r.buttons || []).length ? ('<div class="card"><div class="label">' + esc(r.buttons_label || "Scenes") + '</div><div class="scenes">' + r.buttons.map(function (b, i) {
@@ -666,7 +676,8 @@ ha-icon { display: flex; }
 .lgrid .room.inline { grid-column: 1 / -1; }
 .lgrid .room.quick { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 18px; }
 .lgrid .room.quick .row { flex: 1; min-width: 0; flex-direction: row !important; align-items: center !important; gap: 16px !important; }
-.lgrid .room.quick .levels { flex: none; width: 52%; }
+.lgrid .room.quick .levels { flex: none; display: flex; width: auto; }
+.lgrid .room.quick .lvl { width: 220px; }
 /* stretch to fill the screen: rows share the spare height, cards centre their contents */
 .page.lights .scroll { display: flex; flex-direction: column; }
 .page.lights .lgrid { flex: 1; align-content: stretch; }
@@ -741,6 +752,15 @@ ha-icon { display: flex; }
 .each.on { background: #f2b25c; color: #3a2410; }
 .each.on i, .each.on ha-icon { color: #3a2410; }
 .each:active { transform: scale(.96); }
+/* simple page (Outside) */
+.card.simple { gap: 28px; padding: 28px; }
+.levels.t3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lvl.tog { height: auto; min-height: 112px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.lvl.tog i { font-style: normal; font-size: 16px; font-weight: 700; opacity: .7; }
+.dots.big { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px 12px; justify-items: center; }
+.dots.big .dot { width: auto; }
+.dots.big .sw { width: 104px; height: 104px; border-radius: 52px; }
+
 /* scene tiles */
 .scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .scene { min-height: 120px; border-radius: 24px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
@@ -837,6 +857,12 @@ ha-icon { display: flex; }
 :host([narrow]) .each i { font-size: 12px; }
 :host([narrow]) .each ha-icon { --mdc-icon-size: 22px !important; }
 :host([narrow]) .homebtn ha-icon { --mdc-icon-size: 26px !important; }
+:host([narrow]) .card.simple { gap: 18px; padding: 16px; }
+:host([narrow]) .lvl.tog { min-height: 72px; font-size: 15px; }
+:host([narrow]) .lvl.tog ha-icon { --mdc-icon-size: 22px !important; }
+:host([narrow]) .lvl.tog i { font-size: 12px; }
+:host([narrow]) .dots.big { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 8px; }
+:host([narrow]) .dots.big .sw { width: 60px; height: 60px; }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
@@ -845,7 +871,8 @@ ha-icon { display: flex; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) { flex-direction: row; align-items: center; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) .row { flex: 1; min-width: 0; flex-direction: row; align-items: center; gap: 10px; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) .levels { flex: none; width: 132px; }
-:host([narrow]) .lgrid .room.quick .levels { width: 200px; }
+:host([narrow]) .lgrid .room.quick .levels { width: auto; }
+:host([narrow]) .lgrid .room.quick .lvl { width: 100px; }
 :host([narrow]) .lgrid .room.quick .lvl { font-size: 13px; }
 :host(:not([full])[narrow]) .page.lights { min-height: calc(100dvh - var(--header-height, 56px)); }
 :host([narrow]) .lgrid .room.guard { grid-column: span 3; padding: 10px; gap: 8px; }
