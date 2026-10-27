@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.10.0";
+  var VERSION = "1.11.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -179,32 +179,51 @@
       }
       return s.state === "unavailable" ? "Not reachable" : "Off";
     }
-    _musicPage() {
-      var out = [], sid = this._spotify(), sp = sid && this._s(sid);
-      if (sp) {   // Spotify: what's playing, the controls, and which speaker it plays on
-        var a = sp.attributes, playing = sp.state === "playing";
-        var h = '<div class="card music spotify' + (playing ? " playing" : "") + '"><div class="row">' +
-          (a.entity_picture ? '<img class="art" src="' + esc(a.entity_picture) + '" alt="">' : '<span class="ic" style="background:#1db954;color:#fff">' + icon("mdi:spotify", 40) + "</span>") +
-          '<span class="words"><b>' + esc(a.media_title || "Spotify") + "</b><i>" + esc(a.media_artist || (sp.state === "idle" || sp.state === "off" ? "Nothing playing" : "")) + "</i></span></div>" +
-          this._transport(sid, playing);
-        var src = (a.source_list || []).slice(0, 8);
-        if (src.length) h += '<div class="label">Play on</div><div class="chips">' + src.map(function (n) {
-          return '<button class="chip' + (n === a.source ? " on" : "") + '" data-source="' + esc(n) + '" data-mp="' + esc(sid) + '">' + esc(n) + "</button>";
-        }).join("") + "</div>";
-        if (a.volume_level != null) h += this._slider("mvol", [sid], Math.round(a.volume_level * 100), "Volume");
-        out.push(h + "</div>");
-      } else {
-        out.push('<div class="card music"><div class="row"><span class="ic" style="background:#1db954;color:#fff">' + icon("mdi:spotify", 40) + '</span><span class="words"><b>Spotify</b><i>Not connected yet</i></span></div></div>');
+    _musicPage() {   // Music Assistant: what's playing on the chosen speaker, and your Spotify playlists to start
+      var m = this._config.music || {}, spk = this._speakers();
+      if (!spk.length) return '<div class="page">' + this._head("Music", "home") + '<div class="card">No speakers set up.</div></div>';
+      if (!this._mp || !spk.some((x) => x.entity === this._mp)) {
+        var playingNow = spk.find((x) => { var st = this._s(x.entity); return st && st.state === "playing"; });
+        this._mp = (playingNow || spk[0]).entity;
       }
-      this._speakers().forEach((spk) => {
-        var s = this._s(spk.entity); if (!s) return;
-        var a = s.attributes, playing = s.state === "playing";
-        out.push('<div class="card music' + (playing ? " playing" : "") + '"><div class="row"><span class="ic" style="background:' + (playing ? C.teal : "var(--chip)") + ";color:" + (playing ? "#fff" : C.teal) + '">' + icon(spk.icon || "mdi:speaker", 40) + "</span>" +
-          '<span class="words"><b>' + esc(spk.name || a.friendly_name) + "</b><i>" + esc(this._nowLine(s)) + "</i></span></div>" +
-          (s.state === "playing" || s.state === "paused" ? this._transport(spk.entity, playing) : "") +
-          (s.state !== "unavailable" ? this._slider("mvol", [spk.entity], Math.round((a.volume_level || 0) * 100), "Volume") : "") + "</div>");
-      });
+      var id = this._mp, s = this._s(id), a = s ? s.attributes : {}, playing = s && s.state === "playing", out = [];
+      var name = (spk.find((x) => x.entity === id) || {}).name || a.friendly_name || id;
+      var h = '<div class="card music' + (playing ? " playing" : "") + '"><div class="row">' +
+        (a.entity_picture && (playing || s.state === "paused") ? '<img class="art" src="' + esc(a.entity_picture) + '" alt="">' : '<span class="ic" style="background:' + (playing ? C.teal : "var(--chip)") + ";color:" + (playing ? "#fff" : C.teal) + '">' + icon("mdi:speaker", 40) + "</span>") +
+        '<span class="words"><b>' + esc(playing || (s && s.state === "paused") ? (a.media_title || name) : name) + "</b><i>" + esc(playing || (s && s.state === "paused") ? [a.media_artist, s.state === "paused" ? "Paused" : ""].filter(Boolean).join(" · ") : s ? this._nowLine(s) : "Not found") + "</i></span></div>" +
+        (s && (playing || s.state === "paused") ? this._transport(id, playing) : "") +
+        (s && s.state !== "unavailable" ? this._slider("mvol", [id], Math.round((a.volume_level || 0) * 100), "Volume") : "");
+      if (spk.length > 1) h += '<div class="label">Play on</div><div class="chips">' + spk.map((x) => '<button class="chip' + (x.entity === id ? " on" : "") + '" data-pick="' + esc(x.entity) + '">' + esc(x.name || x.entity) + "</button>").join("") + "</div>";
+      out.push(h + "</div>");
+      out.push('<div class="card"><div class="label">Playlists</div><div class="plist">' + this._plistHtml() + "</div></div>");
+      if (!this._plists || Date.now() - this._plistsAt > 10 * 60e3) this._loadPlaylists();
       return '<div class="page">' + this._head("Music", "home") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
+    }
+    _plistHtml() {
+      var p = this._plists;
+      if (!p) return '<span class="sub">Loading…</span>';
+      if (p.error) return '<span class="sub">' + esc(p.error) + "</span>";
+      if (!p.length) return '<span class="sub">No playlists yet. Sign in to Spotify in Music Assistant (Settings → Providers).</span>';
+      return '<div class="pgrid">' + p.map(function (x, k) {
+        return '<button class="pl" data-plist="' + k + '">' + (x.image ? '<img src="' + esc(x.image) + '" alt="" loading="lazy">' : '<span class="noart">' + icon("mdi:playlist-music", 40) + "</span>") + "<b>" + esc(x.name) + "</b></button>";
+      }).join("") + "</div>";
+    }
+    async _loadPlaylists() {
+      if (this._plLoading) return; this._plLoading = true;
+      var m = this._config.music || {};
+      try {
+        var entry = m.config_entry_id;
+        if (!entry) { var es = await this._hass.callWS({ type: "config_entries/get", domain: "music_assistant" }); entry = es[0] && es[0].entry_id; }
+        if (!entry) throw new Error("Music Assistant isn't set up.");
+        var res = await this._hass.callWS({ type: "call_service", domain: "music_assistant", service: "get_library", service_data: { config_entry_id: entry, media_type: "playlist", limit: m.limit || 24, order_by: "last_played" }, return_response: true });
+        var items = ((res.response || res).items || []);
+        this._plists = items.map(function (x) {
+          var img = x.image && (typeof x.image === "string" ? x.image : x.image.path || x.image.url);
+          return { name: x.name, uri: x.uri, image: img && /^https?:/.test(img) ? img : null };
+        });
+      } catch (e) { this._plists = { error: "Couldn't load playlists: " + (e.message || e.code || e) }; }
+      this._plistsAt = Date.now(); this._plLoading = false;
+      var box = this.shadowRoot.querySelector(".plist"); if (box) box.innerHTML = this._plistHtml();
     }
     _transport(id, playing) {
       var e = esc(id);
@@ -631,6 +650,12 @@
         else this._call("light", "turn_on", { entity_id: ids });
         return;
       }
+      if (ds.pick) { this._mp = ds.pick; this._sig = ""; this._render(); return; }
+      if (ds.plist) {
+        var pl = this._plists && this._plists[+ds.plist]; if (!pl || !this._mp) return;
+        this._call("music_assistant", "play_media", { entity_id: this._mp, media_id: pl.uri, media_type: "playlist", enqueue: "replace" });
+        return;
+      }
       if (ds.mpact) { this._call("media_player", ds.mpact, { entity_id: ds.mp }); return; }
       if (ds.source) { this._call("media_player", "select_source", { entity_id: ds.mp, source: ds.source }); return; }
       if (ds.level) { this._warm(ds.ids.split(","), { brightness_pct: +ds.level }); return; }
@@ -722,7 +747,12 @@ ha-icon { display: flex; }
 .card.spotify .transport .round.play { background: #1db954; }
 .chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .chip { border-radius: 999px; background: var(--chip); padding: 16px 22px; font-size: 19px; font-weight: 800; }
-.chip.on { background: #1db954; color: #fff; }
+.chip.on { background: ${C.teal}; color: #fff; }
+.pgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.pl { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pl img, .pl .noart { width: 100%; aspect-ratio: 1; border-radius: 18px; object-fit: cover; background: var(--chip); display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.pl b { font-size: 17px; font-weight: 800; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pl:active { transform: scale(.96); }
 .stack { display: flex; flex-direction: column; gap: 18px; }
 
 /* Home */
@@ -956,6 +986,9 @@ ha-icon { display: flex; }
 :host([narrow]) .transport { gap: 14px; }
 :host([narrow]) .transport .round.play { width: 68px; height: 68px; }
 :host([narrow]) .transport ha-icon { --mdc-icon-size: 28px !important; }
+:host([narrow]) .pgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+:host([narrow]) .pl b { font-size: 13px; }
+:host([narrow]) .pl img, :host([narrow]) .pl .noart { border-radius: 12px; }
 :host([narrow]) .chip { padding: 10px 14px; font-size: 14px; }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
