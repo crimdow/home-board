@@ -6,21 +6,25 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.3.0";
+  var VERSION = "1.4.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
   };
   var C = { amber: "#c98a3e", red: "#d45b6c", blue: "#4f7bd4", green: "#3f9a66", violet: "#8a6bb8", teal: "#36ad9c" };
+  // the same colours as the Outside tiles, as round buttons
   var SWATCHES = [
-    { name: "Warm white", hex: "#ffc27a", kelvin: 2700 },
-    { name: "Daylight", hex: "#eef3ff", kelvin: 5000 },
-    { name: "Red", hex: "#ff3b30", rgb: [255, 40, 30] },
-    { name: "Orange", hex: "#ff8a1f", rgb: [255, 120, 20] },
-    { name: "Pink", hex: "#ff5fa8", rgb: [255, 70, 160] },
-    { name: "Purple", hex: "#9b5cff", rgb: [140, 70, 255] },
-    { name: "Blue", hex: "#3d7bff", rgb: [40, 100, 255] },
-    { name: "Green", hex: "#35c26b", rgb: [40, 200, 90] }
+    { name: "Warm white", c: ["#ffe2b0", "#ffb35c"], kelvin: 2700 },
+    { name: "Orange", c: ["#ff8c1a", "#ff3d00"], rgb: [255, 100, 0] },
+    { name: "Red", c: ["#ff3b4f", "#c4001d"], rgb: [255, 0, 0] },
+    { name: "Pink", c: ["#ff5cbf", "#ff0080"], rgb: [255, 60, 150] },
+    { name: "Purple", c: ["#b05cff", "#6a00f4"], rgb: [140, 0, 255] },
+    { name: "Blue", c: ["#36a3ff", "#0047ff"], rgb: [0, 80, 255] },
+    { name: "Green", c: ["#3cf07a", "#00a83e"], rgb: [0, 255, 0] }
+  ];
+  var CT_SWATCHES = [   // lights that only do whites
+    { name: "Warm white", c: ["#ffe2b0", "#ffb35c"], kelvin: 2700 },
+    { name: "Daylight", c: ["#ffffff", "#dfe9ff"], kelvin: 5000 }
   ];
   var COLOR_MODES = ["hs", "xy", "rgb", "rgbw", "rgbww"];
 
@@ -293,11 +297,11 @@
       var ct = this._supportsCt(ids) && this._has(controls, "ct"), col = this._supportsColor(ids) && this._has(controls, "color");
       if (this._dimmable(ids) && this._has(controls, "bri")) h += '<div class="label">Brightness</div>' + this._slider("bri", ids, bri);
       if (ct) h += '<div class="label">Warm to cool</div>' + this._slider("ct", ids, on ? this._temp(ids) : 35);
-      if (col) h += '<div class="label">Color</div>' + this._slider("hue", ids, this._hue(ids)) + '<div class="swatches">' + SWATCHES.map(function (c, i) {
-        return '<button class="sw" data-swatch="' + i + '" data-ids="' + key + '" aria-label="' + c.name + '" style="background:' + c.hex + '"></button>';
+      if (col) h += '<div class="label">Color</div><div class="swatches">' + SWATCHES.map(function (c, i) {
+        return '<button class="sw" data-swatch="' + i + '" data-ids="' + key + '" aria-label="' + c.name + '" style="--c1:' + c.c[0] + ";--c2:" + c.c[1] + '"></button>';
       }).join("") + "</div>";
-      else if (ct) h += '<div class="swatches">' + SWATCHES.slice(0, 2).map(function (c, i) {
-        return '<button class="sw wide" data-swatch="' + i + '" data-ids="' + key + '" style="background:' + c.hex + '"><span>' + c.name + "</span></button>";
+      else if (ct) h += '<div class="swatches">' + CT_SWATCHES.map(function (c, i) {
+        return '<button class="sw wide" data-ctswatch="' + i + '" data-ids="' + key + '" style="--c1:' + c.c[0] + ";--c2:" + c.c[1] + '"><span>' + c.name + "</span></button>";
       }).join("") + "</div>";
       return h + "</div>";
     }
@@ -457,8 +461,8 @@
         this._call("light", anyOn ? "turn_off" : "turn_on", { entity_id: ids }); return;
       }
       if (ds.alloff) { this._call("light", "turn_off", { entity_id: this._allLights() }); return; }
-      if (ds.swatch) {
-        var sw = SWATCHES[+ds.swatch], ids2 = ds.ids.split(",");
+      if (ds.swatch || ds.ctswatch) {
+        var sw = ds.ctswatch ? CT_SWATCHES[+ds.ctswatch] : SWATCHES[+ds.swatch], ids2 = ds.ids.split(",");
         if (sw.kelvin) this._call("light", "turn_on", { entity_id: ids2, color_temp_kelvin: sw.kelvin });
         else this._call("light", "turn_on", { entity_id: ids2, rgb_color: sw.rgb });
         return;
@@ -570,7 +574,9 @@ ha-icon { display: flex; }
 .sl.bri .knob, .sl.num .knob { margin-left: -18px; }
 .sl .val { position: absolute; left: 20px; top: 0; bottom: 0; display: flex; align-items: center; font-size: 22px; font-weight: 800; color: var(--ink); mix-blend-mode: normal; pointer-events: none; }
 .swatches { display: flex; gap: 12px; flex-wrap: wrap; }
-.sw { width: 64px; height: 64px; border-radius: 32px; border: 3px solid color-mix(in srgb, var(--ink) 12%, transparent); flex: none; }
+.sw { width: 64px; height: 64px; border-radius: 32px; flex: none; border: 0;
+  background: radial-gradient(120% 120% at 25% 15%, color-mix(in srgb, var(--c1) 70%, #fff) 0%, var(--c1) 40%, var(--c2) 100%);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--c1) 80%, transparent), inset 0 1px 0 rgba(255,255,255,.4); }
 .sw.wide { width: auto; flex: 1; border-radius: 22px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 21px; font-weight: 800; color: #2b2e33; }
 
 /* buttons in a row */
