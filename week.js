@@ -63,6 +63,7 @@ body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill 
   min-width: 28px; height: 28px; display: grid; place-items: center; border-radius: 14px; margin-left: -5px; padding: 0 4px;
   transition: background-color .35s ease, color .35s ease;
 }
+#pg-week .day.today { background: color-mix(in srgb, var(--today) 10%, transparent); }
 #pg-week .day.today .dname .dow { color: var(--ink); }
 #pg-week .day.today .dname .num { background: var(--today); color: var(--bg); }
 
@@ -180,6 +181,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 :root.panel #pg-week .days { flex: 1; min-height: 0; }
 :root.panel #pg-week .day { flex: 1 1 auto; min-height: 0; padding: 4px 0; overflow: clip; border-bottom-color: color-mix(in srgb, var(--hair) 70%, transparent); }
 :root.panel #pg-week .day:last-child { border-bottom: 0; }
+:root.panel #pg-week .day.today { background: color-mix(in srgb, var(--today) 12%, transparent); }
 :root.panel #pg-week .dname .dow { font-size: 18px; }
 :root.panel #pg-week .dname .num { font-size: 32px; min-width: 48px; height: 48px; border-radius: 24px; margin-left: -4px; margin-top: 2px; }
 :root.panel #pg-week .home { width: 46px; height: 46px; right: 10px; bottom: auto; top: 50%; translate: 0 -50%; }
