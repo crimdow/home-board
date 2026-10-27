@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.1.0";
+  var VERSION = "1.1.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -65,6 +65,7 @@
         this._ro = new ResizeObserver(() => { var n = this.clientWidth < 620; if (n !== this.hasAttribute("narrow")) this.toggleAttribute("narrow", n); });
         this._ro.observe(this);
       }
+      requestAnimationFrame(() => this._paintLook());   // the theme's colours are only readable once on the page
       // a wall panel left on a sub-page drifts home after a few minutes
       this._idle = setInterval(() => {
         if (this._route[0] !== "home" && Date.now() - (this._touched || 0) > 3 * 60000) { this._route = ["home"]; this._sig = ""; this._render(); }
@@ -83,7 +84,9 @@
     }
 
     set hass(hass) {
+      var themeChanged = this._hass && hass.themes !== this._hass.themes;
       this._hass = hass;
+      if (themeChanged) requestAnimationFrame(() => this._paintLook());
       if (!this.shadowRoot.firstChild) this._render();
       else this._maybeRender();
     }
