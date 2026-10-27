@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.9.4";
+  var VERSION = "1.9.5";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -338,7 +338,7 @@
         var on = this._onCount(this._members(main).concat(main)) > 0, bri = this._bri(this._members(main)), key = esc(main.join(","));
         var h = '<div class="card light' + (on ? " lit" : "") + '"><div class="row">' +
           '<button class="ic" data-toggle="' + key + '" data-full="1" aria-label="Turn ' + esc(r.whole_name || r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 40) + "</button>" +
-          '<button class="words" data-toggle="' + key + '" data-full="1"><b>' + esc(r.whole_name || r.name) + "</b><i>" + (on ? (bri ? bri + "%" : "On") : "Off") + "</i></button></div>" +
+          '<button class="words" data-toggle="' + key + '" data-full="1"><b>' + esc(r.whole_name || r.name) + "</b><i>" + (on ? "On" : "Off") + "</i></button></div>" +
           '<div class="label">Brightness</div>' + this._levels(main, on, bri, r.levels);
         if ((r.buttons || []).length) h += '<div class="label">Color</div><div class="swatches">' + r.buttons.map(function (b, k) {
           var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
@@ -375,7 +375,7 @@
     }
     _lightCard(name, ic, ids, whole, controls, full) {   // controls: which of "bri", "ct", "color" to show (all by default)
       var on = this._onCount(ids), bri = this._bri(ids), glow = this._glow(ids), key = esc(ids.join(","));
-      var state = on ? (this._dimmable(ids) ? bri + "%" : "On") : "Off";
+      var state = on ? "On" : "Off";
       var h = '<div class="card light' + (whole ? " whole" : "") + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
         '<div class="row"><button class="ic" data-toggle="' + key + '"' + (full ? ' data-full="1"' : "") + ' aria-label="Turn ' + esc(name) + ' on or off">' + icon(ic, 40) + "</button>" +
         '<button class="words" data-toggle="' + key + '"' + (full ? ' data-full="1"' : "") + "><b>" + esc(name) + "</b><i>" + esc(state) + "</i></button>" +
