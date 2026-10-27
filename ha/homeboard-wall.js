@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.9.3";
+  var VERSION = "1.9.4";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -263,7 +263,7 @@
       var cards = this._rooms().map((r, i) => {
         var ids = this._roomIds(r), main = this._roomMain(r);
         var on = this._onCount(ids), bri = this._bri(main), glow = this._glow(main.concat(ids));
-        var state = on ? (this._dimmable(main) && this._bri(main) ? bri + "%" : "On") + (ids.length > 1 && on < ids.length && !r.quick ? " · " + on + " of " + ids.length + " on" : "") : "Off";
+        var state = on ? "On" : "Off";   // the level shows on the 25% / 100% buttons
         var nav = r.inline ? "" : ' data-go="room/' + i + '"';
         if (r.guard) {   // kids' rooms: no switches here, so nobody turns them on by accident at night
           return '<button class="room guard' + (on ? " lit" : "") + '"' + nav + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
