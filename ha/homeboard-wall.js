@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.5.0";
+  var VERSION = "1.6.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -264,6 +264,12 @@
         var on = this._onCount(ids), bri = this._bri(main), glow = this._glow(main.concat(ids));
         var state = on ? (this._dimmable(main) && this._bri(main) ? bri + "%" : "On") + (ids.length > 1 && on < ids.length ? " · " + on + " of " + ids.length + " on" : "") : "Off";
         var nav = r.inline ? "" : ' data-go="room/' + i + '"';
+        if (r.guard) {   // kids' rooms: no switches here, so nobody turns them on by accident at night
+          return '<button class="room guard' + (on ? " lit" : "") + '"' + nav + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
+            '<span class="ic sm">' + icon(r.icon || "mdi:lightbulb", 30) + "</span>" +
+            '<span class="words"><b>' + esc(r.name) + "</b><i>" + esc(state) + "</i></span>" +
+            '<span class="more">' + icon("mdi:chevron-right", 30) + "</span></button>";
+        }
         var h = '<div class="room' + (on ? " lit" : "") + (r.inline ? " inline" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
           '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '" aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
           '<button class="words"' + (r.inline ? ' data-toggle="' + esc(main.join(",")) + '"' : nav) + "><b>" + esc(r.inline && r.whole_name ? r.whole_name : r.name) + "</b><i>" + esc(state) + "</i></button>" +
@@ -287,7 +293,7 @@
       });
       var anyOn = this._onCount(this._allLights()) > 0;
       return '<div class="page">' + this._head("Lights", "home", anyOn ? '<button class="pill" data-alloff="1">All off</button>' : "") +
-        '<div class="scroll"><div class="grid2">' + cards.join("") + "</div></div></div>";
+        '<div class="scroll"><div class="lgrid">' + cards.join("") + "</div></div></div>";
     }
     _warm(ids, extra) {   // turn lights on at their warmest white (lights without whites just get the brightness)
       var ct = [], rest = [];
@@ -580,16 +586,25 @@ ha-icon { display: flex; }
 .room { background: var(--card); border-radius: 28px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .room.lit { background: color-mix(in srgb, var(--glow, #f2b25c) 14%, var(--card)); }
 
-.room.inline { grid-column: 1 / -1; }
-.lpill { display: flex; align-items: center; gap: 8px; padding: 16px 22px; font-size: 20px; background: var(--chip); }
+/* Lights page: three rooms a row, the kids' rooms two a row, Outside across */
+.lgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+.lgrid .room { grid-column: span 2; padding: 16px; gap: 12px; border-radius: 24px; }
+.lgrid .room.guard { grid-column: span 3; flex-direction: row; align-items: center; gap: 14px; text-align: left; }
+.lgrid .room.inline { grid-column: 1 / -1; }
+.lgrid .ic.sm { width: 56px; height: 56px; }
+.lgrid .words b { font-size: 23px; white-space: normal; }
+.lgrid .words i { font-size: 17px; white-space: normal; }
+.lgrid .room:not(.guard):not(.inline) .row { align-items: flex-start; }
+.lgrid .more { width: 30px; height: 56px; }
+.lpill { display: flex; align-items: center; gap: 8px; padding: 12px 20px; font-size: 18px; background: var(--chip); }
 .lpill.on { background: #f2b25c; color: #3a2410; }
 .levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.lvl { height: 68px; border-radius: 20px; background: var(--chip); font-size: 22px; font-weight: 800; text-align: center; }
+.lvl { height: 52px; border-radius: 16px; background: var(--chip); font-size: 19px; font-weight: 800; text-align: center; }
 .lvl.on { background: var(--glow, #f2b25c); color: #3a2410; }
 .lvl:active, .dot:active, .lpill:active { transform: scale(.95); }
 .dots { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
 .dot { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 78px; }
-.dot .sw { width: 68px; height: 68px; border-radius: 34px; }
+.dot .sw { width: 58px; height: 58px; border-radius: 29px; }
 .dot i { font-style: normal; font-size: 15px; font-weight: 800; color: var(--muted); white-space: nowrap; }
 
 /* cards */
@@ -699,9 +714,16 @@ ha-icon { display: flex; }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
-:host([narrow]) .lvl { height: 44px; border-radius: 14px; font-size: 15px; }
-:host([narrow]) .dots { gap: 8px; }
-:host([narrow]) .dot { width: 60px; gap: 4px; }
+:host([narrow]) .lgrid { gap: 8px; }
+:host([narrow]) .lgrid .room { grid-column: 1 / -1; padding: 12px; gap: 10px; border-radius: 20px; }
+:host([narrow]) .lgrid .room.guard { grid-column: span 3; padding: 10px; gap: 8px; }
+:host([narrow]) .lgrid .ic.sm { width: 40px; height: 40px; }
+:host([narrow]) .lgrid .words b { font-size: 16px; }
+:host([narrow]) .lgrid .words i { font-size: 13px; }
+:host([narrow]) .lgrid .more { width: 18px; height: 40px; }
+:host([narrow]) .lvl { height: 40px; border-radius: 12px; font-size: 15px; }
+:host([narrow]) .dots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
+:host([narrow]) .dot { width: auto; gap: 4px; }
 :host([narrow]) .dot .sw { width: 46px; height: 46px; }
 :host([narrow]) .dot i { font-size: 11px; }
 :host([narrow]) .label { font-size: 11px; margin-top: 2px; }

@@ -60,7 +60,8 @@
           "name": "Lamp",
           "icon": "mdi:lamp"
         }
-      ]
+      ],
+      "guard": true
     },
     {
       "name": "Evie’s Room",
@@ -71,7 +72,8 @@
           "name": "Lamp",
           "icon": "mdi:lamp"
         }
-      ]
+      ],
+      "guard": true
     },
     {
       "name": "Outside",
