@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.4.1";
+  var VERSION = "1.5.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -263,15 +263,37 @@
         var ids = this._roomIds(r), main = this._roomMain(r);
         var on = this._onCount(ids), bri = this._bri(main), glow = this._glow(main.concat(ids));
         var state = on ? (this._dimmable(main) && this._bri(main) ? bri + "%" : "On") + (ids.length > 1 && on < ids.length ? " · " + on + " of " + ids.length + " on" : "") : "Off";
-        return '<div class="room' + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
+        var nav = r.inline ? "" : ' data-go="room/' + i + '"';
+        var h = '<div class="room' + (on ? " lit" : "") + (r.inline ? " inline" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
           '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '" aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
-          '<button class="words" data-go="room/' + i + '"><b>' + esc(r.name) + "</b><i>" + esc(state) + "</i></button>" +
-          '<button class="more" data-go="room/' + i + '" aria-label="Open ' + esc(r.name) + '">' + icon("mdi:chevron-right", 34) + "</button></div>" +
-          (this._dimmable(main) && this._has(r.controls, "bri") ? this._slider("bri", main, bri) : "") + "</div>";
+          '<button class="words"' + (r.inline ? ' data-toggle="' + esc(main.join(",")) + '"' : nav) + "><b>" + esc(r.inline && r.whole_name ? r.whole_name : r.name) + "</b><i>" + esc(state) + "</i></button>" +
+          (r.inline ? this._roomLights(r).map((l) => {   // extra lights (Flood lights) as on/off pills
+            var lon = this._on(l.entity);
+            return '<button class="pill lpill' + (lon ? " on" : "") + '" data-toggle="' + esc(l.entity) + '">' + (l.icon ? icon(l.icon, 26) : "") + "<span>" + esc(l.name) + "</span></button>";
+          }).join("") : '<button class="more"' + nav + ' aria-label="Open ' + esc(r.name) + '">' + icon("mdi:chevron-right", 34) + "</button>") + "</div>";
+        if (r.inline && (r.buttons || []).length) {   // colour buttons right on the Lights page
+          h += '<div class="dots">' + r.buttons.map(function (b, k) {
+            var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
+            return '<button class="dot" data-rbtn="' + k + '" data-room="' + i + '"><span class="sw" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></span><i>' + esc(b.name) + "</i></button>";
+          }).join("") + "</div>";
+        } else if (this._dimmable(main) && this._has(r.controls, "bri")) {   // quick levels, always in warm white
+          var key = esc(main.join(","));
+          h += '<div class="levels">' + [25, 100].map(function (lv) {
+            var cur = on && (lv === 25 ? bri < 63 : bri >= 63);
+            return '<button class="lvl' + (cur ? " on" : "") + '" data-level="' + lv + '" data-ids="' + key + '">' + lv + "%</button>";
+          }).join("") + "</div>";
+        }
+        return h + "</div>";
       });
       var anyOn = this._onCount(this._allLights()) > 0;
       return '<div class="page">' + this._head("Lights", "home", anyOn ? '<button class="pill" data-alloff="1">All off</button>' : "") +
         '<div class="scroll"><div class="grid2">' + cards.join("") + "</div></div></div>";
+    }
+    _warm(ids, extra) {   // turn lights on at their warmest white (lights without whites just get the brightness)
+      var ct = [], rest = [];
+      ids.forEach((id) => { var s = this._s(id); ((s && (s.attributes.supported_color_modes || []).indexOf("color_temp") >= 0) ? ct : rest).push(id); });
+      if (ct.length) this._call("light", "turn_on", Object.assign({ entity_id: ct, color_temp_kelvin: this._ctRange(ct)[0] }, extra || {}));
+      if (rest.length) this._call("light", "turn_on", Object.assign({ entity_id: rest }, extra || {}));
     }
 
     /* A room: the whole room on top, then each light */
@@ -461,14 +483,16 @@
         var ids = ds.toggle.split(","), anyOn = this._onCount(ids) > 0;
         this._call("light", anyOn ? "turn_off" : "turn_on", { entity_id: ids }); return;
       }
+      if (ds.level) { this._warm(ds.ids.split(","), { brightness_pct: +ds.level }); return; }
       if (ds.alloff) { this._call("light", "turn_off", { entity_id: this._allLights() }); return; }
       if (ds.swatch || ds.ctswatch) {
         var sw = ds.ctswatch ? CT_SWATCHES[+ds.ctswatch] : SWATCHES[+ds.swatch], ids2 = ds.ids.split(",");
-        if (sw.kelvin) this._call("light", "turn_on", { entity_id: ids2, color_temp_kelvin: sw.kelvin });
+        if (sw.kelvin && sw.name === "Warm white") this._warm(ids2);
+        else if (sw.kelvin) this._call("light", "turn_on", { entity_id: ids2, color_temp_kelvin: sw.kelvin });
         else this._call("light", "turn_on", { entity_id: ids2, rgb_color: sw.rgb });
         return;
       }
-      if (ds.rbtn) { var rb = this._rooms()[this._route[1]].buttons[+ds.rbtn]; this._doAction(rb); return; }
+      if (ds.rbtn) { var rb = this._rooms()[ds.room != null ? +ds.room : this._route[1]].buttons[+ds.rbtn]; this._doAction(rb); return; }
       if (ds.noise) { var q = ds.noise.split("/"), nb = c.noise[+q[0]].buttons[+q[1]]; this._doAction(nb); return; }
       if (ds.mode) { this._call("climate", "set_hvac_mode", { entity_id: c.thermostat, hvac_mode: ds.mode }); return; }
       if (ds.fan) { this._call("climate", "set_fan_mode", { entity_id: c.thermostat, fan_mode: ds.fan }); return; }
@@ -555,6 +579,18 @@ ha-icon { display: flex; }
 /* Lights */
 .room { background: var(--card); border-radius: 28px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .room.lit { background: color-mix(in srgb, var(--glow, #f2b25c) 14%, var(--card)); }
+
+.room.inline { grid-column: 1 / -1; }
+.lpill { display: flex; align-items: center; gap: 8px; padding: 16px 22px; font-size: 20px; background: var(--chip); }
+.lpill.on { background: #f2b25c; color: #3a2410; }
+.levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.lvl { height: 68px; border-radius: 20px; background: var(--chip); font-size: 22px; font-weight: 800; text-align: center; }
+.lvl.on { background: var(--glow, #f2b25c); color: #3a2410; }
+.lvl:active, .dot:active, .lpill:active { transform: scale(.95); }
+.dots { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.dot { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 78px; }
+.dot .sw { width: 68px; height: 68px; border-radius: 34px; }
+.dot i { font-style: normal; font-size: 15px; font-weight: 800; color: var(--muted); white-space: nowrap; }
 
 /* cards */
 .card { background: var(--card); border-radius: 30px; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
@@ -660,6 +696,14 @@ ha-icon { display: flex; }
 :host([narrow]) .words i { font-size: 13px; }
 :host([narrow]) .more { width: 24px; height: 40px; }
 :host([narrow]) .more ha-icon { --mdc-icon-size: 24px !important; }
+:host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
+:host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
+:host([narrow]) .levels { gap: 6px; }
+:host([narrow]) .lvl { height: 44px; border-radius: 14px; font-size: 15px; }
+:host([narrow]) .dots { gap: 8px; }
+:host([narrow]) .dot { width: 60px; gap: 4px; }
+:host([narrow]) .dot .sw { width: 46px; height: 46px; }
+:host([narrow]) .dot i { font-size: 11px; }
 :host([narrow]) .label { font-size: 11px; margin-top: 2px; }
 :host([narrow]) .sub { font-size: 14px; }
 :host([narrow]) .sl { height: 44px; border-radius: 14px; }

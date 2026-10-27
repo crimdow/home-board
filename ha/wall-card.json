@@ -87,7 +87,7 @@
       "lights": [
         {
           "entity": "light.front_yard_front_flood_lights",
-          "name": "Flood lights",
+          "name": "Flood",
           "icon": "mdi:light-flood-down",
           "controls": []
         }
@@ -95,7 +95,7 @@
       "buttons_label": "Colors",
       "buttons": [
         {
-          "name": "Candlelight",
+          "name": "Candle",
           "icon": "mdi:candle",
           "colors": [
             "#ffb347",
@@ -108,7 +108,7 @@
           }
         },
         {
-          "name": "Warm white",
+          "name": "Warm",
           "icon": "mdi:lightbulb-on",
           "colors": [
             "#ffe2b0",
@@ -220,7 +220,8 @@
             ]
           }
         }
-      ]
+      ],
+      "inline": true
     }
   ],
   "thermostat": "climate.honeywell_t9",
