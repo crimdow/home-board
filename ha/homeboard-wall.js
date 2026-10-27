@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.2.0";
+  var VERSION = "1.3.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -277,8 +277,10 @@
       var whole = r.group ? [r.group] : r.main ? r.main : lights.map(function (l) { return l.entity; });
       if (lights.length > 1 || r.group || r.main) out.push(this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls));
       lights.forEach((l) => { var s = this._s(l.entity); out.push(this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls)); });
-      (r.buttons || []).length && out.push('<div class="card"><div class="label">Scenes</div><div class="btns">' + r.buttons.map(function (b, i) {
-        return '<button class="chipbtn" data-rbtn="' + i + '">' + (b.icon ? icon(b.icon, 30) : "") + "<span>" + esc(b.name) + "</span></button>";
+      // scenes: bright colour tiles (each button can carry its own colours)
+      (r.buttons || []).length && out.push('<div class="card"><div class="label">' + esc(r.buttons_label || "Scenes") + '</div><div class="scenes">' + r.buttons.map(function (b, i) {
+        var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
+        return '<button class="scene' + (b.dark_text ? " darktext" : "") + '" data-rbtn="' + i + '" style="--c1:' + c[0] + ";--c2:" + c[1] + '">' + (b.icon ? icon(b.icon, 34) : "") + "<span>" + esc(b.name) + "</span></button>";
       }).join("") + "</div></div>");
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
@@ -577,6 +579,15 @@ ha-icon { display: flex; }
 .chipbtn ha-icon { color: ${C.violet}; }
 .chipbtn.off ha-icon { color: var(--muted); }
 
+/* scene tiles */
+.scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.scene { min-height: 120px; border-radius: 24px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  background: radial-gradient(120% 120% at 20% 10%, color-mix(in srgb, var(--c1) 70%, #fff) 0%, var(--c1) 40%, var(--c2) 100%);
+  color: #fff; font-size: 21px; font-weight: 800; text-shadow: 0 1px 6px rgba(0,0,0,.25);
+  box-shadow: 0 8px 22px -6px color-mix(in srgb, var(--c1) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.35); transition: transform .12s; }
+.scene.darktext { color: #3a2410; text-shadow: none; }
+.scene:active { transform: scale(.95); }
+
 /* Thermostat */
 .thermo { flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; }
 .now { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
@@ -611,60 +622,76 @@ ha-icon { display: flex; }
 .big2 { padding: 28px 0; border-radius: 24px; background: var(--chip); }
 @keyframes up { from { transform: translateY(100%); } }
 
-/* phones: same look, sized for a hand */
-:host([narrow]) .page { padding: 12px 14px 18px; gap: 12px; }
-:host([narrow]) .scroll { margin: 0 -14px; padding: 0 14px 18px; }
-:host([narrow]) .head { min-height: 56px; gap: 12px; }
-:host([narrow]) .head h1 { font-size: 30px; }
-:host([narrow]) .back { width: 52px; height: 52px; }
-:host([narrow]) .back ha-icon { --mdc-icon-size: 34px !important; }
-:host([narrow]) .pill { font-size: 18px; padding: 14px 20px; }
-:host([narrow]) .grid2 { gap: 12px; }
-:host([narrow]) .big { padding: 18px; border-radius: 26px; min-height: 170px; }
-:host([narrow]) .big .ic { width: 64px; height: 64px; }
-:host([narrow]) .big .ic ha-icon { --mdc-icon-size: 34px !important; }
-:host([narrow]) .big b { font-size: 24px; }
-:host([narrow]) .big i { font-size: 16px; }
-:host([narrow]) .bignum { top: 20px; right: 18px; font-size: 38px; letter-spacing: -1px; }
+/* phones: the same look at normal phone sizes */
+:host([narrow]) .page { padding: 10px 12px 16px; gap: 10px; }
+:host([narrow]) .scroll { margin: 0 -12px; padding: 0 12px 16px; }
+:host(:not([full])[narrow]) .page { min-height: 0; }
+:host(:not([full])[narrow]) { min-height: 0; }
+:host([narrow]) .head { min-height: 44px; gap: 10px; }
+:host([narrow]) .head h1 { font-size: 24px; letter-spacing: -.4px; }
+:host([narrow]) .back { width: 40px; height: 40px; }
+:host([narrow]) .back ha-icon { --mdc-icon-size: 28px !important; }
+:host([narrow]) .pill { font-size: 15px; padding: 10px 16px; }
+:host([narrow]) .grid2 { gap: 10px; }
+:host([narrow]) .grid2.fill { flex: none; grid-auto-rows: 132px; }
 :host([narrow]) .grid2:not(.fill) { grid-template-columns: 1fr; }
-:host([narrow]) .room { padding: 14px; gap: 12px; border-radius: 24px; }
-:host([narrow]) .card { padding: 16px; gap: 10px; border-radius: 24px; }
-:host([narrow]) .ic, :host([narrow]) .ic.sm { width: 52px; height: 52px; }
-:host([narrow]) .ic ha-icon { --mdc-icon-size: 28px !important; }
-:host([narrow]) .ic.xl { width: 84px; height: 84px; }
-:host([narrow]) .ic.xl ha-icon { --mdc-icon-size: 44px !important; }
-:host([narrow]) .words b { font-size: 21px; }
-:host([narrow]) .words i { font-size: 16px; }
-:host([narrow]) .more { width: 36px; height: 52px; }
-:host([narrow]) .label { font-size: 13px; }
-:host([narrow]) .sl { height: 56px; border-radius: 18px; }
-:host([narrow]) .sl .fill { border-radius: 18px 0 0 18px; }
-:host([narrow]) .sl .knob { top: 10px; bottom: 10px; }
-:host([narrow]) .sl .val { font-size: 18px; left: 16px; }
-:host([narrow]) .sw { width: 42px; height: 42px; }
-:host([narrow]) .sw.wide { height: 50px; font-size: 17px; }
+:host([narrow]) .big { padding: 14px; border-radius: 20px; min-height: 0; }
+:host([narrow]) .big .ic { width: 46px; height: 46px; }
+:host([narrow]) .big .ic ha-icon { --mdc-icon-size: 26px !important; }
+:host([narrow]) .big b { font-size: 18px; }
+:host([narrow]) .big i { font-size: 13px; }
+:host([narrow]) .bignum { top: 14px; right: 14px; font-size: 28px; letter-spacing: -1px; }
+:host([narrow]) .room { padding: 12px; gap: 10px; border-radius: 20px; }
+:host([narrow]) .card { padding: 14px; gap: 8px; border-radius: 20px; }
+:host([narrow]) .stack { gap: 10px; }
+:host([narrow]) .row { gap: 10px; }
+:host([narrow]) .ic, :host([narrow]) .ic.sm { width: 40px; height: 40px; }
+:host([narrow]) .ic ha-icon { --mdc-icon-size: 22px !important; }
+:host([narrow]) .ic.xl { width: 60px; height: 60px; }
+:host([narrow]) .ic.xl ha-icon { --mdc-icon-size: 32px !important; }
+:host([narrow]) .words b { font-size: 16px; }
+:host([narrow]) .words i { font-size: 13px; }
+:host([narrow]) .more { width: 24px; height: 40px; }
+:host([narrow]) .more ha-icon { --mdc-icon-size: 24px !important; }
+:host([narrow]) .label { font-size: 11px; margin-top: 2px; }
+:host([narrow]) .sub { font-size: 14px; }
+:host([narrow]) .sl { height: 44px; border-radius: 14px; }
+:host([narrow]) .sl .fill { border-radius: 14px 0 0 14px; }
+:host([narrow]) .sl .knob { top: 8px; bottom: 8px; width: 6px; margin-left: -3px; }
+:host([narrow]) .sl.bri .knob, :host([narrow]) .sl.num .knob { margin-left: -12px; }
+:host([narrow]) .sl .val { font-size: 14px; left: 12px; }
+:host([narrow]) .sw { width: 34px; height: 34px; border-width: 2px; }
+:host([narrow]) .sw.wide { height: 40px; font-size: 14px; border-radius: 14px; }
 :host([narrow]) .swatches { gap: 8px; }
-:host([narrow]) .btns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-:host([narrow]) .chipbtn { min-height: 60px; font-size: 17px; border-radius: 18px; padding: 10px 14px; }
-:host([narrow]) .chipbtn ha-icon { --mdc-icon-size: 24px !important; }
-:host([narrow]) .thermo { flex-direction: column; align-items: stretch; }
+:host([narrow]) .btns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+:host([narrow]) .chipbtn { min-height: 46px; font-size: 14px; border-radius: 14px; padding: 8px 12px; gap: 8px; }
+:host([narrow]) .chipbtn ha-icon { --mdc-icon-size: 20px !important; }
+:host([narrow]) .scenes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+:host([narrow]) .scene { min-height: 64px; border-radius: 16px; padding: 10px 12px; font-size: 15px; gap: 8px; }
+:host([narrow]) .scene ha-icon { --mdc-icon-size: 24px !important; }
+:host([narrow]) .thermo { flex-direction: column; align-items: stretch; gap: 12px; }
 :host([narrow]) .now { min-width: 0; }
-:host([narrow]) .huge { font-size: 72px; }
-:host([narrow]) .status { font-size: 19px; }
+:host([narrow]) .huge { font-size: 52px; letter-spacing: -2px; }
+:host([narrow]) .status { font-size: 15px; }
+:host([narrow]) .setters { gap: 8px; }
 :host([narrow]) .setter { justify-content: space-between; }
-:host([narrow]) .round { width: 72px; height: 72px; font-size: 40px; }
-:host([narrow]) .setv b { font-size: 46px; }
-:host([narrow]) .mode { font-size: 17px; padding: 16px 0; }
-:host([narrow]) .modes { gap: 8px; }
-:host([narrow]) .hist { padding-left: 40px; height: 170px; }
-:host([narrow]) .hist svg, :host([narrow]) .hist .range { height: 120px; }
-:host([narrow]) .door { padding: 18px; gap: 14px; flex-wrap: wrap; }
-:host([narrow]) .door .doorstate { font-size: 28px; }
-:host([narrow]) .door .pill { flex-basis: 100%; padding: 18px 0; }
-:host([narrow]) .sheet { padding: 28px 20px 34px; }
-:host([narrow]) .sheet b { font-size: 26px; }
-:host([narrow]) .sheet i { font-size: 17px; }
-:host([narrow]) .big2 { padding: 20px 0; }
+:host([narrow]) .round { width: 52px; height: 52px; font-size: 30px; }
+:host([narrow]) .setv { width: 100px; }
+:host([narrow]) .setv i { font-size: 11px; }
+:host([narrow]) .setv b { font-size: 34px; }
+:host([narrow]) .mode { font-size: 14px; padding: 12px 0; }
+:host([narrow]) .modes { gap: 6px; }
+:host([narrow]) .hist { padding-left: 34px; height: 140px; }
+:host([narrow]) .hist svg, :host([narrow]) .hist .range { height: 100px; }
+:host([narrow]) .hist .range { font-size: 13px; }
+:host([narrow]) .hours span { font-size: 12px; top: 8px; }
+:host([narrow]) .door { padding: 14px; gap: 12px; flex-wrap: wrap; }
+:host([narrow]) .door .doorstate { font-size: 22px; }
+:host([narrow]) .door .pill { flex-basis: 100%; padding: 14px 0; }
+:host([narrow]) .sheet { padding: 22px 18px 28px; gap: 10px; }
+:host([narrow]) .sheet b { font-size: 21px; }
+:host([narrow]) .sheet i { font-size: 15px; }
+:host([narrow]) .big2 { padding: 16px 0; font-size: 17px; border-radius: 16px; }
 @keyframes fade { from { opacity: 0; } }
 `;
 

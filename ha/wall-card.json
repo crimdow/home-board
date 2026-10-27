@@ -77,9 +77,7 @@
       "name": "Outside",
       "icon": "mdi:pine-tree",
       "whole_name": "Outdoor lights",
-      "controls": [
-        "color"
-      ],
+      "controls": [],
       "main": [
         "light.outside_accent_lights",
         "light.lamp_post",
@@ -92,6 +90,135 @@
           "name": "Flood lights",
           "icon": "mdi:light-flood-down",
           "controls": []
+        }
+      ],
+      "buttons_label": "Colors",
+      "buttons": [
+        {
+          "name": "Candlelight",
+          "icon": "mdi:candle",
+          "colors": [
+            "#ffb347",
+            "#ff5e00"
+          ],
+          "action": "light.turn_on",
+          "data": {
+            "entity_id": "light.outside_accent_lights",
+            "effect": "Candlelight"
+          }
+        },
+        {
+          "name": "Warm white",
+          "icon": "mdi:lightbulb-on",
+          "colors": [
+            "#ffe2b0",
+            "#ffb35c"
+          ],
+          "action": "script.outside_lights_color",
+          "data": {
+            "color": [
+              255,
+              180,
+              100
+            ]
+          },
+          "dark_text": true
+        },
+        {
+          "name": "Orange",
+          "icon": "mdi:pumpkin",
+          "colors": [
+            "#ff8c1a",
+            "#ff3d00"
+          ],
+          "action": "script.outside_lights_color",
+          "data": {
+            "color": [
+              255,
+              100,
+              0
+            ]
+          }
+        },
+        {
+          "name": "Red",
+          "icon": "mdi:heart",
+          "colors": [
+            "#ff3b4f",
+            "#c4001d"
+          ],
+          "action": "script.outside_lights_color",
+          "data": {
+            "color": [
+              255,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "name": "Pink",
+          "icon": "mdi:flower",
+          "colors": [
+            "#ff5cbf",
+            "#ff0080"
+          ],
+          "action": "script.outside_lights_color",
+          "data": {
+            "color": [
+              255,
+              60,
+              150
+            ]
+          }
+        },
+        {
+          "name": "Purple",
+          "icon": "mdi:ghost",
+          "colors": [
+            "#b05cff",
+            "#6a00f4"
+          ],
+          "action": "script.outside_lights_color",
+          "data": {
+            "color": [
+              140,
+              0,
+              255
+            ]
+          }
+        },
+        {
+          "name": "Blue",
+          "icon": "mdi:snowflake",
+          "colors": [
+            "#36a3ff",
+            "#0047ff"
+          ],
+          "action": "script.outside_lights_color",
+          "data": {
+            "color": [
+              0,
+              80,
+              255
+            ]
+          }
+        },
+        {
+          "name": "Green",
+          "icon": "mdi:clover",
+          "colors": [
+            "#3cf07a",
+            "#00a83e"
+          ],
+          "action": "script.outside_lights_color",
+          "data": {
+            "color": [
+              0,
+              255,
+              0
+            ]
+          }
         }
       ]
     }
