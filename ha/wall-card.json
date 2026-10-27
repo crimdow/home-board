@@ -96,18 +96,27 @@
         "light.deck_slider_door",
         "light.laundry_room_door"
       ],
-      "lights": [
+      "quick": [
         {
-          "entity": "light.front_yard_front_flood_lights",
+          "name": "Lights",
+          "ids": [
+            "light.outside_accent_lights",
+            "light.lamp_post",
+            "light.deck_slider_door",
+            "light.laundry_room_door"
+          ]
+        },
+        {
           "name": "Flood",
-          "icon": "mdi:light-flood-down",
-          "controls": []
+          "ids": [
+            "light.front_yard_front_flood_lights"
+          ]
         }
       ],
       "buttons_label": "Colors",
       "buttons": [
         {
-          "name": "Candle",
+          "name": "Candlelight",
           "icon": "mdi:candle",
           "colors": [
             "#ffb347",
@@ -120,21 +129,19 @@
           }
         },
         {
-          "name": "Warm",
+          "name": "Warm white",
           "icon": "mdi:lightbulb-on",
           "colors": [
             "#ffe2b0",
             "#ffb35c"
           ],
-          "action": "script.outside_lights_color",
-          "data": {
-            "color": [
-              255,
-              180,
-              100
-            ]
-          },
-          "dark_text": true
+          "dark_text": true,
+          "warm": [
+            "light.outside_accent_lights",
+            "light.lamp_post",
+            "light.deck_slider_door",
+            "light.laundry_room_door"
+          ]
         },
         {
           "name": "Orange",
@@ -233,7 +240,38 @@
           }
         }
       ],
-      "inline": true
+      "lights": [
+        {
+          "entity": "light.outside_accent_lights",
+          "name": "Accent lights",
+          "icon": "mdi:led-strip-variant",
+          "controls": []
+        },
+        {
+          "entity": "light.lamp_post",
+          "name": "Lamp post",
+          "icon": "mdi:post-lamp",
+          "controls": []
+        },
+        {
+          "entity": "light.deck_slider_door",
+          "name": "Deck slider door",
+          "icon": "mdi:door-sliding",
+          "controls": []
+        },
+        {
+          "entity": "light.laundry_room_door",
+          "name": "Laundry room door",
+          "icon": "mdi:door",
+          "controls": []
+        },
+        {
+          "entity": "light.front_yard_front_flood_lights",
+          "name": "Flood lights",
+          "icon": "mdi:light-flood-down",
+          "controls": []
+        }
+      ]
     }
   ],
   "thermostat": "climate.honeywell_t9",

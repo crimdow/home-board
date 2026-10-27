@@ -12,6 +12,8 @@ HB.register("ha", {
   css: `
 #pg-ha:not([hidden]) { height: calc(100dvh - var(--phead, 0px) - var(--pbar, 84px) - 24px); }
 #pg-ha .ha-frame { flex: 1; min-height: 0; border: 0; width: 100%; border-radius: 22px; background: var(--sheet); }
+/* on the wall the Home Board card fills the frame: no rounded clip, which made Chromium draw the frame soft */
+:root.panel #pg-ha .ha-frame { border-radius: 0; background: transparent; }
 #pg-ha .ha-msg { margin: auto; max-width: 560px; text-align: center; color: var(--muted); font-size: 16px; font-weight: 600; line-height: 1.5; padding: 40px 16px; }
 #pg-ha .ha-msg b { display: block; color: var(--ink); font-size: 24px; font-weight: 800; margin-bottom: 8px; }
 :root.panel #pg-ha .ha-msg { font-size: 20px; }
@@ -59,6 +61,12 @@ HB.register("ha", {
       try { f.contentWindow.postMessage({ hb: "look", look: look }, new URL(f.src).origin); } catch (e) {}
     }
     setInterval(function () { sendLook.force = true; sendLook(); }, 5000);
+    // swipes inside Home Assistant's Home page flip the wall panel's pages, like everywhere else on the panel
+    window.addEventListener("message", function (e) {
+      var f = root.querySelector("iframe");
+      if (!f || e.source !== f.contentWindow || !e.data || e.data.hb !== "swipe") return;
+      if (HB.panel && HB.panelSwipe) HB.panelSwipe(e.data.dir);
+    });
     HB.onFamily(render);
     render();
   }

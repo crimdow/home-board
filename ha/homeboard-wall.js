@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.8.1";
+  var VERSION = "1.9.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -204,16 +204,17 @@
       else if (r[0] === "noise") body = this._noisePage();
       else body = this._homePage();
       var scroller = this.shadowRoot.querySelector(".scroll"), top = scroller && this._lastRoute === r.join("/") ? scroller.scrollTop : 0;
-      this.shadowRoot.innerHTML = "<style>" + CSS + "</style>" + body + (this._sheet ? this._sheetHtml() : "");
+      this.shadowRoot.innerHTML = "<style>" + CSS + "</style>" + body + (this._sheet ? this._sheetHtml() : "") +
+        '<div class="turn">' + icon("mdi:phone-rotate-portrait", 64) + "<span>Turn your phone upright</span></div>";
       this._lastRoute = r.join("/");
       var sc = this.shadowRoot.querySelector(".scroll"); if (sc) sc.scrollTop = top;
-      if (r[0] === "thermostat") this._drawHistory();
     }
 
     _head(title, back, right) {
       return '<div class="head">' +
         (back ? '<button class="back" data-go="' + back + '" aria-label="Back">' + icon("mdi:chevron-left", 44) + "</button>" : "") +
-        '<h1>' + esc(title) + "</h1>" + (right || "") + "</div>";
+        '<h1>' + esc(title) + "</h1>" + (right || "") +
+        (back ? '<button class="back homebtn" data-go="home" aria-label="Wall home">' + icon("mdi:home-assistant", 40) + "</button>" : "") + "</div>";
     }
 
     _homePage() {
@@ -270,19 +271,24 @@
             '<span class="words"><b>' + esc(r.name) + "</b><i>" + esc(state) + "</i></span>" +
             '<span class="more">' + icon("mdi:chevron-right", 30) + "</span></button>";
         }
-        var h = '<div class="room' + (on ? " lit" : "") + (r.inline ? " inline" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
+        var h = '<div class="room' + (on ? " lit" : "") + (r.inline ? " inline" : "") + (r.quick ? " quick" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
           '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '" aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
           '<button class="words"' + (r.inline ? ' data-toggle="' + esc(main.join(",")) + '"' : nav) + "><b>" + esc(r.inline && r.whole_name ? r.whole_name : r.name) + "</b><i>" + esc(state) + "</i></button>" +
           (r.inline ? this._roomLights(r).map((l) => {   // extra lights (Flood lights) as on/off pills
             var lon = this._on(l.entity);
             return '<button class="pill lpill' + (lon ? " on" : "") + '" data-toggle="' + esc(l.entity) + '">' + (l.icon ? icon(l.icon, 26) : "") + "<span>" + esc(l.name) + "</span></button>";
           }).join("") : '<button class="more"' + nav + ' aria-label="Open ' + esc(r.name) + '">' + icon("mdi:chevron-right", 34) + "</button>") + "</div>";
-        if (r.inline && (r.buttons || []).length) {   // colour buttons right on the Lights page
+        if (r.quick) {   // on/off buttons (Outside: all the outdoor lights at warm 100%, and the floods)
+          h += '<div class="levels">' + r.quick.map((q) => {
+            var qon = this._onCount(q.ids) > 0;
+            return '<button class="lvl' + (qon ? " on" : "") + '" data-toggle="' + esc(q.ids.join(",")) + '" data-full="1">' + esc(q.name) + " · " + (qon ? "On" : "Off") + "</button>";
+          }).join("") + "</div>";
+        } else if (r.inline && (r.buttons || []).length) {   // colour buttons right on the Lights page
           h += '<div class="dots">' + r.buttons.map(function (b, k) {
             var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
             return '<button class="dot" data-rbtn="' + k + '" data-room="' + i + '" aria-label="' + esc(b.name) + '"><span class="sw" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></span></button>';
           }).join("") + "</div>";
-        } else if (this._dimmable(main) && this._has(r.controls, "bri")) {   // quick levels, always in warm white
+        } else if (this._dimmable(main) && this._has(r.controls, "bri") && !r.quick) {   // quick levels, always in warm white
           var key = esc(main.join(","));
           h += '<div class="levels">' + [25, 100].map(function (lv) {
             var cur = on && (lv === 25 ? bri < 63 : bri >= 63);
@@ -302,10 +308,24 @@
         return '<button class="lvl' + (cur ? " on" : "") + '" data-level="' + lv + '" data-ids="' + key + '">' + lv + "%</button>";
       }).join("") + "</div>";
     }
-    _warm(ids, extra) {   // turn lights on at their warmest white (lights without whites just get the brightness)
-      var ct = [], rest = [];
-      ids.forEach((id) => { var s = this._s(id); ((s && (s.attributes.supported_color_modes || []).indexOf("color_temp") >= 0) ? ct : rest).push(id); });
-      if (ct.length) this._call("light", "turn_on", Object.assign({ entity_id: ct, color_temp_kelvin: this._ctRange(ct)[0] }, extra || {}));
+    _members(ids) {   // light groups opened up into their bulbs
+      var out = [];
+      var add = (id, depth) => {
+        var s = this._s(id), m = s && s.attributes.entity_id;
+        if (m && m.length && depth < 3) m.forEach(function (x) { add(x, depth + 1); });
+        else if (out.indexOf(id) < 0) out.push(id);
+      };
+      ids.forEach(function (id) { add(id, 0); });
+      return out;
+    }
+    _warm(ids, extra) {   // on at each bulb's own warmest white (2000 K on the Govee bulbs); lights without whites just get the brightness
+      var byK = {}, rest = [];
+      this._members(ids).forEach((id) => {
+        var s = this._s(id), a = s ? s.attributes : {};
+        if ((a.supported_color_modes || []).indexOf("color_temp") >= 0) { var k = a.min_color_temp_kelvin || 2000; (byK[k] = byK[k] || []).push(id); }
+        else rest.push(id);
+      });
+      Object.keys(byK).forEach((k) => this._call("light", "turn_on", Object.assign({ entity_id: byK[k], color_temp_kelvin: +k }, extra || {})));
       if (rest.length) this._call("light", "turn_on", Object.assign({ entity_id: rest }, extra || {}));
     }
 
@@ -314,23 +334,33 @@
       if (!r) { this._route = ["lights"]; return this._lightsPage(); }
       var lights = this._roomLights(r), main = this._roomMain(r), out = [];
       var whole = r.group ? [r.group] : r.main ? r.main : lights.map(function (l) { return l.entity; });
-      if (lights.length > 1 || r.group || r.main) out.push(this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls));
-      lights.forEach((l) => { var s = this._s(l.entity); out.push(this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls)); });
+      if (lights.length > 1 || r.group || r.main) out.push(this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls, !!r.quick));
       // scenes: bright colour tiles (each button can carry its own colours)
-      (r.buttons || []).length && out.push('<div class="card"><div class="label">' + esc(r.buttons_label || "Scenes") + '</div><div class="scenes">' + r.buttons.map(function (b, i) {
+      var scenesHtml = (r.buttons || []).length ? ('<div class="card"><div class="label">' + esc(r.buttons_label || "Scenes") + '</div><div class="scenes">' + r.buttons.map(function (b, i) {
         var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
         return '<button class="scene' + (b.dark_text ? " darktext" : "") + '" data-rbtn="' + i + '" style="--c1:' + c[0] + ";--c2:" + c[1] + '">' + (b.icon ? icon(b.icon, 34) : "") + "<span>" + esc(b.name) + "</span></button>";
-      }).join("") + "</div></div>");
+      }).join("") + "</div></div>") : "";
+      if (scenesHtml && r.quick) out.push(scenesHtml);   // Outside: colours right under the on/off
+      if (r.quick) {   // Outside: each light as an on/off button
+        out.push('<div class="card"><div class="label">Each light</div><div class="eachgrid">' + lights.map((l) => {
+          var lon = this._on(l.entity);
+          return '<button class="each' + (lon ? " on" : "") + '" data-toggle="' + esc(l.entity) + '" data-full="1">' + (l.icon ? icon(l.icon, 30) : "") + "<span><b>" + esc(l.name) + "</b><i>" + (lon ? "On" : "Off") + "</i></span></button>";
+        }).join("") + "</div></div>");
+      } else
+      lights.forEach((l) => { var s = this._s(l.entity); out.push(this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls)); });
+
+      if (scenesHtml && !r.quick) out.push(scenesHtml);
       var ni = (this._config.noise || []).findIndex(function (n) { return n.name === r.noise; });
       if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
-    _lightCard(name, ic, ids, whole, controls) {   // controls: which of "bri", "ct", "color" to show (all by default)
+    _lightCard(name, ic, ids, whole, controls, full) {   // controls: which of "bri", "ct", "color" to show (all by default)
       var on = this._onCount(ids), bri = this._bri(ids), glow = this._glow(ids), key = esc(ids.join(","));
       var state = on ? (this._dimmable(ids) ? bri + "%" : "On") : "Off";
       var h = '<div class="card light' + (whole ? " whole" : "") + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
-        '<div class="row"><button class="ic" data-toggle="' + key + '" aria-label="Turn ' + esc(name) + ' on or off">' + icon(ic, 40) + "</button>" +
-        '<button class="words" data-toggle="' + key + '"><b>' + esc(name) + "</b><i>" + esc(state) + "</i></button></div>";
+        '<div class="row"><button class="ic" data-toggle="' + key + '"' + (full ? ' data-full="1"' : "") + ' aria-label="Turn ' + esc(name) + ' on or off">' + icon(ic, 40) + "</button>" +
+        '<button class="words" data-toggle="' + key + '"' + (full ? ' data-full="1"' : "") + "><b>" + esc(name) + "</b><i>" + esc(state) + "</i></button>" +
+        (controls && !controls.length && !whole ? '<button class="pill lpill' + (on ? " on" : "") + '" data-toggle="' + key + '"' + (full ? ' data-full="1"' : "") + ">" + (on ? "On" : "Off") + "</button>" : "") + "</div>";
       // the family keeps bulbs at their warmest: no warm-to-cool unless a light asks for "ct"
       var ct = this._supportsCt(ids) && !!controls && controls.indexOf("ct") >= 0, col = this._supportsColor(ids) && this._has(controls, "color");
       if (this._dimmable(ids) && controls && controls.indexOf("levels") >= 0) h += '<div class="label">Brightness</div>' + this._levels(ids, on, bri);
@@ -382,7 +412,6 @@
         ((a.fan_modes || []).length ? '<div class="label">Fan</div><div class="modes">' + a.fan_modes.slice(0, 4).map(function (f) {
           var on = f === a.fan_mode; return '<button class="mode' + (on ? " on" : "") + '" data-fan="' + esc(f) + '">' + esc(f.charAt(0).toUpperCase() + f.slice(1)) + "</button>";
         }).join("") + "</div>" : "") + "</div>" +
-        '<div class="card"><div class="label">Last 24 hours</div><div class="hist"><span class="sub">Loading…</span></div></div>' +
         "</div></div></div>";
     }
     async _drawHistory() {
@@ -460,6 +489,7 @@
       root.addEventListener("click", (e) => this._click(e));
       root.addEventListener("pointerdown", (e) => {
         this._touched = Date.now();
+        this._sw = e.target.closest && e.target.closest(".sl") ? null : { x: e.clientX, y: e.clientY, t: Date.now() };
         var sl = e.target.closest && e.target.closest(".sl"); if (!sl) return;
         e.preventDefault();
         sl.setPointerCapture(e.pointerId);
@@ -468,7 +498,19 @@
       });
       root.addEventListener("pointermove", (e) => { if (this._drag) { if (Math.abs(e.clientX - this._drag.x0) > 4) this._drag.moved = true; this._dragTo(e.clientX, false); } });
       var end = (e) => { if (!this._drag) return; this._dragTo(e.clientX, true); this._drag = null; this._hold = Date.now() + 2500; };
-      root.addEventListener("pointerup", end);
+      root.addEventListener("pointerup", (e) => {
+        var w = this._sw; this._sw = null;
+        if (w && !this._drag) {
+          var dx = e.clientX - w.x, dy = e.clientY - w.y;
+          if (Math.abs(dx) > 110 && Math.abs(dx) > Math.abs(dy) * 2 && Date.now() - w.t < 900) {
+            this._swiped = Date.now();
+            if (this._route[0] !== "home") { this._route = ["home"]; this._sheet = null; this._sig = ""; this._render(); }
+            else if (window.parent !== window) { try { window.parent.postMessage({ hb: "swipe", dir: dx < 0 ? 1 : -1 }, "*"); } catch (x) {} }
+            return;
+          }
+        }
+        end(e);
+      });
       root.addEventListener("pointercancel", () => { this._drag = null; this._hold = Date.now() + 1500; });
     }
     _dragTo(clientX, final) {
@@ -500,13 +542,17 @@
       }
     }
     _click(e) {
+      if (this._swiped && Date.now() - this._swiped < 400) return;   // the end of a swipe is not a tap
       var b = e.target.closest && e.target.closest('button, [role="button"], .shade'); if (!b) return;
       this._touched = Date.now();
       var ds = b.dataset, c = this._config;
       if (ds.go) { var p = ds.go.split("/"); this._route = p[0] === "room" ? ["room", +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
       if (ds.toggle) {
-        var ids = ds.toggle.split(","), anyOn = this._onCount(ids) > 0;
-        this._call("light", anyOn ? "turn_off" : "turn_on", { entity_id: ids }); return;
+        var ids = ds.toggle.split(","), anyOn = this._onCount(this._members(ids).concat(ids)) > 0;
+        if (anyOn) this._call("light", "turn_off", { entity_id: ids });
+        else if (ids.some((id) => { var s = this._s(id); return s && ((s.attributes.supported_color_modes || []).join() !== "onoff" || s.attributes.entity_id); })) this._warm(ids, ds.full ? { brightness_pct: 100 } : null);
+        else this._call("light", "turn_on", { entity_id: ids });
+        return;
       }
       if (ds.level) { this._warm(ds.ids.split(","), { brightness_pct: +ds.level }); return; }
       if (ds.alloff) { this._call("light", "turn_off", { entity_id: this._allLights() }); return; }
@@ -552,6 +598,7 @@
     }
     _doAction(b) {
       if (!b) return;
+      if (b.warm) { this._warm(b.warm, { brightness_pct: 100 }); return; }
       if (b.hatch) {   // start a Hatch sound straight from here: pick the sound, then play
         this._call("media_player", "select_sound_mode", { entity_id: b.hatch, sound_mode: b.sound || "BrownNoise" });
         setTimeout(() => this._call("media_player", "media_play", { entity_id: b.hatch }), 2000);
@@ -565,7 +612,7 @@
   }
 
   var CSS = `
-:host { display: block; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
+:host { display: block; touch-action: pan-y; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
 :host([full]) { position: fixed; inset: 0; z-index: 10; background: var(--bg); }
 :host(:not([full])) { position: relative; background: var(--bg); min-height: calc(100dvh - var(--header-height, 56px)); }
 :host(:not([full])) .shade { position: fixed; }
@@ -576,6 +623,8 @@ ha-icon { display: flex; }
 :host(:not([full])) .page { min-height: calc(100dvh - var(--header-height, 56px)); }
 .head { display: flex; align-items: center; gap: 16px; min-height: 72px; flex: none; }
 .head h1 { margin: 0; flex: 1; font-size: 42px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
+.homebtn { margin-left: auto; color: var(--accent); }
+.head h1 + .homebtn { margin-left: auto; }
 .back { width: 72px; height: 72px; border-radius: 36px; background: var(--card); display: flex; align-items: center; justify-content: center; flex: none; }
 .back:active, .big:active, .room:active, .chipbtn:active, .pill:active, .round:active, .mode:active, .sw:active { transform: scale(.97); }
 .pill { border-radius: 999px; background: var(--card); font-size: 24px; font-weight: 800; padding: 20px 30px; flex: none; text-align: center; }
@@ -615,6 +664,9 @@ ha-icon { display: flex; }
 .lgrid .room { grid-column: span 2; padding: 20px; gap: 18px; border-radius: 26px; }
 .lgrid .room.guard { grid-column: span 3; flex-direction: row; align-items: center; gap: 14px; text-align: left; }
 .lgrid .room.inline { grid-column: 1 / -1; }
+.lgrid .room.quick { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 18px; }
+.lgrid .room.quick .row { flex: 1; min-width: 0; flex-direction: row !important; align-items: center !important; gap: 16px !important; }
+.lgrid .room.quick .levels { flex: none; width: 52%; }
 /* stretch to fill the screen: rows share the spare height, cards centre their contents */
 .page.lights .scroll { display: flex; flex-direction: column; }
 .page.lights .lgrid { flex: 1; align-content: stretch; }
@@ -680,6 +732,15 @@ ha-icon { display: flex; }
 .card.noise.inroom .nbtns { grid-template-columns: 1fr 1fr; }
 .card.noise.inroom .nsl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+.eachgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.each { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 12px 16px; border-radius: 20px; background: var(--chip); }
+.each span { display: flex; flex-direction: column; min-width: 0; }
+.each b { font-size: 20px; font-weight: 800; }
+.each i { font-style: normal; font-size: 16px; font-weight: 700; color: var(--muted); }
+.each ha-icon { color: var(--muted); }
+.each.on { background: #f2b25c; color: #3a2410; }
+.each.on i, .each.on ha-icon { color: #3a2410; }
+.each:active { transform: scale(.96); }
 /* scene tiles */
 .scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .scene { min-height: 120px; border-radius: 24px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
@@ -723,6 +784,13 @@ ha-icon { display: flex; }
 .big2 { padding: 28px 0; border-radius: 24px; background: var(--chip); }
 @keyframes up { from { transform: translateY(100%); } }
 
+/* a phone held sideways: Home Board is upright only */
+.turn { display: none; }
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .turn { display: flex; position: fixed; inset: 0; z-index: 50; background: var(--bg); color: var(--ink); flex-direction: column; align-items: center; justify-content: center; gap: 14px; font-size: 20px; font-weight: 800; }
+  .turn ha-icon { --mdc-icon-size: 64px; color: var(--accent); }
+}
+
 /* phones: the same look at normal phone sizes */
 :host([narrow]) .page { padding: 10px 12px 16px; gap: 10px; }
 :host([narrow]) .scroll { margin: 0 -12px; padding: 0 12px 16px; }
@@ -763,6 +831,12 @@ ha-icon { display: flex; }
 :host([narrow]) .sl.mvol .knob { margin-left: -12px; }
 :host([narrow]) .sl[data-label] .val { left: auto; right: 12px; }
 :host(:not([full])[narrow]) .page.noise { min-height: calc(100dvh - var(--header-height, 56px)); }
+:host([narrow]) .eachgrid { grid-template-columns: 1fr 1fr; gap: 8px; }
+:host([narrow]) .each { min-height: 52px; padding: 8px 10px; gap: 8px; border-radius: 14px; }
+:host([narrow]) .each b { font-size: 14px; }
+:host([narrow]) .each i { font-size: 12px; }
+:host([narrow]) .each ha-icon { --mdc-icon-size: 22px !important; }
+:host([narrow]) .homebtn ha-icon { --mdc-icon-size: 26px !important; }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
@@ -771,6 +845,8 @@ ha-icon { display: flex; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) { flex-direction: row; align-items: center; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) .row { flex: 1; min-width: 0; flex-direction: row; align-items: center; gap: 10px; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) .levels { flex: none; width: 132px; }
+:host([narrow]) .lgrid .room.quick .levels { width: 200px; }
+:host([narrow]) .lgrid .room.quick .lvl { font-size: 13px; }
 :host(:not([full])[narrow]) .page.lights { min-height: calc(100dvh - var(--header-height, 56px)); }
 :host([narrow]) .lgrid .room.guard { grid-column: span 3; padding: 10px; gap: 8px; }
 :host([narrow]) .lgrid .ic.sm { width: 40px; height: 40px; }
