@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.6.0";
+  var VERSION = "1.6.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -280,7 +280,7 @@
         if (r.inline && (r.buttons || []).length) {   // colour buttons right on the Lights page
           h += '<div class="dots">' + r.buttons.map(function (b, k) {
             var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
-            return '<button class="dot" data-rbtn="' + k + '" data-room="' + i + '"><span class="sw" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></span><i>' + esc(b.name) + "</i></button>";
+            return '<button class="dot" data-rbtn="' + k + '" data-room="' + i + '" aria-label="' + esc(b.name) + '"><span class="sw" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></span></button>';
           }).join("") + "</div>";
         } else if (this._dimmable(main) && this._has(r.controls, "bri")) {   // quick levels, always in warm white
           var key = esc(main.join(","));
@@ -715,16 +715,20 @@ ha-icon { display: flex; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
 :host([narrow]) .lgrid { gap: 8px; }
-:host([narrow]) .lgrid .room { grid-column: 1 / -1; padding: 12px; gap: 10px; border-radius: 20px; }
+:host([narrow]) .lgrid .room { grid-column: 1 / -1; padding: 10px 12px; gap: 10px; border-radius: 18px; }
+:host([narrow]) .lgrid .room:not(.guard):not(.inline) { flex-direction: row; align-items: center; }
+:host([narrow]) .lgrid .room:not(.guard):not(.inline) .row { flex: 1; min-width: 0; align-items: center; }
+:host([narrow]) .lgrid .room:not(.guard):not(.inline) .levels { flex: none; width: 132px; }
+:host([narrow]) .lgrid .room:not(.guard) .words b, :host([narrow]) .lgrid .room:not(.guard) .words i { white-space: nowrap; }
 :host([narrow]) .lgrid .room.guard { grid-column: span 3; padding: 10px; gap: 8px; }
 :host([narrow]) .lgrid .ic.sm { width: 40px; height: 40px; }
 :host([narrow]) .lgrid .words b { font-size: 16px; }
 :host([narrow]) .lgrid .words i { font-size: 13px; }
 :host([narrow]) .lgrid .more { width: 18px; height: 40px; }
 :host([narrow]) .lvl { height: 40px; border-radius: 12px; font-size: 15px; }
-:host([narrow]) .dots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
+:host([narrow]) .dots { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 4px; }
 :host([narrow]) .dot { width: auto; gap: 4px; }
-:host([narrow]) .dot .sw { width: 46px; height: 46px; }
+:host([narrow]) .dot .sw { width: 36px; height: 36px; }
 :host([narrow]) .dot i { font-size: 11px; }
 :host([narrow]) .label { font-size: 11px; margin-top: 2px; }
 :host([narrow]) .sub { font-size: 14px; }
