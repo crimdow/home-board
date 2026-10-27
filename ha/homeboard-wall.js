@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.11.0";
+  var VERSION = "1.11.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -219,7 +219,9 @@
         var items = ((res.response || res).items || []);
         this._plists = items.map(function (x) {
           var img = x.image && (typeof x.image === "string" ? x.image : x.image.path || x.image.url);
-          return { name: x.name, uri: x.uri, image: img && /^https?:/.test(img) ? img : null };
+          // a home-network (http) picture only shows when the page itself is on the home network
+          var ok = img && (/^https:/.test(img) || (/^http:/.test(img) && location.protocol === "http:"));
+          return { name: x.name, uri: x.uri, image: ok ? img : null };
         });
       } catch (e) { this._plists = { error: "Couldn't load playlists: " + (e.message || e.code || e) }; }
       this._plistsAt = Date.now(); this._plLoading = false;
