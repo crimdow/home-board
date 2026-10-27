@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.4.0";
+  var VERSION = "1.4.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -294,7 +294,8 @@
       var h = '<div class="card light' + (whole ? " whole" : "") + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
         '<div class="row"><button class="ic" data-toggle="' + key + '" aria-label="Turn ' + esc(name) + ' on or off">' + icon(ic, 40) + "</button>" +
         '<button class="words" data-toggle="' + key + '"><b>' + esc(name) + "</b><i>" + esc(state) + "</i></button></div>";
-      var ct = this._supportsCt(ids) && this._has(controls, "ct"), col = this._supportsColor(ids) && this._has(controls, "color");
+      // the family keeps bulbs at their warmest: no warm-to-cool unless a light asks for "ct"
+      var ct = this._supportsCt(ids) && !!controls && controls.indexOf("ct") >= 0, col = this._supportsColor(ids) && this._has(controls, "color");
       if (this._dimmable(ids) && this._has(controls, "bri")) h += '<div class="label">Brightness</div>' + this._slider("bri", ids, bri);
       if (ct) h += '<div class="label">Warm to cool</div>' + this._slider("ct", ids, on ? this._temp(ids) : 35);
       if (col) h += '<div class="label">Color</div><div class="swatches">' + SWATCHES.map(function (c, i) {
