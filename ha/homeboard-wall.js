@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.9.1";
+  var VERSION = "1.9.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -334,14 +334,18 @@
       if (!r) { this._route = ["lights"]; return this._lightsPage(); }
       var lights = this._roomLights(r), main = this._roomMain(r), out = [];
       var whole = r.group ? [r.group] : r.main ? r.main : lights.map(function (l) { return l.entity; });
-      if (r.toggles) {   // a simple page: on/off toggles on top, colour circles below
-        out.push('<div class="card simple"><div class="levels t' + r.toggles.length + '">' + r.toggles.map((t) => {
-          var ton = this._onCount(this._members(t.ids).concat(t.ids)) > 0;
-          return '<button class="lvl tog' + (ton ? " on" : "") + '" data-toggle="' + esc(t.ids.join(",")) + '" data-full="1">' + (t.icon ? icon(t.icon, 30) : "") + "<span>" + esc(t.name) + "</span><i>" + (ton ? "On" : "Off") + "</i></button>";
-        }).join("") + "</div>" + ((r.buttons || []).length ? '<div class="dots big">' + r.buttons.map(function (b, k) {
+      if (r.toggles) {   // like the other rooms: a short list of on/off rows, then the colours
+        r.toggles.forEach((t) => {
+          var ton = this._onCount(this._members(t.ids).concat(t.ids)) > 0, key = esc(t.ids.join(","));
+          out.push('<div class="card light' + (ton ? " lit" : "") + '"><div class="row">' +
+            '<button class="ic" data-toggle="' + key + '" data-full="1" aria-label="Turn ' + esc(t.name) + ' on or off">' + icon(t.icon || "mdi:lightbulb", 40) + "</button>" +
+            '<button class="words" data-toggle="' + key + '" data-full="1"><b>' + esc(t.name) + "</b><i>" + (ton ? "On" : "Off") + "</i></button>" +
+            '<button class="switch' + (ton ? " on" : "") + '" data-toggle="' + key + '" data-full="1" aria-label="' + esc(t.name) + '"><span></span></button></div></div>');
+        });
+        if ((r.buttons || []).length) out.push('<div class="card"><div class="label">Color</div><div class="swatches">' + r.buttons.map(function (b, k) {
           var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
-          return '<button class="dot" data-rbtn="' + k + '" aria-label="' + esc(b.name) + '"><span class="sw" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></span></button>';
-        }).join("") + "</div>" : "") + "</div>");
+          return '<button class="sw" data-rbtn="' + k + '" aria-label="' + esc(b.name) + '" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></button>';
+        }).join("") + "</div></div>");
         return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
       }
       if (lights.length > 1 || r.group || r.main) out.push(this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls, !!r.quick));
@@ -752,6 +756,11 @@ ha-icon { display: flex; }
 .each.on { background: #f2b25c; color: #3a2410; }
 .each.on i, .each.on ha-icon { color: #3a2410; }
 .each:active { transform: scale(.96); }
+/* on/off switch */
+.switch { width: 96px; height: 56px; border-radius: 28px; background: var(--chip); position: relative; flex: none; transition: background .2s; }
+.switch span { position: absolute; top: 6px; left: 6px; width: 44px; height: 44px; border-radius: 22px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: left .2s; }
+.switch.on { background: #f2b25c; }
+.switch.on span { left: 46px; }
 /* simple page (Outside) */
 .card.simple { gap: 28px; padding: 28px; }
 .levels.t3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -863,6 +872,9 @@ ha-icon { display: flex; }
 :host([narrow]) .lvl.tog i { font-size: 12px; }
 :host([narrow]) .dots.big { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 8px; }
 :host([narrow]) .dots.big .sw { width: 60px; height: 60px; }
+:host([narrow]) .switch { width: 60px; height: 36px; border-radius: 18px; }
+:host([narrow]) .switch span { top: 4px; left: 4px; width: 28px; height: 28px; border-radius: 14px; }
+:host([narrow]) .switch.on span { left: 28px; }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
