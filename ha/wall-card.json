@@ -292,34 +292,16 @@
       ]
     },
     {
-      "name": "Primary Bedroom",
+      "name": "Primary",
       "icon": "mdi:bed-king",
       "player": "media_player.primary_bedroom_media_player",
       "light": "light.primary_bedroom_light",
       "buttons": [
         {
-          "name": "White noise",
+          "name": "Brown noise",
           "icon": "mdi:waveform",
-          "action": "scene.turn_on",
-          "data": {
-            "entity_id": "scene.primary_bedroom_white_noise"
-          }
-        },
-        {
-          "name": "Rain",
-          "icon": "mdi:weather-rainy",
-          "action": "scene.turn_on",
-          "data": {
-            "entity_id": "scene.primary_bedroom_rain"
-          }
-        },
-        {
-          "name": "Goodnight",
-          "icon": "mdi:star-crescent",
-          "action": "scene.turn_on",
-          "data": {
-            "entity_id": "scene.primary_bedroom_goodnight_starlight"
-          }
+          "hatch": "media_player.primary_bedroom_media_player",
+          "sound": "BrownNoise"
         },
         {
           "name": "Off",

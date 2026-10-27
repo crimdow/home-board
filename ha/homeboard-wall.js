@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.6.3";
+  var VERSION = "1.7.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -334,10 +334,15 @@
       }).join("") + "</div>";
       return h + "</div>";
     }
-    _slider(kind, ids, val) {
-      return '<div class="sl ' + kind + '" data-sl="' + kind + '" data-ids="' + esc(ids.join(",")) + '" data-v="' + val + '">' +
+    _slider(kind, ids, val, label) {
+      var showVal = kind === "bri" || label;
+      return '<div class="sl ' + kind + '" data-sl="' + kind + '" data-ids="' + esc(ids.join(",")) + '" data-v="' + val + '"' + (label ? ' data-label="' + esc(label) + '"' : "") + ">" +
         '<div class="fill" style="width:' + (kind === "ct" ? 100 : val) + '%"></div><div class="knob" style="left:' + val + '%"></div>' +
-        (kind === "bri" ? '<span class="val">' + (val ? val + "%" : "Off") + "</span>" : "") + "</div>";
+        (showVal ? '<span class="val">' + this._valText(kind, val, label) + "</span>" : "") + "</div>";
+    }
+    _valText(kind, v, label) {
+      var t = kind === "bri" ? (v ? v + "%" : "Off") : v + "%";
+      return label ? label + " · " + t : t;
     }
 
     /* Thermostat */
@@ -415,19 +420,20 @@
     }
 
     /* White noise */
-    _noisePage() {
+    _noisePage() {   // one screen: each bedroom's Hatch side by side (stacked on a phone)
       var out = (this._config.noise || []).map((n, i) => {
         var p = this._s(n.player), playing = p && p.state === "playing";
-        var h = '<div class="card noise' + (playing ? " playing" : "") + '"><div class="row"><span class="ic" style="background:' + (playing ? C.violet : "var(--chip)") + ";color:" + (playing ? "#fff" : C.violet) + '">' + icon(n.icon || "mdi:bed", 40) + "</span>" +
-          '<span class="words"><b>' + esc(n.name) + "</b><i>" + (playing ? "Playing" + (p.attributes.media_title ? " · " + esc(p.attributes.media_title) : "") : "Off") + "</i></span></div>" +
-          '<div class="btns">' + (n.buttons || []).map(function (b, j) {
-            return '<button class="chipbtn' + (b.off ? " off" : "") + '" data-noise="' + i + "/" + j + '">' + (b.icon ? icon(b.icon, 30) : "") + "<span>" + esc(b.name) + "</span></button>";
-          }).join("") + "</div>";
-        if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += '<div class="label">Volume</div>' + this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100)); } }
-        if (n.light && this._s(n.light)) h += '<div class="label">Light</div>' + this._slider("bri", [n.light], this._bri([n.light]));
-        return h + "</div>";
+        var h = '<div class="card noise' + (playing ? " playing" : "") + '"><div class="row"><span class="ic" style="background:' + (playing ? C.violet : "var(--chip)") + ";color:" + (playing ? "#fff" : C.violet) + '">' + icon(n.icon || "mdi:bed", 36) + "</span>" +
+          '<span class="words"><b>' + esc(n.name) + "</b><i>" + (playing ? "Playing" : "Off") + "</i></span></div>" +
+          '<div class="nbtns">' + (n.buttons || []).map(function (b, j) {
+            return '<button class="chipbtn' + (b.off ? " off" : "") + '" data-noise="' + i + "/" + j + '">' + (b.icon ? icon(b.icon, 28) : "") + "<span>" + esc(b.name) + "</span></button>";
+          }).join("") + "</div><div class=\"nsl\">";
+        if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100), "Volume"); } }
+        else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "Volume");
+        if (n.light && this._s(n.light)) h += this._slider("bri", [n.light], this._bri([n.light]), "Light");
+        return h + "</div></div>";
       });
-      return '<div class="page">' + this._head("White noise", "home") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
+      return '<div class="page noise">' + this._head("White noise", "home") + '<div class="scroll"><div class="ngrid">' + out.join("") + "</div></div></div>";
     }
 
     /* bottom sheet (garage confirm) */
@@ -459,7 +465,7 @@
       var v = Math.round(clamp((clientX - r.left) / r.width * 100, 0, 100));
       d.v = v;
       if (d.kind !== "ct") d.el.querySelector(".fill").style.width = v + "%";
-      if (d.kind === "bri") { var t = d.el.querySelector(".val"); if (t) t.textContent = v ? v + "%" : "Off"; }
+      var t = d.el.querySelector(".val"); if (t) t.textContent = this._valText(d.kind, v, d.el.dataset.label);
       d.el.querySelector(".knob").style.left = v + "%";
       var now = Date.now();
       if (final || now - d.sent > 450) { d.sent = now; this._send(d.kind, d.ids, v); }
@@ -475,6 +481,8 @@
       } else if (kind === "hue") {
         var col = ids.filter((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).some(function (m) { return COLOR_MODES.indexOf(m) >= 0; }); });
         this._call("light", "turn_on", { entity_id: col.length ? col : ids, hs_color: [Math.round(v * 3.6) % 360, 100] });
+      } else if (kind === "mvol") {
+        this._call("media_player", "volume_set", { entity_id: ids[0], volume_level: Math.round(v) / 100 });
       } else if (kind === "num") {
         var s = this._s(ids[0]), mn = +s.attributes.min || 0, mx = +s.attributes.max || 100, step = +s.attributes.step || 1;
         this._call("input_number", "set_value", { entity_id: ids[0], value: Math.round((mn + (mx - mn) * v / 100) / step) * step });
@@ -533,6 +541,11 @@
     }
     _doAction(b) {
       if (!b) return;
+      if (b.hatch) {   // start a Hatch sound straight from here: pick the sound, then play
+        this._call("media_player", "select_sound_mode", { entity_id: b.hatch, sound_mode: b.sound || "BrownNoise" });
+        setTimeout(() => this._call("media_player", "media_play", { entity_id: b.hatch }), 2000);
+        return;
+      }
       var sv = (b.action || b.service || "").split(".");
       var data = Object.assign({}, b.data || {});
       if (b.target) Object.assign(data, b.target);
@@ -624,7 +637,9 @@ ha-icon { display: flex; }
 .sl { position: relative; height: 72px; border-radius: 22px; background: var(--chip); overflow: hidden; touch-action: none; cursor: pointer; }
 .sl .fill { position: absolute; inset: 0 auto 0 0; background: var(--glow, #f2b25c); border-radius: 22px 0 0 22px; }
 .sl.bri .fill { background: linear-gradient(90deg, color-mix(in srgb, var(--glow, #f2b25c) 70%, var(--chip)), var(--glow, #f2b25c)); }
-.sl.num .fill { background: ${C.violet}; }
+.sl.num .fill, .sl.mvol .fill { background: ${C.violet}; }
+.sl.mvol .knob { margin-left: -18px; }
+.sl[data-label] .val { left: auto; right: 18px; }
 .sl.ct { background: linear-gradient(90deg, #ff9d3d, #ffe6c2 45%, #f4f7ff 70%, #bcd6ff); }
 .sl.ct .fill, .sl.hue .fill { display: none; }
 .sl.hue { background: linear-gradient(90deg, #ff3b30, #ff9500, #ffd60a, #34c759, #00c7be, #0a84ff, #5e5ce6, #bf5af2, #ff2d55, #ff3b30); }
@@ -642,6 +657,15 @@ ha-icon { display: flex; }
 .chipbtn { min-height: 80px; border-radius: 24px; background: var(--chip); display: flex; align-items: center; gap: 10px; padding: 12px 18px; font-size: 22px; font-weight: 800; }
 .chipbtn ha-icon { color: ${C.violet}; }
 .chipbtn.off ha-icon { color: var(--muted); }
+
+/* White noise: three Hatches side by side, filling the screen */
+.page.noise .scroll { display: flex; flex-direction: column; }
+.ngrid { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.card.noise { justify-content: space-evenly; gap: 16px; }
+.card.noise .words b { white-space: normal; }
+.nbtns { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.nbtns .chipbtn { min-height: 72px; }
+.nsl { display: flex; flex-direction: column; gap: 12px; }
 
 /* scene tiles */
 .scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
@@ -717,6 +741,14 @@ ha-icon { display: flex; }
 :host([narrow]) .words i { font-size: 13px; }
 :host([narrow]) .more { width: 24px; height: 40px; }
 :host([narrow]) .more ha-icon { --mdc-icon-size: 24px !important; }
+:host([narrow]) .ngrid { grid-template-columns: 1fr; gap: 10px; }
+:host([narrow]) .card.noise { gap: 8px; padding: 12px; }
+:host([narrow]) .card.noise .row { gap: 10px; }
+:host([narrow]) .nbtns { grid-template-columns: 1fr 1fr; gap: 8px; }
+:host([narrow]) .nbtns .chipbtn { min-height: 42px; }
+:host([narrow]) .nsl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+:host([narrow]) .sl.mvol .knob { margin-left: -12px; }
+:host(:not([full])[narrow]) .page.noise { min-height: calc(100dvh - var(--header-height, 56px)); }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
