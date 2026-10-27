@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.7.0";
+  var VERSION = "1.8.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -295,6 +295,13 @@
       return '<div class="page lights">' + this._head("Lights", "home", anyOn ? '<button class="pill" data-alloff="1">All off</button>' : "") +
         '<div class="scroll"><div class="lgrid">' + cards.join("") + "</div></div></div>";
     }
+    _levels(ids, on, bri) {   // 25% / 100% buttons, always in warm white
+      var key = esc(ids.join(","));
+      return '<div class="levels">' + [25, 100].map(function (lv) {
+        var cur = on && (lv === 25 ? bri < 63 : bri >= 63);
+        return '<button class="lvl' + (cur ? " on" : "") + '" data-level="' + lv + '" data-ids="' + key + '">' + lv + "%</button>";
+      }).join("") + "</div>";
+    }
     _warm(ids, extra) {   // turn lights on at their warmest white (lights without whites just get the brightness)
       var ct = [], rest = [];
       ids.forEach((id) => { var s = this._s(id); ((s && (s.attributes.supported_color_modes || []).indexOf("color_temp") >= 0) ? ct : rest).push(id); });
@@ -314,6 +321,8 @@
         var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
         return '<button class="scene' + (b.dark_text ? " darktext" : "") + '" data-rbtn="' + i + '" style="--c1:' + c[0] + ";--c2:" + c[1] + '">' + (b.icon ? icon(b.icon, 34) : "") + "<span>" + esc(b.name) + "</span></button>";
       }).join("") + "</div></div>");
+      var ni = (this._config.noise || []).findIndex(function (n) { return n.name === r.noise; });
+      if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
     _lightCard(name, ic, ids, whole, controls) {   // controls: which of "bri", "ct", "color" to show (all by default)
@@ -324,7 +333,8 @@
         '<button class="words" data-toggle="' + key + '"><b>' + esc(name) + "</b><i>" + esc(state) + "</i></button></div>";
       // the family keeps bulbs at their warmest: no warm-to-cool unless a light asks for "ct"
       var ct = this._supportsCt(ids) && !!controls && controls.indexOf("ct") >= 0, col = this._supportsColor(ids) && this._has(controls, "color");
-      if (this._dimmable(ids) && this._has(controls, "bri")) h += '<div class="label">Brightness</div>' + this._slider("bri", ids, bri);
+      if (this._dimmable(ids) && controls && controls.indexOf("levels") >= 0) h += '<div class="label">Brightness</div>' + this._levels(ids, on, bri);
+      else if (this._dimmable(ids) && this._has(controls, "bri")) h += '<div class="label">Brightness</div>' + this._slider("bri", ids, bri);
       if (ct) h += '<div class="label">Warm to cool</div>' + this._slider("ct", ids, on ? this._temp(ids) : 35);
       if (col) h += '<div class="label">Color</div><div class="swatches">' + SWATCHES.map(function (c, i) {
         return '<button class="sw" data-swatch="' + i + '" data-ids="' + key + '" aria-label="' + c.name + '" style="--c1:' + c.c[0] + ";--c2:" + c.c[1] + '"></button>';
@@ -421,10 +431,13 @@
 
     /* White noise */
     _noisePage() {   // one screen: each bedroom's Hatch side by side (stacked on a phone)
-      var out = (this._config.noise || []).map((n, i) => {
+      var out = (this._config.noise || []).map((n, i) => this._noiseCard(n, i));
+      return '<div class="page noise">' + this._head("White noise", "home") + '<div class="scroll"><div class="ngrid">' + out.join("") + "</div></div></div>";
+    }
+    _noiseCard(n, i, title) {
         var p = this._s(n.player), playing = p && p.state === "playing";
-        var h = '<div class="card noise' + (playing ? " playing" : "") + '"><div class="row"><span class="ic" style="background:' + (playing ? C.violet : "var(--chip)") + ";color:" + (playing ? "#fff" : C.violet) + '">' + icon(n.icon || "mdi:bed", 36) + "</span>" +
-          '<span class="words"><b>' + esc(n.name) + "</b><i>" + (playing ? "Playing" : "Off") + "</i></span></div>" +
+        var h = '<div class="card noise' + (playing ? " playing" : "") + '"><div class="row"><span class="ic" style="background:' + (playing ? C.violet : "var(--chip)") + ";color:" + (playing ? "#fff" : C.violet) + '">' + icon(title ? "mdi:waveform" : n.icon || "mdi:bed", 36) + "</span>" +
+          '<span class="words"><b>' + esc(title || n.name) + "</b><i>" + (playing ? "Playing" : "Off") + "</i></span></div>" +
           '<div class="nbtns">' + (n.buttons || []).map(function (b, j) {
             return '<button class="chipbtn' + (b.off ? " off" : "") + '" data-noise="' + i + "/" + j + '">' + (b.icon ? icon(b.icon, 28) : "") + "<span>" + esc(b.name) + "</span></button>";
           }).join("") + "</div><div class=\"nsl\">";
@@ -432,8 +445,6 @@
         else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "Volume");
         if (n.light && this._s(n.light)) h += this._slider("bri", [n.light], this._bri([n.light]), "Light");
         return h + "</div></div>";
-      });
-      return '<div class="page noise">' + this._head("White noise", "home") + '<div class="scroll"><div class="ngrid">' + out.join("") + "</div></div></div>";
     }
 
     /* bottom sheet (garage confirm) */
@@ -666,6 +677,8 @@ ha-icon { display: flex; }
 .nbtns { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .nbtns .chipbtn { min-height: 72px; }
 .nsl { display: flex; flex-direction: column; gap: 12px; }
+.card.noise.inroom .nbtns { grid-template-columns: 1fr 1fr; }
+.card.noise.inroom .nsl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* scene tiles */
 .scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
@@ -748,6 +761,7 @@ ha-icon { display: flex; }
 :host([narrow]) .nbtns .chipbtn { min-height: 42px; }
 :host([narrow]) .nsl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 :host([narrow]) .sl.mvol .knob { margin-left: -12px; }
+:host([narrow]) .sl[data-label] .val { left: auto; right: 12px; }
 :host(:not([full])[narrow]) .page.noise { min-height: calc(100dvh - var(--header-height, 56px)); }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }

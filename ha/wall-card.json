@@ -58,10 +58,15 @@
         {
           "entity": "light.stellas_lamp",
           "name": "Lamp",
-          "icon": "mdi:lamp"
+          "icon": "mdi:lamp",
+          "controls": [
+            "levels",
+            "color"
+          ]
         }
       ],
-      "guard": true
+      "guard": true,
+      "noise": "Stella"
     },
     {
       "name": "Evie’s Room",
@@ -70,10 +75,15 @@
         {
           "entity": "light.evies_room",
           "name": "Lamp",
-          "icon": "mdi:lamp"
+          "icon": "mdi:lamp",
+          "controls": [
+            "levels",
+            "color"
+          ]
         }
       ],
-      "guard": true
+      "guard": true,
+      "noise": "Evie"
     },
     {
       "name": "Outside",
