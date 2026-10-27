@@ -98,7 +98,7 @@
       ],
       "quick": [
         {
-          "name": "Flood",
+          "name": "Flood light",
           "ids": [
             "light.front_yard_front_flood_lights"
           ]
@@ -198,22 +198,6 @@
           }
         },
         {
-          "name": "Blue",
-          "icon": "mdi:snowflake",
-          "colors": [
-            "#36a3ff",
-            "#0047ff"
-          ],
-          "action": "script.outside_lights_color",
-          "data": {
-            "color": [
-              0,
-              80,
-              255
-            ]
-          }
-        },
-        {
           "name": "Green",
           "icon": "mdi:clover",
           "colors": [
@@ -264,13 +248,9 @@
       ],
       "toggles": [
         {
-          "name": "All",
-          "icon": "mdi:home-lightbulb",
+          "name": "Flood light",
+          "icon": "mdi:light-flood-down",
           "ids": [
-            "light.outside_accent_lights",
-            "light.lamp_post",
-            "light.deck_slider_door",
-            "light.laundry_room_door",
             "light.front_yard_front_flood_lights"
           ]
         },
@@ -281,14 +261,11 @@
             "light.deck_slider_door",
             "light.laundry_room_door"
           ]
-        },
-        {
-          "name": "Flood",
-          "icon": "mdi:light-flood-down",
-          "ids": [
-            "light.front_yard_front_flood_lights"
-          ]
         }
+      ],
+      "levels": [
+        50,
+        100
       ]
     }
   ],
