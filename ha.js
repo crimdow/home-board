@@ -14,6 +14,8 @@ HB.register("ha", {
 #pg-ha .ha-frame { flex: 1; min-height: 0; border: 0; width: 100%; border-radius: 22px; background: var(--sheet); }
 /* on the wall the Home Board card fills the frame: no rounded clip, which made Chromium draw the frame soft */
 :root.panel #pg-ha .ha-frame { border-radius: 0; background: transparent; }
+/* home-screen app on a phone: other pages' headers sit lower (clear of the status bar), so the Wall's header lines up with them */
+@media (display-mode: standalone) { :root:not(.panel) #pg-ha .ha-frame { margin-top: 12px; } }
 #pg-ha .ha-msg { margin: auto; max-width: 560px; text-align: center; color: var(--muted); font-size: 16px; font-weight: 600; line-height: 1.5; padding: 40px 16px; }
 #pg-ha .ha-msg b { display: block; color: var(--ink); font-size: 24px; font-weight: 800; margin-bottom: 8px; }
 :root.panel #pg-ha .ha-msg { font-size: 20px; }
