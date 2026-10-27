@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.1.1";
+  var VERSION = "1.2.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -101,11 +101,17 @@
       if (r.main) return r.main;
       return this._roomLights(r).map(function (l) { return l.entity; });
     }
-    _allLights() {
-      var out = [];
-      this._rooms().forEach((r) => this._roomLights(r).forEach(function (l) { if (out.indexOf(l.entity) < 0) out.push(l.entity); }));
+    _roomIds(r) {   // every light in a room: its main lights plus the listed ones
+      var out = (r.main || []).slice();
+      this._roomLights(r).forEach(function (l) { if (out.indexOf(l.entity) < 0) out.push(l.entity); });
       return out;
     }
+    _allLights() {
+      var out = [];
+      this._rooms().forEach((r) => this._roomIds(r).forEach(function (id) { if (out.indexOf(id) < 0) out.push(id); }));
+      return out;
+    }
+    _has(controls, k) { return !controls || controls.indexOf(k) >= 0; }
     _supportsCt(ids) { return ids.some((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).indexOf("color_temp") >= 0; }); }
     _supportsColor(ids) { return ids.some((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).some(function (m) { return COLOR_MODES.indexOf(m) >= 0; }); }); }
     _dimmable(ids) { return ids.some((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).some(function (m) { return m !== "onoff"; }); }); }
@@ -121,6 +127,10 @@
         if (k) return Math.round((k - lo) / (hi - lo) * 100);
       }
       return 35;
+    }
+    _hue(ids) {   // 0-100 along the rainbow
+      for (var i = 0; i < ids.length; i++) { var s = this._s(ids[i]); if (s && s.state === "on" && s.attributes.hs_color && s.attributes.color_mode !== "color_temp") return Math.round(s.attributes.hs_color[0] / 3.6); }
+      return 0;
     }
     _ctRange(ids) {
       var lo = 2000, hi = 6500, found = false;
@@ -205,7 +215,7 @@
     _homePage() {
       var c = this._config, tiles = [];
       // Lights
-      var all = this._allLights(), n = this._onCount(all), rooms = this._rooms().filter((r) => this._onCount(this._roomLights(r).map(function (l) { return l.entity; })) > 0).length;
+      var all = this._allLights(), n = this._onCount(all), rooms = this._rooms().filter((r) => this._onCount(this._roomIds(r)) > 0).length;
       tiles.push(this._bigTile("lights", "Lights", n ? n + " on in " + rooms + (rooms === 1 ? " room" : " rooms") : "All off", "mdi:lightbulb-group", C.amber, n > 0));
       // Thermostat
       if (c.thermostat) { var t = this._thermoWords(); tiles.push(this._bigTile("thermostat", "Thermostat", t.line, "mdi:thermostat", t.color, t.active, t.big)); }
@@ -246,14 +256,14 @@
     /* Lights: every room with its own slider */
     _lightsPage() {
       var cards = this._rooms().map((r, i) => {
-        var ids = this._roomLights(r).map(function (l) { return l.entity; }), main = this._roomMain(r);
+        var ids = this._roomIds(r), main = this._roomMain(r);
         var on = this._onCount(ids), bri = this._bri(main), glow = this._glow(main.concat(ids));
         var state = on ? (this._dimmable(main) && this._bri(main) ? bri + "%" : "On") + (ids.length > 1 && on < ids.length ? " · " + on + " of " + ids.length + " on" : "") : "Off";
         return '<div class="room' + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
           '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '" aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
           '<button class="words" data-go="room/' + i + '"><b>' + esc(r.name) + "</b><i>" + esc(state) + "</i></button>" +
           '<button class="more" data-go="room/' + i + '" aria-label="Open ' + esc(r.name) + '">' + icon("mdi:chevron-right", 34) + "</button></div>" +
-          (this._dimmable(main) ? this._slider("bri", main, bri) : "") + "</div>";
+          (this._dimmable(main) && this._has(r.controls, "bri") ? this._slider("bri", main, bri) : "") + "</div>";
       });
       var anyOn = this._onCount(this._allLights()) > 0;
       return '<div class="page">' + this._head("Lights", "home", anyOn ? '<button class="pill" data-alloff="1">All off</button>' : "") +
@@ -264,26 +274,27 @@
     _roomPage(r) {
       if (!r) { this._route = ["lights"]; return this._lightsPage(); }
       var lights = this._roomLights(r), main = this._roomMain(r), out = [];
-      var whole = r.group ? [r.group] : lights.map(function (l) { return l.entity; });
-      if (lights.length > 1 || r.group) out.push(this._lightCard("Whole room", r.icon || "mdi:lightbulb-group", whole, true));
-      lights.forEach((l) => { var s = this._s(l.entity); out.push(this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false)); });
+      var whole = r.group ? [r.group] : r.main ? r.main : lights.map(function (l) { return l.entity; });
+      if (lights.length > 1 || r.group || r.main) out.push(this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls));
+      lights.forEach((l) => { var s = this._s(l.entity); out.push(this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls)); });
       (r.buttons || []).length && out.push('<div class="card"><div class="label">Scenes</div><div class="btns">' + r.buttons.map(function (b, i) {
         return '<button class="chipbtn" data-rbtn="' + i + '">' + (b.icon ? icon(b.icon, 30) : "") + "<span>" + esc(b.name) + "</span></button>";
       }).join("") + "</div></div>");
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
-    _lightCard(name, ic, ids, whole) {
+    _lightCard(name, ic, ids, whole, controls) {   // controls: which of "bri", "ct", "color" to show (all by default)
       var on = this._onCount(ids), bri = this._bri(ids), glow = this._glow(ids), key = esc(ids.join(","));
       var state = on ? (this._dimmable(ids) ? bri + "%" : "On") : "Off";
       var h = '<div class="card light' + (whole ? " whole" : "") + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
         '<div class="row"><button class="ic" data-toggle="' + key + '" aria-label="Turn ' + esc(name) + ' on or off">' + icon(ic, 40) + "</button>" +
         '<button class="words" data-toggle="' + key + '"><b>' + esc(name) + "</b><i>" + esc(state) + "</i></button></div>";
-      if (this._dimmable(ids)) h += '<div class="label">Brightness</div>' + this._slider("bri", ids, bri);
-      if (this._supportsCt(ids)) h += '<div class="label">Warm to cool</div>' + this._slider("ct", ids, on ? this._temp(ids) : 35);
-      if (this._supportsColor(ids)) h += '<div class="label">Color</div><div class="swatches">' + SWATCHES.map(function (c, i) {
+      var ct = this._supportsCt(ids) && this._has(controls, "ct"), col = this._supportsColor(ids) && this._has(controls, "color");
+      if (this._dimmable(ids) && this._has(controls, "bri")) h += '<div class="label">Brightness</div>' + this._slider("bri", ids, bri);
+      if (ct) h += '<div class="label">Warm to cool</div>' + this._slider("ct", ids, on ? this._temp(ids) : 35);
+      if (col) h += '<div class="label">Color</div>' + this._slider("hue", ids, this._hue(ids)) + '<div class="swatches">' + SWATCHES.map(function (c, i) {
         return '<button class="sw" data-swatch="' + i + '" data-ids="' + key + '" aria-label="' + c.name + '" style="background:' + c.hex + '"></button>';
       }).join("") + "</div>";
-      else if (this._supportsCt(ids)) h += '<div class="swatches">' + SWATCHES.slice(0, 2).map(function (c, i) {
+      else if (ct) h += '<div class="swatches">' + SWATCHES.slice(0, 2).map(function (c, i) {
         return '<button class="sw wide" data-swatch="' + i + '" data-ids="' + key + '" style="background:' + c.hex + '"><span>' + c.name + "</span></button>";
       }).join("") + "</div>";
       return h + "</div>";
@@ -426,6 +437,9 @@
         var rg = this._ctRange(ids), k = Math.round(rg[0] + (rg[1] - rg[0]) * v / 100);
         var ct = ids.filter((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).indexOf("color_temp") >= 0; });
         this._call("light", "turn_on", { entity_id: ct.length ? ct : ids, color_temp_kelvin: k });
+      } else if (kind === "hue") {
+        var col = ids.filter((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).some(function (m) { return COLOR_MODES.indexOf(m) >= 0; }); });
+        this._call("light", "turn_on", { entity_id: col.length ? col : ids, hs_color: [Math.round(v * 3.6) % 360, 100] });
       } else if (kind === "num") {
         var s = this._s(ids[0]), mn = +s.attributes.min || 0, mx = +s.attributes.max || 100, step = +s.attributes.step || 1;
         this._call("input_number", "set_value", { entity_id: ids[0], value: Math.round((mn + (mx - mn) * v / 100) / step) * step });
@@ -548,7 +562,8 @@ ha-icon { display: flex; }
 .sl.bri .fill { background: linear-gradient(90deg, color-mix(in srgb, var(--glow, #f2b25c) 70%, var(--chip)), var(--glow, #f2b25c)); }
 .sl.num .fill { background: ${C.violet}; }
 .sl.ct { background: linear-gradient(90deg, #ff9d3d, #ffe6c2 45%, #f4f7ff 70%, #bcd6ff); }
-.sl.ct .fill { display: none; }
+.sl.ct .fill, .sl.hue .fill { display: none; }
+.sl.hue { background: linear-gradient(90deg, #ff3b30, #ff9500, #ffd60a, #34c759, #00c7be, #0a84ff, #5e5ce6, #bf5af2, #ff2d55, #ff3b30); }
 .sl .knob { position: absolute; top: 12px; bottom: 12px; width: 10px; margin-left: -5px; border-radius: 5px; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.35); }
 .sl.bri .knob, .sl.num .knob { margin-left: -18px; }
 .sl .val { position: absolute; left: 20px; top: 0; bottom: 0; display: flex; align-items: center; font-size: 22px; font-weight: 800; color: var(--ink); mix-blend-mode: normal; pointer-events: none; }
