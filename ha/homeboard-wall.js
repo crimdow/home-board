@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.0.2";
+  var VERSION = "1.1.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -61,6 +61,10 @@
       this._full = window.top !== window || /[?&](kiosk|wall)\b/.test(location.search);
       this.toggleAttribute("full", this._full);
       if (!this._wired) this._wire();
+      if (!this._ro && window.ResizeObserver) {
+        this._ro = new ResizeObserver(() => { var n = this.clientWidth < 620; if (n !== this.hasAttribute("narrow")) this.toggleAttribute("narrow", n); });
+        this._ro.observe(this);
+      }
       // a wall panel left on a sub-page drifts home after a few minutes
       this._idle = setInterval(() => {
         if (this._route[0] !== "home" && Date.now() - (this._touched || 0) > 3 * 60000) { this._route = ["home"]; this._sig = ""; this._render(); }
@@ -150,13 +154,24 @@
 
     _paintLook() {
       var dark = this._hass && this._hass.themes ? !!this._hass.themes.darkMode : matchMedia("(prefers-color-scheme: dark)").matches;
-      var L = this._look || CLASSIC[dark ? "dark" : "light"];
+      var L = this._look || this._haLook() || CLASSIC[dark ? "dark" : "light"];
       var st = this.style;
       st.setProperty("--bg", L.bg); st.setProperty("--ink", L.ink); st.setProperty("--muted", L.muted);
       st.setProperty("--chip", L.chip); st.setProperty("--card", L.sheet); st.setProperty("--field", L.field || L.chip);
       st.setProperty("--accent", L.accent); st.setProperty("--on-accent", L.onAccent || "#fff");
       st.setProperty("--dim", mix(L.chip, L.ink, 0.12));
       this._dark = parseInt(L.bg.replace("#", "").substr(0, 2), 16) < 0x80;
+    }
+
+    // Colours from the Home Assistant theme (the Home Board themes in ha/homeboard-theme.yaml), used when
+    // Home Board itself isn't showing this page.
+    _haLook() {
+      var cs = getComputedStyle(this), v = function (k) { return cs.getPropertyValue(k).trim(); };
+      var bg = v("--primary-background-color"); if (!/^#[0-9a-f]{6}$/i.test(bg)) return null;
+      var hex = function (x, d) { return /^#[0-9a-f]{6}$/i.test(x) ? x : d; };
+      return { bg: bg, ink: hex(v("--primary-text-color"), "#2b2e33"), muted: hex(v("--secondary-text-color"), "#7a7f88"),
+        chip: hex(v("--secondary-background-color"), "#d5d7db"), sheet: hex(v("--card-background-color"), "#eeeff1"),
+        field: hex(v("--input-fill-color"), "#d9dbdf"), accent: hex(v("--primary-color"), "#4f7bd4"), onAccent: hex(v("--text-primary-color"), "#ffffff") };
     }
 
     /* ---------- drawing ---------- */
@@ -474,12 +489,13 @@
   var CSS = `
 :host { display: block; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
 :host([full]) { position: fixed; inset: 0; z-index: 10; background: var(--bg); }
-:host(:not([full])) { background: var(--bg); border-radius: 26px; min-height: 80vh; }
+:host(:not([full])) { position: relative; background: var(--bg); min-height: calc(100dvh - var(--header-height, 56px)); }
+:host(:not([full])) .shade { position: fixed; }
 * { box-sizing: border-box; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; touch-action: manipulation; }
 ha-icon { display: flex; }
 .page { height: 100%; display: flex; flex-direction: column; padding: 20px 22px 22px; gap: 16px; }
-:host(:not([full])) .page { min-height: 80vh; }
+:host(:not([full])) .page { min-height: calc(100dvh - var(--header-height, 56px)); }
 .head { display: flex; align-items: center; gap: 16px; min-height: 72px; flex: none; }
 .head h1 { margin: 0; flex: 1; font-size: 42px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
 .back { width: 72px; height: 72px; border-radius: 36px; background: var(--card); display: flex; align-items: center; justify-content: center; flex: none; }
@@ -576,6 +592,61 @@ ha-icon { display: flex; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
 .big2 { padding: 28px 0; border-radius: 24px; background: var(--chip); }
 @keyframes up { from { transform: translateY(100%); } }
+
+/* phones: same look, sized for a hand */
+:host([narrow]) .page { padding: 12px 14px 18px; gap: 12px; }
+:host([narrow]) .scroll { margin: 0 -14px; padding: 0 14px 18px; }
+:host([narrow]) .head { min-height: 56px; gap: 12px; }
+:host([narrow]) .head h1 { font-size: 30px; }
+:host([narrow]) .back { width: 52px; height: 52px; }
+:host([narrow]) .back ha-icon { --mdc-icon-size: 34px !important; }
+:host([narrow]) .pill { font-size: 18px; padding: 14px 20px; }
+:host([narrow]) .grid2 { gap: 12px; }
+:host([narrow]) .big { padding: 18px; border-radius: 26px; min-height: 170px; }
+:host([narrow]) .big .ic { width: 64px; height: 64px; }
+:host([narrow]) .big .ic ha-icon { --mdc-icon-size: 34px !important; }
+:host([narrow]) .big b { font-size: 24px; }
+:host([narrow]) .big i { font-size: 16px; }
+:host([narrow]) .bignum { top: 20px; right: 18px; font-size: 38px; letter-spacing: -1px; }
+:host([narrow]) .grid2:not(.fill) { grid-template-columns: 1fr; }
+:host([narrow]) .room { padding: 14px; gap: 12px; border-radius: 24px; }
+:host([narrow]) .card { padding: 16px; gap: 10px; border-radius: 24px; }
+:host([narrow]) .ic, :host([narrow]) .ic.sm { width: 52px; height: 52px; }
+:host([narrow]) .ic ha-icon { --mdc-icon-size: 28px !important; }
+:host([narrow]) .ic.xl { width: 84px; height: 84px; }
+:host([narrow]) .ic.xl ha-icon { --mdc-icon-size: 44px !important; }
+:host([narrow]) .words b { font-size: 21px; }
+:host([narrow]) .words i { font-size: 16px; }
+:host([narrow]) .more { width: 36px; height: 52px; }
+:host([narrow]) .label { font-size: 13px; }
+:host([narrow]) .sl { height: 56px; border-radius: 18px; }
+:host([narrow]) .sl .fill { border-radius: 18px 0 0 18px; }
+:host([narrow]) .sl .knob { top: 10px; bottom: 10px; }
+:host([narrow]) .sl .val { font-size: 18px; left: 16px; }
+:host([narrow]) .sw { width: 42px; height: 42px; }
+:host([narrow]) .sw.wide { height: 50px; font-size: 17px; }
+:host([narrow]) .swatches { gap: 8px; }
+:host([narrow]) .btns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+:host([narrow]) .chipbtn { min-height: 60px; font-size: 17px; border-radius: 18px; padding: 10px 14px; }
+:host([narrow]) .chipbtn ha-icon { --mdc-icon-size: 24px !important; }
+:host([narrow]) .thermo { flex-direction: column; align-items: stretch; }
+:host([narrow]) .now { min-width: 0; }
+:host([narrow]) .huge { font-size: 72px; }
+:host([narrow]) .status { font-size: 19px; }
+:host([narrow]) .setter { justify-content: space-between; }
+:host([narrow]) .round { width: 72px; height: 72px; font-size: 40px; }
+:host([narrow]) .setv b { font-size: 46px; }
+:host([narrow]) .mode { font-size: 17px; padding: 16px 0; }
+:host([narrow]) .modes { gap: 8px; }
+:host([narrow]) .hist { padding-left: 40px; height: 170px; }
+:host([narrow]) .hist svg, :host([narrow]) .hist .range { height: 120px; }
+:host([narrow]) .door { padding: 18px; gap: 14px; flex-wrap: wrap; }
+:host([narrow]) .door .doorstate { font-size: 28px; }
+:host([narrow]) .door .pill { flex-basis: 100%; padding: 18px 0; }
+:host([narrow]) .sheet { padding: 28px 20px 34px; }
+:host([narrow]) .sheet b { font-size: 26px; }
+:host([narrow]) .sheet i { font-size: 17px; }
+:host([narrow]) .big2 { padding: 20px 0; }
 @keyframes fade { from { opacity: 0; } }
 `;
 
