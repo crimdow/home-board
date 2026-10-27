@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.6.1";
+  var VERSION = "1.6.3";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -292,7 +292,7 @@
         return h + "</div>";
       });
       var anyOn = this._onCount(this._allLights()) > 0;
-      return '<div class="page">' + this._head("Lights", "home", anyOn ? '<button class="pill" data-alloff="1">All off</button>' : "") +
+      return '<div class="page lights">' + this._head("Lights", "home", anyOn ? '<button class="pill" data-alloff="1">All off</button>' : "") +
         '<div class="scroll"><div class="lgrid">' + cards.join("") + "</div></div></div>";
     }
     _warm(ids, extra) {   // turn lights on at their warmest white (lights without whites just get the brightness)
@@ -588,23 +588,29 @@ ha-icon { display: flex; }
 
 /* Lights page: three rooms a row, the kids' rooms two a row, Outside across */
 .lgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
-.lgrid .room { grid-column: span 2; padding: 16px; gap: 12px; border-radius: 24px; }
+.lgrid .room { grid-column: span 2; padding: 20px; gap: 18px; border-radius: 26px; }
 .lgrid .room.guard { grid-column: span 3; flex-direction: row; align-items: center; gap: 14px; text-align: left; }
 .lgrid .room.inline { grid-column: 1 / -1; }
-.lgrid .ic.sm { width: 56px; height: 56px; }
-.lgrid .words b { font-size: 23px; white-space: normal; }
-.lgrid .words i { font-size: 17px; white-space: normal; }
-.lgrid .room:not(.guard):not(.inline) .row { align-items: flex-start; }
+/* stretch to fill the screen: rows share the spare height, cards centre their contents */
+.page.lights .scroll { display: flex; flex-direction: column; }
+.page.lights .lgrid { flex: 1; align-content: stretch; }
+.lgrid .room { justify-content: center; }
+.lgrid .room.inline { justify-content: space-evenly; }
+.lgrid .ic.sm { width: 68px; height: 68px; }
+.lgrid .words b { font-size: 26px; white-space: normal; }
+.lgrid .words i { font-size: 18px; white-space: normal; }
+.lgrid .room:not(.guard):not(.inline) .row { flex-direction: column; align-items: flex-start; gap: 10px; }
+.lgrid .room:not(.guard):not(.inline) .words { width: 100%; }
 .lgrid .more { width: 30px; height: 56px; }
-.lpill { display: flex; align-items: center; gap: 8px; padding: 12px 20px; font-size: 18px; background: var(--chip); }
+.lpill { display: flex; align-items: center; gap: 8px; padding: 18px 26px; font-size: 21px; background: var(--chip); }
 .lpill.on { background: #f2b25c; color: #3a2410; }
 .levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.lvl { height: 52px; border-radius: 16px; background: var(--chip); font-size: 19px; font-weight: 800; text-align: center; }
+.lvl { height: 76px; border-radius: 20px; background: var(--chip); font-size: 24px; font-weight: 800; text-align: center; }
 .lvl.on { background: var(--glow, #f2b25c); color: #3a2410; }
 .lvl:active, .dot:active, .lpill:active { transform: scale(.95); }
 .dots { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
-.dot { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 78px; }
-.dot .sw { width: 58px; height: 58px; border-radius: 29px; }
+.dot { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 84px; }
+.dot .sw { width: 80px; height: 80px; border-radius: 40px; }
 .dot i { font-style: normal; font-size: 15px; font-weight: 800; color: var(--muted); white-space: nowrap; }
 
 /* cards */
@@ -717,9 +723,9 @@ ha-icon { display: flex; }
 :host([narrow]) .lgrid { gap: 8px; }
 :host([narrow]) .lgrid .room { grid-column: 1 / -1; padding: 10px 12px; gap: 10px; border-radius: 18px; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) { flex-direction: row; align-items: center; }
-:host([narrow]) .lgrid .room:not(.guard):not(.inline) .row { flex: 1; min-width: 0; align-items: center; }
+:host([narrow]) .lgrid .room:not(.guard):not(.inline) .row { flex: 1; min-width: 0; flex-direction: row; align-items: center; gap: 10px; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) .levels { flex: none; width: 132px; }
-:host([narrow]) .lgrid .room:not(.guard) .words b, :host([narrow]) .lgrid .room:not(.guard) .words i { white-space: nowrap; }
+:host(:not([full])[narrow]) .page.lights { min-height: calc(100dvh - var(--header-height, 56px)); }
 :host([narrow]) .lgrid .room.guard { grid-column: span 3; padding: 10px; gap: 8px; }
 :host([narrow]) .lgrid .ic.sm { width: 40px; height: 40px; }
 :host([narrow]) .lgrid .words b { font-size: 16px; }
