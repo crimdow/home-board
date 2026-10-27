@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.11.1";
+  var VERSION = "1.12.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -87,9 +87,30 @@
       this._paintLook();
     }
 
+    // Tell Home Board what the speakers are playing, so its screensaver can show it (title, artist, cover).
+    _tellNowPlaying() {
+      if (window.parent === window) return;
+      var sp = this._speakers().map((x) => this._s(x.entity)).filter((x) => x && (x.state === "playing" || x.state === "paused"));
+      var p = sp.find((x) => x.state === "playing") || null;
+      var a = p ? p.attributes : {};
+      var np = p ? { playing: true, title: a.media_title || "", artist: a.media_artist || "", album: a.media_album_name || "", speaker: a.friendly_name || "", pic: a.entity_picture || "" } : { playing: false };
+      var key = JSON.stringify(np);
+      if (key === this._npKey && Date.now() - (this._npAt || 0) < 30000) return;
+      this._npKey = key; this._npAt = Date.now();
+      var send = (art) => { try { window.parent.postMessage({ hb: "nowplaying", np: Object.assign({}, np, { art: art || "" }) }, "*"); } catch (e) {} };
+      if (!np.pic) return send("");
+      if (this._artFor === np.pic) return send(this._art);
+      // the cover is on this Home Assistant: hand it over as a picture Home Board can show
+      fetch(np.pic).then((r) => r.ok ? r.blob() : null).then((b) => {
+        if (!b) return send("");
+        var fr = new FileReader(); fr.onload = () => { this._artFor = np.pic; this._art = fr.result; send(fr.result); }; fr.readAsDataURL(b);
+      }).catch(() => send(""));
+    }
+
     set hass(hass) {
       var themeChanged = this._hass && hass.themes !== this._hass.themes;
       this._hass = hass;
+      if (this._config && this._config.music) this._tellNowPlaying();
       if (themeChanged) requestAnimationFrame(() => this._paintLook());
       if (!this.shadowRoot.firstChild) this._render();
       else this._maybeRender();
@@ -311,7 +332,7 @@
         tiles.push(this._bigTile("noise", "White noise", playing.length ? playing.join(" & ") + " on" : "All off", "mdi:waveform", C.violet, playing.length > 0));
       }
       // Music
-      if (c.music) {
+      if (c.music && c.music.tile !== false) {
         var sid = this._spotify(), sp = sid && this._s(sid), on = this._speakers().map((x) => this._s(x.entity)).filter((x) => x && x.state === "playing");
         var line = sp && sp.state === "playing" ? (sp.attributes.media_title || "Spotify playing") : on.length ? (on[0].attributes.media_title || on[0].attributes.friendly_name + " playing") : "Off";
         tiles.push(this._bigTile("music", "Music", line, "mdi:music", C.teal, (sp && sp.state === "playing") || on.length > 0));

@@ -359,9 +359,10 @@
     }
   ],
   "music": {
+    "tile": false,
     "speakers": [
       {
-        "entity": "media_player.kitchen_speaker_2",
+        "entity": "media_player.kitchen_speaker",
         "name": "Kitchen speaker"
       }
     ]

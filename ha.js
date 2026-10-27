@@ -66,8 +66,10 @@ HB.register("ha", {
     // swipes inside Home Assistant's Home page flip the wall panel's pages, like everywhere else on the panel
     window.addEventListener("message", function (e) {
       var f = root.querySelector("iframe");
-      if (!f || e.source !== f.contentWindow || !e.data || e.data.hb !== "swipe") return;
-      if (HB.panel && HB.panelSwipe) HB.panelSwipe(e.data.dir);
+      if (!f || e.source !== f.contentWindow || !e.data) return;
+      if (e.data.hb === "swipe") { if (HB.panel && HB.panelSwipe) HB.panelSwipe(e.data.dir); return; }
+      // what the speakers are playing, for the screensaver
+      if (e.data.hb === "nowplaying") { HB.nowPlaying = e.data.np || { playing: false }; document.dispatchEvent(new CustomEvent("hb-nowplaying")); }
     });
     HB.onFamily(render);
     render();
