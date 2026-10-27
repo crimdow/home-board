@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.9.5";
+  var VERSION = "1.10.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -160,8 +160,59 @@
       ((c.garage || {}).doors || []).forEach(function (d) { ids.push(d.entity); });
       if ((c.garage || {}).light) ids.push(c.garage.light);
       (c.noise || []).forEach(function (n) { ["player", "volume", "light"].forEach(function (k) { if (n[k]) ids.push(n[k]); }); });
+      this._speakers().forEach(function (sp) { ids.push(sp.entity); });
+      var sp = this._spotify(); if (sp) ids.push(sp);
       return ids;
     }
+    /* ---------- music ---------- */
+    _speakers() { return ((this._config.music || {}).speakers || []).map(function (x) { return typeof x === "string" ? { entity: x } : x; }); }
+    _spotify() {   // the Spotify account, once it's connected in Home Assistant (found by itself)
+      var m = this._config.music || {};
+      if (m.spotify) return m.spotify;
+      return this._hass ? Object.keys(this._hass.states).find(function (e) { return e.indexOf("media_player.spotify") === 0; }) : null;
+    }
+    _nowLine(s) {
+      var a = s.attributes;
+      if (s.state === "playing" || s.state === "paused") {
+        var t = [a.media_title, a.media_artist].filter(Boolean).join(" · ");
+        return (s.state === "paused" ? "Paused" : "Playing") + (t ? " · " + t : "");
+      }
+      return s.state === "unavailable" ? "Not reachable" : "Off";
+    }
+    _musicPage() {
+      var out = [], sid = this._spotify(), sp = sid && this._s(sid);
+      if (sp) {   // Spotify: what's playing, the controls, and which speaker it plays on
+        var a = sp.attributes, playing = sp.state === "playing";
+        var h = '<div class="card music spotify' + (playing ? " playing" : "") + '"><div class="row">' +
+          (a.entity_picture ? '<img class="art" src="' + esc(a.entity_picture) + '" alt="">' : '<span class="ic" style="background:#1db954;color:#fff">' + icon("mdi:spotify", 40) + "</span>") +
+          '<span class="words"><b>' + esc(a.media_title || "Spotify") + "</b><i>" + esc(a.media_artist || (sp.state === "idle" || sp.state === "off" ? "Nothing playing" : "")) + "</i></span></div>" +
+          this._transport(sid, playing);
+        var src = (a.source_list || []).slice(0, 8);
+        if (src.length) h += '<div class="label">Play on</div><div class="chips">' + src.map(function (n) {
+          return '<button class="chip' + (n === a.source ? " on" : "") + '" data-source="' + esc(n) + '" data-mp="' + esc(sid) + '">' + esc(n) + "</button>";
+        }).join("") + "</div>";
+        if (a.volume_level != null) h += this._slider("mvol", [sid], Math.round(a.volume_level * 100), "Volume");
+        out.push(h + "</div>");
+      } else {
+        out.push('<div class="card music"><div class="row"><span class="ic" style="background:#1db954;color:#fff">' + icon("mdi:spotify", 40) + '</span><span class="words"><b>Spotify</b><i>Not connected yet</i></span></div></div>');
+      }
+      this._speakers().forEach((spk) => {
+        var s = this._s(spk.entity); if (!s) return;
+        var a = s.attributes, playing = s.state === "playing";
+        out.push('<div class="card music' + (playing ? " playing" : "") + '"><div class="row"><span class="ic" style="background:' + (playing ? C.teal : "var(--chip)") + ";color:" + (playing ? "#fff" : C.teal) + '">' + icon(spk.icon || "mdi:speaker", 40) + "</span>" +
+          '<span class="words"><b>' + esc(spk.name || a.friendly_name) + "</b><i>" + esc(this._nowLine(s)) + "</i></span></div>" +
+          (s.state === "playing" || s.state === "paused" ? this._transport(spk.entity, playing) : "") +
+          (s.state !== "unavailable" ? this._slider("mvol", [spk.entity], Math.round((a.volume_level || 0) * 100), "Volume") : "") + "</div>");
+      });
+      return '<div class="page">' + this._head("Music", "home") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
+    }
+    _transport(id, playing) {
+      var e = esc(id);
+      return '<div class="transport"><button class="round" data-mpact="media_previous_track" data-mp="' + e + '" aria-label="Back">' + icon("mdi:skip-previous", 40) + "</button>" +
+        '<button class="round play" data-mpact="media_play_pause" data-mp="' + e + '" aria-label="' + (playing ? "Pause" : "Play") + '">' + icon(playing ? "mdi:pause" : "mdi:play", 48) + "</button>" +
+        '<button class="round" data-mpact="media_next_track" data-mp="' + e + '" aria-label="Next">' + icon("mdi:skip-next", 40) + "</button></div>";
+    }
+
     _maybeRender() {
       var sig = this._watched().map((id) => { var s = this._s(id); return s ? id + s.last_updated : id; }).join("|");
       if (sig === this._sig) return;
@@ -202,6 +253,7 @@
       else if (r[0] === "thermostat") body = this._thermoPage();
       else if (r[0] === "garage") body = this._garagePage();
       else if (r[0] === "noise") body = this._noisePage();
+      else if (r[0] === "music") body = this._musicPage();
       else body = this._homePage();
       var scroller = this.shadowRoot.querySelector(".scroll"), top = scroller && this._lastRoute === r.join("/") ? scroller.scrollTop : 0;
       this.shadowRoot.innerHTML = "<style>" + CSS + "</style>" + body + (this._sheet ? this._sheetHtml() : "") +
@@ -237,7 +289,13 @@
         var playing = c.noise.filter((x) => { var s = this._s(x.player); return s && s.state === "playing"; }).map(function (x) { return x.name; });
         tiles.push(this._bigTile("noise", "White noise", playing.length ? playing.join(" & ") + " on" : "All off", "mdi:waveform", C.violet, playing.length > 0));
       }
-      return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill">' + tiles.join("") + "</div></div>";
+      // Music
+      if (c.music) {
+        var sid = this._spotify(), sp = sid && this._s(sid), on = this._speakers().map((x) => this._s(x.entity)).filter((x) => x && x.state === "playing");
+        var line = sp && sp.state === "playing" ? (sp.attributes.media_title || "Spotify playing") : on.length ? (on[0].attributes.media_title || on[0].attributes.friendly_name + " playing") : "Off";
+        tiles.push(this._bigTile("music", "Music", line, "mdi:music", C.teal, (sp && sp.state === "playing") || on.length > 0));
+      }
+      return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div></div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
       return '<div role="button" tabindex="0" class="big' + (warn ? " warn" : "") + '" data-go="' + go + '">' +
@@ -573,6 +631,8 @@
         else this._call("light", "turn_on", { entity_id: ids });
         return;
       }
+      if (ds.mpact) { this._call("media_player", ds.mpact, { entity_id: ds.mp }); return; }
+      if (ds.source) { this._call("media_player", "select_source", { entity_id: ds.mp, source: ds.source }); return; }
       if (ds.level) { this._warm(ds.ids.split(","), { brightness_pct: +ds.level }); return; }
       if (ds.alloff) { this._call("light", "turn_off", { entity_id: this._allLights() }); return; }
       if (ds.swatch || ds.ctswatch) {
@@ -652,6 +712,17 @@ ha-icon { display: flex; }
 .scroll::-webkit-scrollbar { display: none; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .grid2.fill { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
+.grid2.fill.odd > :last-child { grid-column: 1 / -1; }
+
+/* Music */
+.art { width: 76px; height: 76px; border-radius: 18px; object-fit: cover; flex: none; }
+.transport { display: flex; justify-content: center; align-items: center; gap: 22px; }
+.transport .round { display: flex; align-items: center; justify-content: center; }
+.transport .round.play { width: 112px; height: 112px; border-radius: 56px; background: ${C.teal}; color: #fff; }
+.card.spotify .transport .round.play { background: #1db954; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { border-radius: 999px; background: var(--chip); padding: 16px 22px; font-size: 19px; font-weight: 800; }
+.chip.on { background: #1db954; color: #fff; }
 .stack { display: flex; flex-direction: column; gap: 18px; }
 
 /* Home */
@@ -881,6 +952,11 @@ ha-icon { display: flex; }
 :host([narrow]) .switch { width: 60px; height: 36px; border-radius: 18px; }
 :host([narrow]) .switch span { top: 4px; left: 4px; width: 28px; height: 28px; border-radius: 14px; }
 :host([narrow]) .switch.on span { left: 28px; }
+:host([narrow]) .art { width: 52px; height: 52px; border-radius: 12px; }
+:host([narrow]) .transport { gap: 14px; }
+:host([narrow]) .transport .round.play { width: 68px; height: 68px; }
+:host([narrow]) .transport ha-icon { --mdc-icon-size: 28px !important; }
+:host([narrow]) .chip { padding: 10px 14px; font-size: 14px; }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }

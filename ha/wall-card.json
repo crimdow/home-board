@@ -357,5 +357,14 @@
         }
       ]
     }
-  ]
+  ],
+  "music": {
+    "speakers": [
+      {
+        "entity": "media_player.kitchen_speaker",
+        "name": "Kitchen speaker",
+        "icon": "mdi:speaker"
+      }
+    ]
+  }
 }
