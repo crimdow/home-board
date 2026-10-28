@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.19.1";
+  var VERSION = "1.19.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -688,7 +688,9 @@
         var warn = ob && ob.state === "on" ? '<div class="warn">' + icon("mdi:alert", 30) + "<span>Something is blocking the door</span></div>" : "";
         var cam = d.camera && this._s(d.camera);
         h += '<div class="campane">' + warn;
-        if (cam && cam.attributes.entity_picture) h += '<img class="cam" data-cam="' + esc(d.camera) + '" src="' + esc(cam.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(d.name || "Garage") + ' camera">';
+        // the last picture that finished loading, so a redraw shows it at once instead of a blank while a new one loads
+        this._camSrc = this._camSrc || {};
+        if (cam && cam.attributes.entity_picture) h += '<img class="cam" data-cam="' + esc(d.camera) + '" src="' + esc(this._camSrc[d.camera] || cam.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(d.name || "Garage") + ' camera">';
         h += "</div>";
         if (!s) line = "Not installed yet";   // a bay whose opener isn't in yet: its camera and a place ready for it
         h += '<div class="row doorrow"><span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span>" + (d.light && this._s(d.light) ? '<button class="bulb' + (this._on(d.light) ? " on" : "") + '" data-toggle="' + esc(d.light) + '" aria-label="Garage light">' + icon(this._on(d.light) ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 32) + "</button>" : "") +
@@ -707,8 +709,17 @@
       clearInterval(this._camT);
       this._camT = setInterval(() => {
         if (this._route[0] !== "garage") { clearInterval(this._camT); return; }
-        this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var c = this._s(im.dataset.cam); if (c && c.attributes.entity_picture) { var n = new Image(); n.onload = function () { im.src = n.src; }; n.src = c.attributes.entity_picture + "&t=" + Date.now(); } });
-      }, 4000);
+        // load the next picture off screen and swap it in whole once it's ready: no blank, no flicker
+        this.shadowRoot.querySelectorAll("img.cam").forEach((im) => {
+          var id = im.dataset.cam, c = this._s(id);
+          if (!c || !c.attributes.entity_picture || im._next) return;
+          var n = new Image(); im._next = n;
+          n.className = im.className; n.dataset.cam = id; n.alt = im.alt;
+          n.onload = () => { (n.decode ? n.decode() : Promise.resolve()).catch(() => {}).then(() => { if (im.isConnected) im.replaceWith(n); this._camSrc[id] = n.src; }); };
+          n.onerror = () => { im._next = null; };
+          n.src = c.attributes.entity_picture + "&t=" + Date.now();
+        });
+      }, 5000);
       return '<div class="page garage">' + this._head("Garage", "home") + '<div class="gfill">' + out.join("") + "</div></div>";
     }
     _dur(m) { return m < 60 ? m + (m === 1 ? " minute" : " minutes") : Math.floor(m / 60) + " hr" + (m % 60 ? " " + (m % 60) + " min" : ""); }
