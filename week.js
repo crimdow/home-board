@@ -65,6 +65,15 @@ body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill 
 }
 #pg-week .day.today .dname .dow { color: var(--ink); }
 #pg-week .day.today .dname .num { background: var(--today); color: var(--bg); }
+/* today: a soft highlight band from one edge of the screen to the other */
+#pg-week .day.today {
+  --band: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: var(--band); box-shadow: 0 0 0 100vmax var(--band); clip-path: inset(0 -100vmax);
+  border-bottom-color: transparent;
+}
+@media (min-width: 1000px) and (orientation: landscape) {   /* laptop / tablet: the grid sits beside Day by day, so the band stays in it */
+  #pg-week .day.today { box-shadow: none; clip-path: none; border-radius: 14px; }
+}
 
 #pg-week .cell {
   justify-self: center; appearance: none; border: 0; cursor: pointer;
@@ -167,7 +176,7 @@ body.viewonly #pg-week .day.weekend .wk-hint { display: none; }
 /* wall panel (?panel, the Surface in portrait): the Grid only, sized to read from across the room.
    The week fills the screen exactly (no scrolling) and the seven days share the height evenly,
    so a day with a note doesn't push the others off the bottom. Notes show on one line; editing is for phones. */
-:root.panel #pg-week:not([hidden]) { height: calc(100dvh - var(--phead) - var(--pbar) - 24px); overflow: clip; }
+:root.panel #pg-week:not([hidden]) { height: calc(100dvh - var(--phead) - var(--pbar) - 24px); overflow: visible clip; }   /* sideways visible: today's band reaches the screen edges */
 :root.panel #pg-week .vsw { display: none; }
 :root.panel #pg-week .title { display: none; }   /* the clock bar already says where you are */
 :root.panel #pg-week header { justify-content: flex-end; padding: 4px 0 6px; }
