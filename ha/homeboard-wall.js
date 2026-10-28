@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.17.0";
+  var VERSION = "1.18.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -96,6 +96,7 @@
       // a wall panel left on a sub-page drifts home after a few minutes
       this._idle = setInterval(() => {
         if (this._route[0] !== "home" && Date.now() - (this._touched || 0) > 3 * 60000) { this._route = ["home"]; this._sig = ""; this._render(); }
+        else if (this._route[0] === "garage" && !this._drag) { this._sig = ""; this._render(); }
       }, 30000);
     }
     disconnectedCallback() { window.removeEventListener("message", this._onMsg); clearInterval(this._idle); }
@@ -674,18 +675,40 @@
     }
 
     /* Garage */
-    _garagePage() {
+    _garagePage() {   // each door: its camera, open/close (no "are you sure"), how long it's been open, warnings, remote lock
       var g = this._config.garage || {}, out = [];
       (g.doors || []).forEach((d, i) => {
         var s = this._s(d.entity), st = s ? s.state : "unavailable", open = st !== "closed";
         var action = st === "closed" ? "Open" : st === "opening" || st === "closing" ? "Stop" : "Close";
-        out.push('<div class="card door' + (open ? " open" : "") + '"><span class="ic xl" style="background:' + (open ? C.amber : "var(--chip)") + ";color:" + (open ? "#fff" : C.green) + '">' + icon(open ? "mdi:garage-open-variant" : "mdi:garage-variant", 64) + "</span>" +
-          '<span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(this._doorWord(st)) + "</i></span>" +
-          '<button class="pill accent" data-door="' + i + '" data-doorgo="' + action + '">' + action + "</button></div>");
+        var line = this._doorWord(st);
+        if (st === "open" && s) { var mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000); line = mins < 1 ? "Just opened" : "Open for " + this._dur(mins); }
+        var h = '<div class="card door' + (open ? " open" : "") + '">';
+        var cam = d.camera && this._s(d.camera);
+        if (cam && cam.attributes.entity_picture) h += '<img class="cam" data-cam="' + esc(d.camera) + '" src="' + esc(cam.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(d.name || "Garage") + ' camera">';
+        var ob = d.obstruction && this._s(d.obstruction);
+        if (ob && ob.state === "on") h += '<div class="warn">' + icon("mdi:alert", 30) + "<span>Something is blocking the door</span></div>";
+        h += '<div class="row"><span class="ic xl" style="background:' + (open ? C.amber : "var(--chip)") + ";color:" + (open ? "#fff" : C.green) + '">' + icon(open ? "mdi:garage-open-variant" : "mdi:garage-variant", 64) + "</span>" +
+          '<span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span>" +
+          '<button class="pill accent" data-door="' + i + '" data-doorgo="' + action + '">' + action + "</button></div>";
+        var lk = d.lock && this._s(d.lock);
+        if (lk) {
+          var locked = lk.state === "locked";
+          h += '<div class="row lockrow"><span class="ic sm" style="background:' + (locked ? C.red : "var(--chip)") + ";color:" + (locked ? "#fff" : "var(--muted)") + '">' + icon(locked ? "mdi:remote-off" : "mdi:remote", 30) + "</span>" +
+            '<span class="words"><b>Car remotes &amp; keypad</b><i>' + (locked ? "Locked out" : "Working") + "</i></span>" +
+            '<button class="switch' + (locked ? " on red" : "") + '" data-lock="' + esc(d.lock) + '" data-locked="' + (locked ? 1 : 0) + '" aria-label="Lock out the car remotes"><span></span></button></div>';
+        }
+        out.push(h + "</div>");
       });
       if (g.light) out.push(this._lightCard("Garage light", "mdi:lightbulb", [g.light], false));
+      // keep the pictures fresh while this page is up
+      clearInterval(this._camT);
+      this._camT = setInterval(() => {
+        if (this._route[0] !== "garage") { clearInterval(this._camT); return; }
+        this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var c = this._s(im.dataset.cam); if (c && c.attributes.entity_picture) { var n = new Image(); n.onload = function () { im.src = n.src; }; n.src = c.attributes.entity_picture + "&t=" + Date.now(); } });
+      }, 4000);
       return '<div class="page">' + this._head("Garage", "home") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
+    _dur(m) { return m < 60 ? m + (m === 1 ? " minute" : " minutes") : Math.floor(m / 60) + " hr" + (m % 60 ? " " + (m % 60) + " min" : ""); }
 
     /* White noise */
     _noisePage() {   // one screen: each bedroom's Hatch side by side (stacked on a phone)
@@ -882,9 +905,9 @@
       if (ds.door) {
         var door = c.garage.doors[+ds.door], go = ds.doorgo;
         if (go === "Stop") { this._call("cover", "stop_cover", { entity_id: door.entity }); return; }
-        this._sheet = { q: go + " the " + (door.name || "garage door").toLowerCase() + "?", note: "Make sure nothing is in the way.", go: go, run: () => this._call("cover", go === "Open" ? "open_cover" : "close_cover", { entity_id: door.entity }) };
-        this._render(); return;
+        this._call("cover", go === "Open" ? "open_cover" : "close_cover", { entity_id: door.entity }); return;
       }
+      if (ds.lock) { this._call("lock", ds.locked === "1" ? "unlock" : "lock", { entity_id: ds.lock }); return; }
       if (ds.sheetgo) { var run = this._sheet && this._sheet.run; this._sheet = null; this._render(); if (run) run(); return; }
       if (ds.cancel && (b.tagName === "BUTTON" || e.target === b)) { this._sheet = null; this._render(); return; }
     }
@@ -1131,6 +1154,12 @@ ha-icon { display: flex; }
 /* Garage */
 .door { flex-direction: row; align-items: center; gap: 24px; padding: 30px; }
 .door .doorstate { font-size: 40px; color: ${C.green}; }
+.card.door { flex-direction: column; align-items: stretch; }
+.card.door .row { width: 100%; }
+.cam { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 20px; background: var(--chip); display: block; }
+.warn { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 18px; background: ${C.amber}; color: #fff; font-size: 22px; font-weight: 800; }
+.lockrow { padding-top: 6px; border-top: 2px solid color-mix(in srgb, var(--ink) 7%, transparent); }
+.switch.on.red { background: ${C.red}; }
 .door.open .doorstate { color: ${C.amber}; }
 
 /* sheet */
@@ -1277,8 +1306,10 @@ ha-icon { display: flex; }
 :host([narrow]) .hist .range { font-size: 13px; }
 :host([narrow]) .hours span { font-size: 12px; top: 8px; }
 :host([narrow]) .door { padding: 14px; gap: 12px; flex-wrap: wrap; }
-:host([narrow]) .door .doorstate { font-size: 22px; }
-:host([narrow]) .door .pill { flex-basis: 100%; padding: 14px 0; }
+:host([narrow]) .door .doorstate { font-size: 20px; white-space: normal; }
+:host([narrow]) .door .pill { padding: 12px 18px; }
+:host([narrow]) .cam { border-radius: 14px; }
+:host([narrow]) .warn { font-size: 15px; padding: 10px 12px; border-radius: 12px; }
 :host([narrow]) .sheet { padding: 22px 18px 28px; gap: 10px; }
 :host([narrow]) .sheet b { font-size: 21px; }
 :host([narrow]) .sheet i { font-size: 15px; }

@@ -274,7 +274,10 @@
     "doors": [
       {
         "entity": "cover.ratgdo32_7aad0c_door",
-        "name": "Garage door"
+        "name": "Garage door",
+        "camera": "camera.garage_1_snapshots_fluent",
+        "obstruction": "binary_sensor.ratgdo32_7aad0c_obstruction",
+        "lock": "lock.ratgdo32_7aad0c_lock_remotes"
       }
     ],
     "light": "light.ratgdo32_7aad0c_light"
