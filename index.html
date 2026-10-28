@@ -822,7 +822,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-27f";
+  var VERSION = "2026-10-27g";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1723,7 +1723,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       img.onerror = function () { clearTimeout(flipT); flipT = setTimeout(showNext, 3000); };
       img.src = HB.photoUrl(rec);
       clearTimeout(flipT);
-      flipT = setTimeout(showNext, Math.max(10, family.panel.every || 30) * 1000);
+      flipT = setTimeout(showNext, Math.max(5, family.panel.every || 30) * 1000);
     }
     // a colour for each day of the week, the same every week (Sunday first), to help the girls learn them
     var WEEKDAY_COLORS = ["#ff9ad5", "#ff6b6b", "#ffa94d", "#ffe066", "#8ce99a", "#74c0fc", "#c39bff"];
