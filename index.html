@@ -834,7 +834,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28l";
+  var VERSION = "2026-10-28m";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1775,7 +1775,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       var img = card.querySelector("img");
       if (img.getAttribute("src") !== (np.art || "")) img.setAttribute("src", np.art || "");
       setHtml(card.querySelector("b"), esc(np.title));
-      var line = esc([np.artist, np.speaker].filter(Boolean).join(" · ")), sp = card.querySelector("span");
+      var line = esc(np.artist || ""), sp = card.querySelector("span");
       if (sp._line !== line) {
         sp._line = line; sp.classList.remove("roll"); sp.innerHTML = line;
         requestAnimationFrame(function () {   // too long to fit: two copies end to end, scrolling round
