@@ -684,10 +684,12 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 .saver .ss-clock span { font-size: min(3.4vw, 2.3vh); font-weight: 700; margin-top: .4vh; opacity: .85; }
 /* nothing playing: the time and the day big, across the screen */
 .saver:not(.np) .ss-clock { flex: 1; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; justify-content: center; align-content: center; column-gap: 4.5vw; padding: 2vh 4vw; }
-.saver:not(.np) .ss-clock b { grid-row: 1 / 3; align-self: center; font-size: min(17vw, 10.5vh); }
-.saver:not(.np) .ss-wd { align-self: end; font-size: min(8.4vw, 5.4vh); margin-top: 0; }
-.saver:not(.np) .ss-clock span { align-self: start; font-size: min(3.8vw, 2.5vh); }
+.saver:not(.np) .ss-clock b { grid-row: 1 / 3; align-self: center; font-size: calc(min(15vw, 9.5vh) * var(--fit, 1)); }
+.saver:not(.np) .ss-wd { align-self: end; font-size: calc(min(7.6vw, 5vh) * var(--fit, 1)); margin-top: 0; white-space: nowrap; }
+.saver:not(.np) .ss-clock span { align-self: start; font-size: calc(min(3.8vw, 2.5vh) * var(--fit, 1)); white-space: nowrap; }
+.saver:not(.np) .ss-clock { column-gap: calc(4.5vw * var(--fit, 1)); min-width: 0; overflow: hidden; }
 .saver .ss-clock span { transition: font-size .4s; }
+.saver .ss-clock.fitting, .saver .ss-clock.fitting * { transition: none !important; }
 .saver.np .ss-clock { padding: 1.8vh 3vw; }
 .saver.np .ss-clock b { font-size: min(10vw, 7.2vh); }
 .saver.np .ss-wd { font-size: min(5vw, 3.6vh); }
@@ -824,7 +826,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-27l";
+  var VERSION = "2026-10-28a";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1732,10 +1734,22 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     }
     // a colour for each day of the week, the same every week (Sunday first), to help the girls learn them
     var WEEKDAY_COLORS = ["#ff9ad5", "#ff6b6b", "#ffa94d", "#ffe066", "#8ce99a", "#74c0fc", "#c39bff"];
+    // shrink the big clock just enough that the time and the longest day ("Wednesday") fit on the panel's own fonts
+    function fitClock() {
+      var ck = el.querySelector(".ss-clock");
+      ck.classList.add("fitting");            // measure without the size animation
+      ck.style.setProperty("--fit", 1);
+      var cs = getComputedStyle(ck), pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      var need = ck.scrollWidth - pad, room = ck.clientWidth - pad;
+      ck.style.setProperty("--fit", need > room && need > 0 ? Math.max(.5, room / need * .88).toFixed(3) : 1);
+      requestAnimationFrame(function () { ck.classList.remove("fitting"); });
+    }
     function paintMusic() {
       var card = el.querySelector(".ss-music"), np = HB.nowPlaying || {};
       card.hidden = !np.playing || !np.title;
+      var wasNp = el.classList.contains("np");
       el.classList.toggle("np", !card.hidden);   // the clock makes room for it
+      if (wasNp !== el.classList.contains("np")) setTimeout(fitClock, 450);
       if (card.hidden) return;
       card.querySelector("img").src = np.art || "";
       card.querySelector("b").textContent = np.title;
@@ -1750,6 +1764,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       wd.textContent = DAYS[d.getDay()];
       wd.style.setProperty("--wd", WEEKDAY_COLORS[d.getDay()]);
       el.querySelector(".ss-clock span").textContent = MONTHS[d.getMonth()] + " " + d.getDate();
+      fitClock();
       el.querySelector(".ss-wx").innerHTML = c ? HB.wxIcon(c.weather_code, c.is_day) + "<b>" + Math.round(c.temperature_2m) + "°</b>" : "";
       el.querySelector(".ss-wx").hidden = !c;
     }
