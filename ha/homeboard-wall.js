@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.19.3";
+  var VERSION = "1.19.4";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -117,7 +117,9 @@
     // Board, in this browser only. Home Assistant remembers it, so the next start is already right.
     _matchHaTheme(look) {
       var h = this._hass; if (!h || !h.themes || !look || !look.skin) return;
-      var name = Object.keys(h.themes.themes || {}).find((n) => n.toLowerCase() === String(look.skin).toLowerCase());
+      // the themes in ha/homeboard-theme.yaml: "Home Board" (Classic), "Home Board Barbie", ...
+      var want = look.skin === "classic" ? "home board" : "home board " + String(look.skin).toLowerCase();
+      var name = Object.keys(h.themes.themes || {}).find((n) => n.toLowerCase() === want);
       if (!name) return;
       var cur = h.selectedTheme || {};
       if (cur.theme === name && cur.dark === !!look.dark) return;
