@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.19.6";
+  var VERSION = "1.20.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -96,6 +96,7 @@
       this._askLook();   // Home Board answers with its colours right away
       // a wall panel left on a sub-page drifts home after a few minutes
       this._idle = setInterval(() => {
+        this._tellAlerts();   // "open for N minutes" grows without any state change
         if (this._route[0] !== "home" && Date.now() - (this._touched || 0) > 3 * 60000) { this._route = ["home"]; this._sig = ""; this._render(); }
         else if (this._route[0] === "garage" && !this._drag) { this._sig = ""; this._render(); }
       }, 30000);
@@ -104,7 +105,12 @@
 
     _onMsg(e) {
       var ok = (this._config && this._config.homeboard_origin) || "https://home.jermins.com";
-      if (e.origin !== ok || !e.data || e.data.hb !== "look") return;
+      if (e.origin !== ok || !e.data) return;
+      if (e.data.hb === "go" && typeof e.data.route === "string") {   // Home Board opening a page here (a screensaver alert was tapped)
+        var p = e.data.route.split("/"); this._route = p.length > 1 ? [p[0], +p[1]] : [p[0]]; this._sheet = null;
+        this._touched = Date.now(); this._sig = ""; this._render(); return;
+      }
+      if (e.data.hb !== "look") return;
       var look = e.data.look;
       this._matchHaTheme(look);
       if (JSON.stringify(look) === JSON.stringify(this._look)) return;
@@ -126,6 +132,33 @@
       this.dispatchEvent(new CustomEvent("settheme", { detail: { theme: name, dark: !!look.dark }, bubbles: true, composed: true }));
     }
     _askLook() { if (window.parent !== window) { try { window.parent.postMessage({ hb: "wantlook" }, "*"); } catch (e) {} } }
+
+    // Things worth a look, for Home Board's screensaver: a garage door left open, something blocking it, and any
+    // "alerts" from the card config (e.g. a helper an automation turns on when the washer finishes).
+    _alerts() {
+      var c = this._config, out = [], g = c.garage || {}, after = g.alert_after == null ? 60 : g.alert_after;
+      (g.doors || []).forEach((d, i) => {
+        var s = this._s(d.entity), ob = d.obstruction && this._s(d.obstruction), name = d.name || "Garage door";
+        if (ob && ob.state === "on") out.push({ id: "ob" + i, icon: "garage", tone: "red", text: name + ": something is in the way", go: "garage" });
+        if (s && s.state === "open") {
+          var mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
+          if (mins >= after) out.push({ id: "door" + i, icon: "garage", tone: "amber", text: name + " open for " + this._dur(mins), go: "garage" });
+        }
+      });
+      (c.alerts || []).forEach((a, i) => {
+        var s = this._s(a.entity); if (!s) return;
+        var when = a.state == null ? "on" : String(a.state);
+        if (s.state === when) out.push({ id: "a" + i, icon: a.icon || "alert", tone: a.tone || "blue", text: a.text || s.attributes.friendly_name || a.entity, go: a.go || "home" });
+      });
+      return out;
+    }
+    _tellAlerts() {
+      if (window.parent === window || !this._hass) return;
+      var list = this._alerts(), key = JSON.stringify(list);
+      if (key === this._alertKey && Date.now() - (this._alertAt || 0) < 30000) return;
+      this._alertKey = key; this._alertAt = Date.now();
+      try { window.parent.postMessage({ hb: "alerts", alerts: list }, "*"); } catch (e) {}
+    }
 
     // Tell Home Board what the speakers are playing, so its screensaver can show it (title, artist, cover).
     _tellNowPlaying() {
@@ -151,6 +184,7 @@
       var themeChanged = this._hass && hass.themes !== this._hass.themes;
       this._hass = hass;
       if (this._config && this._config.music) this._tellNowPlaying();
+      if (this._config) this._tellAlerts();
       if (!this._themed && this._look) { this._themed = true; this._matchHaTheme(this._look); }
       if (themeChanged) requestAnimationFrame(() => this._paintLook());
       if (!this.shadowRoot.firstChild) this._render();

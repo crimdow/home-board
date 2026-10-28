@@ -70,11 +70,20 @@ HB.register("ha", {
     window.addEventListener("message", function (e) {
       var f = root.querySelector("iframe");
       if (!f || e.source !== f.contentWindow || !e.data) return;
-      if (e.data.hb === "wantlook") { sendLook.force = true; sendLook(); return; }   // the wall card just started
+      if (e.data.hb === "wantlook") { sendLook.force = true; sendLook(); if (HB.haGo && HB.haGo.pending) HB.haGo(HB.haGo.pending); return; }   // the wall card just started
       if (e.data.hb === "swipe") { if (HB.panel && HB.panelSwipe) HB.panelSwipe(e.data.dir); return; }
       // what the speakers are playing, for the screensaver
+      // things worth a look (garage left open, washer done...), for the screensaver
+      if (e.data.hb === "alerts") { HB.alerts = Array.isArray(e.data.alerts) ? e.data.alerts : []; document.dispatchEvent(new CustomEvent("hb-alerts")); return; }
       if (e.data.hb === "nowplaying") { HB.nowPlaying = e.data.np || { playing: false }; document.dispatchEvent(new CustomEvent("hb-nowplaying")); }
     });
+    // open a page of the wall card (e.g. "garage"), when a screensaver alert is tapped
+    HB.haGo = function (route) {
+      HB.haGo.pending = route || "home";   // if the card hasn't started yet, it gets this when it does
+      var f = root.querySelector("iframe"); if (!f || !f.contentWindow) return;
+      try { f.contentWindow.postMessage({ hb: "go", route: route || "home" }, new URL(f.src).origin); } catch (e) {}
+      setTimeout(function () { HB.haGo.pending = null; }, 20000);
+    };
     HB.onFamily(render);
     render();
   }

@@ -721,6 +721,15 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 .saver .ss-eq u:nth-child(3) { animation-delay: -.7s; }
 @keyframes ssEq { 0%, 100% { height: 30%; } 50% { height: 100%; } }
 @media (prefers-reduced-motion: reduce) { .saver .ss-eq u { animation: none; height: 70%; } }
+/* alerts from Home Assistant (garage left open, washer done...): tap one to open it there */
+.saver .ss-alerts { align-self: stretch; display: flex; flex-direction: column; gap: 1.2vh; }
+.saver .ss-alerts[hidden] { display: none; }
+.saver .ss-alert { font-family: inherit; color: #fff; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 2.4vw; padding: 1.3vh 3vw 1.3vh 1.4vh; border-radius: 999px; font-size: min(3.2vw, 2.2vh); font-weight: 800; line-height: 1.2; }
+.saver .ss-alert i { flex: none; width: min(9vw, 6vh); height: min(9vw, 6vh); border-radius: 50%; display: grid; place-items: center; background: var(--tone, #4f7bd4); }
+.saver .ss-alert i svg { width: 58%; height: 58%; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.saver .ss-alert span { flex: 1; min-width: 0; }
+.saver .ss-alert b { flex: none; font-size: 1.4em; opacity: .7; font-weight: 700; }
+.saver .ss-alert:active, .saver .ss-wx:active { transform: scale(.97); }
 .saver .ss-day { align-self: stretch; padding: 2.4vh 4vw; display: flex; flex-direction: column; gap: 1.6vh; }
 .saver .ss-day h3 { margin: 0; font-size: min(2.6vw, 1.8vh); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .saver .ss-who { display: flex; flex-wrap: wrap; gap: 1.4vh 4vw; }
@@ -798,6 +807,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       <div class="ss-glass ss-music" hidden><img alt=""><div><b></b><span></span></div><i class="ss-eq"><u></u><u></u><u></u></i></div>
     </div>
     <div class="ss-bottom">
+      <div class="ss-alerts" hidden></div>
       <div class="ss-glass ss-wx"></div>
       <div class="ss-glass ss-day" hidden></div>
     </div>
@@ -834,7 +844,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28m";
+  var VERSION = "2026-10-28n";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1786,6 +1796,24 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       }
     }
     document.addEventListener("hb-nowplaying", paintMusic);
+    var ALERT_ICONS = {
+      garage: '<path d="M3 10l9-6 9 6v10H3z"/><path d="M7 20v-7h10v7M7 16.5h10"/>',
+      washer: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
+      dryer: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10 12c1-1 3 1 4 0M10 14.5c1-1 3 1 4 0"/>',
+      dishwasher: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 8h16M7.5 5.5h1.5M9 13c1-1 2 1 3 0s2 1 3 0M9 16.5c1-1 2 1 3 0s2 1 3 0"/>',
+      alert: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'
+    };
+    var TONES = { amber: "#c98a3e", red: "#d45b6c", blue: "#4f7bd4", green: "#3f9a66", violet: "#8a6bb8", teal: "#36ad9c" };
+    function paintAlerts() {
+      var box = el.querySelector(".ss-alerts"), list = HB.alerts || [];
+      var html = list.map(function (a) {
+        return '<button type="button" class="ss-glass ss-alert" data-go="' + esc(a.go || "home") + '" style="--tone:' + (TONES[a.tone] || TONES.blue) + '">' +
+          '<i><svg viewBox="0 0 24 24" aria-hidden="true">' + (ALERT_ICONS[a.icon] || ALERT_ICONS.alert) + '</svg></i><span>' + esc(a.text) + '</span><b>›</b></button>';
+      }).join("");
+      setHtml(box, html);
+      if (box.hidden !== !list.length) box.hidden = !list.length;
+    }
+    document.addEventListener("hb-alerts", paintAlerts);
     function setHtml(n, h) { if (n._hb !== h) { n._hb = h; n.innerHTML = h; } }
     function paintInfo() {
       paintMusic();
@@ -1824,7 +1852,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       document.documentElement.classList.add("saving");
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       info.hidden = family.panel.info === false;
-      paintInfo(); paintDay();
+      paintInfo(); paintDay(); paintAlerts();
       clockT = setInterval(function () {
         paintInfo(); if (new Date().getMinutes() % 10 === 0) paintDay();
         if (isNight() !== night) setNight(!night);
@@ -1842,7 +1870,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       idle();
     }
     // a tap wakes it; the tap lands on the screensaver, never on the grid underneath
-    el.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); stop(); });
+    // an alert opens that page in Home Assistant, the weather opens Weather; anywhere else just wakes the panel
+    el.addEventListener("click", function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var al = e.target.closest(".ss-alert"), wx = e.target.closest(".ss-wx");
+      stop();
+      if (al && HB.haGo) { go("ha"); HB.haGo(al.dataset.go); }
+      else if (wx) go("weather");
+    });
     function idle() {
       clearTimeout(idleT);
       if (!PANEL) return;
