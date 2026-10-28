@@ -70,6 +70,18 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
   linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18)) 66.66% 0 / 1px 100% no-repeat,
   linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18)) 0 33.33% / 100% 1px no-repeat,
   linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18)) 0 66.66% / 100% 1px no-repeat; }
+/* where the screensaver's clock and cards will sit over the photo (same places as on the panel) */
+.ssx .lay { position: absolute; inset: 0; pointer-events: none; container-type: size; transition: opacity .2s; }
+.ssx .lay.off { opacity: 0; }
+.ssx .lay > div { box-sizing: border-box; position: absolute; border-radius: 5cqw; background: rgba(20, 20, 24, .42); border: 1px solid rgba(255, 255, 255, .3);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; display: flex; flex-direction: column; justify-content: center; padding: 0 4cqw; }
+.ssx .lay .clock { left: 5%; top: 6%; width: 34%; height: 21%; }
+.ssx .lay .clock b { font-size: 10cqw; font-weight: 800; line-height: 1; letter-spacing: -.04em; }
+.ssx .lay .clock i { font-style: normal; font-size: 5cqw; font-weight: 800; color: #ffa94d; }
+.ssx .lay .np { left: 42%; top: 6%; width: 53%; height: 16%; background: transparent; border: 1.5px dashed rgba(255, 255, 255, .7); -webkit-backdrop-filter: none; backdrop-filter: none; align-items: center; text-align: center; font-size: 3cqw; font-weight: 800; }
+.ssx .lay .wx { right: 5%; top: 71%; width: 15%; height: 6.5%; border-radius: 99px; align-items: center; font-size: 4.4cqw; font-weight: 800; padding: 0; }
+.ssx .lay .day { left: 5%; right: 5%; top: 79.5%; height: 14.5%; font-size: 2.6cqw; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; justify-content: flex-start; padding-top: 3cqw; }
+.ssx .laybtn { border: 0; background: rgba(255,255,255,.16); color: #fff; font: inherit; font-size: 13px; font-weight: 800; border-radius: 999px; padding: 6px 12px; margin-left: 8px; cursor: pointer; }
 .ssx .zoom { display: flex; align-items: center; gap: 12px; width: min(100%, 420px); font-size: 13px; font-weight: 800; }
 .ssx .zoom input { flex: 1; accent-color: #fff; }
 .ssx .acts { display: flex; gap: 10px; width: min(100%, 420px); }
@@ -280,13 +292,19 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       var st = { focus_x: rec.focus_x, focus_y: rec.focus_y, zoom: rec.zoom || 1, w: rec.w, h: rec.h };
       var box = document.createElement("div");
       box.className = "ssx"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Frame this photo");
-      box.innerHTML = '<div class="hint">Drag to move · pinch or slide to zoom</div>' +
-        '<div class="frame"><img alt=""><div class="guide"></div></div>' +
+      box.innerHTML = '<div class="hint">Drag to move · pinch or slide to zoom<button type="button" class="laybtn">Hide clock</button></div>' +
+        '<div class="frame"><img alt=""><div class="guide"></div>' +
+        '<div class="lay" aria-hidden="true"><div class="clock"><b>8:58</b><i>Tuesday</i></div><div class="np">When music plays</div><div class="wx">52°</div><div class="day">Today</div></div></div>' +
         '<label class="zoom">Zoom <input type="range" min="1" max="4" step="0.01" aria-label="Zoom"></label>' +
         '<div class="acts"><button type="button" class="rm">Remove</button><button type="button" class="reset">Center</button>' +
         '<button type="button" class="cancel">Cancel</button><button type="button" class="save">Save</button></div>';
       document.body.appendChild(box);
       var frame = box.querySelector(".frame"), img = frame.querySelector("img"), slider = box.querySelector("input");
+      // the screensaver's clock and cards over the photo, so you can keep faces clear of them
+      box.querySelector(".laybtn").onclick = function () {
+        var lay = frame.querySelector(".lay"), off = lay.classList.toggle("off");
+        this.textContent = off ? "Show clock" : "Hide clock";
+      };
       function size() {
         var maxW = Math.min(window.innerWidth - 32, 520), maxH = window.innerHeight - 250;
         var fw = Math.max(160, Math.min(maxW, maxH * HB.panelAspect));
