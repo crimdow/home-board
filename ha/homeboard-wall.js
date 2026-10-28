@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.14.2";
+  var VERSION = "1.14.3";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -662,7 +662,7 @@
         else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "Volume");
         if (n.light && this._s(n.light)) {   // the Hatch light has its own page (colour wheel and colours)
           var hl = this._hatchShown(n.light), lc = hl.rgb;
-          h += '<button class="lightbtn' + (hl.on ? " on" : "") + (hl.on && lc && lc[0] * .3 + lc[1] * .59 + lc[2] * .11 > 170 ? " darkink" : "") + '" data-go="hatchlight/' + i + '"' + (hl.on && lc ? ' style="--lc:rgb(' + lc.join(",") + ')"' : "") + "><span>Light</span>" + icon("mdi:chevron-right", 26) + "</button>";
+          h += '<button class="lightbtn' + (hl.on ? " on" : "") + (hl.on && lc && lc[0] * .3 + lc[1] * .59 + lc[2] * .11 > 170 ? " darkink" : "") + '" data-go="hatchlight/' + i + '"' + (hl.on && lc ? ' style="--lc:rgb(' + lc.join(",") + ')"' : "") + ' aria-label="Hatch light">' + icon(hl.on ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 30) + "</button>";
         }
         return h + "</div></div>";
     }
@@ -1017,13 +1017,13 @@ ha-icon { display: flex; }
 
 /* Hatch light: button on the noise cards, and its page */
 .lightbtn { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 18px; border-radius: 20px; background: var(--chip); font-size: 20px; font-weight: 800; }
-.lightbtn span:first-child { flex: 1; }
+.lightbtn { justify-content: center; }
 .lightbtn.on { background: var(--lc, #f2b25c); color: #fff; box-shadow: 0 6px 18px -6px var(--lc, transparent); }
-.lightbtn.on ha-icon { color: rgba(255,255,255,.85); }
+.lightbtn.on ha-icon { color: #fff; }
 .lightbtn.on.darkink { color: #2b2230; }
 .lightbtn.on.darkink ha-icon { color: rgba(0,0,0,.5); }
 .lightbtn .dotc { width: 26px; height: 26px; border-radius: 13px; background: var(--lc, color-mix(in srgb, var(--ink) 18%, transparent)); box-shadow: 0 0 12px var(--lc, transparent); flex: none; }
-.lightbtn ha-icon { color: var(--muted); }
+.lightbtn ha-icon { color: var(--ink); }
 .wheelwrap { display: flex; justify-content: center; padding: 6px 0 4px; }
 .wheel { position: relative; width: min(100%, 440px); aspect-ratio: 1; border-radius: 50%; touch-action: none; cursor: crosshair;
   background: radial-gradient(circle closest-side, #fff 0%, rgba(255,255,255,0) 100%), conic-gradient(from 0deg, #f00, #ff0 60deg, #0f0 120deg, #0ff 180deg, #00f 240deg, #f0f 300deg, #f00);
