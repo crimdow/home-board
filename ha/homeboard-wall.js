@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.14.3";
+  var VERSION = "1.15.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -562,10 +562,11 @@
       }).join("") + "</div>";
       return h + "</div>";
     }
-    _slider(kind, ids, val, label) {
-      var showVal = kind === "bri" || kind === "hbri" || label;
-      return '<div class="sl ' + kind + '" data-sl="' + kind + '" data-ids="' + esc(ids.join(",")) + '" data-v="' + val + '"' + (label ? ' data-label="' + esc(label) + '"' : "") + ">" +
+    _slider(kind, ids, val, label, ic, style) {   // ic: an icon in the bar instead of words (no numbers on the bar)
+      var showVal = !ic && label;
+      return '<div class="sl ' + kind + (ic ? " withic" : "") + '" data-sl="' + kind + '" data-ids="' + esc(ids.join(",")) + '" data-v="' + val + '"' + (label ? ' data-label="' + esc(label) + '"' : "") + (style ? ' style="' + style + '"' : "") + ">" +
         '<div class="fill" style="width:' + (kind === "ct" ? 100 : val) + '%"></div><div class="knob" style="left:' + val + '%"></div>' +
+        (ic ? '<span class="sic">' + icon(ic, 28) + "</span>" : "") +
         (showVal ? '<span class="val">' + this._valText(kind, val, label) + "</span>" : "") + "</div>";
     }
     _valText(kind, v, label) {
@@ -658,11 +659,14 @@
           '<div class="nbtns">' + (n.buttons || []).map(function (b, j) {
             return '<button class="chipbtn' + (b.off ? " off" : "") + '" data-noise="' + i + "/" + j + '">' + (b.icon ? icon(b.icon, 28) : "") + "<span>" + esc(b.name) + "</span></button>";
           }).join("") + "</div><div class=\"nsl\">";
-        if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100), "Volume"); } }
-        else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "Volume");
+        if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100), "", "mdi:volume-high"); } }
+        else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "", "mdi:volume-high");
         if (n.light && this._s(n.light)) {   // the Hatch light has its own page (colour wheel and colours)
           var hl = this._hatchShown(n.light), lc = hl.rgb;
-          h += '<button class="lightbtn' + (hl.on ? " on" : "") + (hl.on && lc && lc[0] * .3 + lc[1] * .59 + lc[2] * .11 > 170 ? " darkink" : "") + '" data-go="hatchlight/' + i + '"' + (hl.on && lc ? ' style="--lc:rgb(' + lc.join(",") + ')"' : "") + ' aria-label="Hatch light">' + icon(hl.on ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 30) + "</button>";
+          var ls = this._s(n.light), lb = hl.on && ls.attributes.brightness ? Math.round(ls.attributes.brightness / 2.55) : hl.on ? 60 : 0;
+          var ob = this._hatchBri && this._hatchBri[n.light]; if (ob && Date.now() < ob.until) lb = ob.v;
+          h += '<div class="lightrow">' + this._slider("hbri", [n.light], lb, "", "", "--glow:" + (lc ? "rgb(" + lc.join(",") + ")" : "#ffb35c")) +
+            '<button class="lightbtn' + (hl.on ? " on" : "") + (hl.on && lc && lc[0] * .3 + lc[1] * .59 + lc[2] * .11 > 170 ? " darkink" : "") + '" data-go="hatchlight/' + i + '"' + (hl.on && lc ? ' style="--lc:rgb(' + lc.join(",") + ')"' : "") + ' aria-label="Hatch light colours">' + icon(hl.on ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 30) + "</button></div>";
         }
         return h + "</div></div>";
     }
@@ -737,7 +741,7 @@
     _keepColor(id) {   // a colour-only light (the Hatch) needs a colour with every change, or it goes dark
       var s = this._s(id), c = s && s.attributes.rgb_color;
       if (c && s.state === "on" && (c[0] + c[1] + c[2]) > 30) return c.slice(0, 3);
-      return (this._hatchLast && this._hatchLast[id]) || [255, 120, 30];
+      return [255, 147, 41];   // off: start at the warmest white the Hatch can make
     }
     _lightOn(ids, extra) {   // turn_on, adding a colour for the lights that need one
       var plain = [], self = this;
@@ -1018,6 +1022,11 @@ ha-icon { display: flex; }
 /* Hatch light: button on the noise cards, and its page */
 .lightbtn { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 18px; border-radius: 20px; background: var(--chip); font-size: 20px; font-weight: 800; }
 .lightbtn { justify-content: center; }
+.lightrow { display: flex; gap: 10px; align-items: stretch; }
+.lightrow .sl { flex: 1; min-width: 0; height: auto; min-height: 64px; border-radius: 20px; }
+.lightrow .lightbtn { width: 64px; padding: 0; flex: none; }
+.sl .sic { position: absolute; left: 16px; top: 0; bottom: 0; display: flex; align-items: center; color: var(--ink); pointer-events: none; }
+.sl.withic.num .sic, .sl.withic.mvol .sic { color: #fff; }
 .lightbtn.on { background: var(--lc, #f2b25c); color: #fff; box-shadow: 0 6px 18px -6px var(--lc, transparent); }
 .lightbtn.on ha-icon { color: #fff; }
 .lightbtn.on.darkink { color: #2b2230; }
@@ -1146,6 +1155,10 @@ ha-icon { display: flex; }
 :host([narrow]) .pl img, :host([narrow]) .pl .noart { border-radius: 12px; }
 :host([narrow]) .chip { padding: 10px 14px; font-size: 14px; }
 :host([narrow]) .lightbtn { min-height: 44px; font-size: 15px; padding: 0 12px; border-radius: 14px; gap: 8px; }
+:host([narrow]) .lightrow .sl { min-height: 44px; border-radius: 14px; }
+:host([narrow]) .lightrow .lightbtn { width: 44px; }
+:host([narrow]) .sl .sic { left: 10px; }
+:host([narrow]) .sl .sic ha-icon { --mdc-icon-size: 22px !important; }
 :host([narrow]) .lightbtn .dotc { width: 18px; height: 18px; }
 :host([narrow]) .wheel { width: min(100%, 270px); }
 :host([narrow]) .wmark { width: 32px; height: 32px; margin: -16px 0 0 -16px; border-width: 3px; }
