@@ -82,6 +82,9 @@ body {
 }
 .page { display: flex; flex-direction: column; }
 .page[hidden] { display: none; }
+/* the panel keeps Home Assistant running out of sight (for the screensaver's now playing). A display:none frame
+   is frozen by the browser and never starts, so it stays laid out on screen, invisible and untouchable. */
+:root.panel #pg-ha[hidden] { display: block; position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; opacity: 0; pointer-events: none; z-index: -1; overflow: hidden; }
 .page-msg { padding: 60px 0; text-align: center; color: var(--muted); font-weight: 600; }
 .page-msg button { margin-top: 10px; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-weight: 700; padding: 10px 16px; }
 
@@ -826,7 +829,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28j";
+  var VERSION = "2026-10-28k";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
