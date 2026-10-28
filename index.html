@@ -638,6 +638,10 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 :root.panel .phead .pwx { padding: 0 24px 0 18px; font-size: 34px; font-weight: 800; }
 :root.panel .phead .pwx svg { width: 44px; height: 44px; }
 :root.panel .phead .plook { width: 72px; padding: 0; }
+/* the wall panel never shows scroll bars, and the page under the screensaver doesn't scroll */
+:root.panel, :root.panel body { scrollbar-width: none; }
+:root.panel ::-webkit-scrollbar { display: none; }
+:root.saving, :root.saving body { overflow: hidden; }
 :root.panel .phead .plook svg { width: 32px; height: 32px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 :root.panel .pbar {
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px;
@@ -768,6 +772,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <div class="phead" id="phead">
   <div class="ptime"><b id="pClock"></b><span id="pDate"></span></div>
   <button type="button" class="pwx" id="pWx" aria-label="Weather"></button>
+  <button type="button" class="plook pss" id="pSaver" aria-label="Show the photos (screensaver)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/></svg></button>
   <button type="button" class="plook" id="pLook" aria-label="Look and settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.6-1.3-.6-2.1 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4C21 6.8 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="7.5" r="1"/></svg></button>
 </div>
 <nav class="pbar" id="pbar" aria-label="Panel pages"></nav>
@@ -817,7 +822,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-27e";
+  var VERSION = "2026-10-27f";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1705,7 +1710,10 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     }
     function showNext() {
       if (!photos.length) { layers.forEach(function (l) { l.classList.remove("on"); }); return; }
-      if (!order.length || at >= order.length - 1) { order = shuffle(photos.length); at = -1; }
+      if (!order.length || at >= order.length - 1) {   // every photo once, in a random order; then a new random round
+        var last = order[at]; order = shuffle(photos.length); at = -1;
+        if (order.length > 1 && order[0] === last) { order.push(order.shift()); }
+      }
       var rec = photos[order[++at]], back = layers[1 - front], img = back.querySelector("img");
       var W = window.innerWidth, H = window.innerHeight;
       img.onload = function () {
@@ -1760,6 +1768,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     function start() {
       if (on || document.body.classList.contains("locked") || document.body.classList.contains("checking")) return;
       on = true; clearTimeout(idleT);
+      document.documentElement.classList.add("saving");
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       info.hidden = family.panel.info === false;
       paintInfo(); paintDay();
@@ -1772,6 +1781,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (!night) loadPhotos().then(function () { order = []; if (!night) showNext(); });
     }
     function stop() {
+      document.documentElement.classList.remove("saving");
       if (!on) return;
       on = false; clearTimeout(flipT); clearInterval(clockT);
       el.classList.remove("show");
@@ -1788,6 +1798,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     ["pointerdown", "keydown", "touchstart"].forEach(function (k) { document.addEventListener(k, function () { if (!on) idle(); }, { passive: true, capture: true }); });
     HB.onFamily(function () { if (!on) idle(); });
     HB.screensaver = { start: start, stop: stop, on: function () { return on; } };
+    document.getElementById("pSaver").addEventListener("click", function (e) { e.stopPropagation(); setTimeout(start, 50); });
     idle();
   })();
   // ---- task types (Tasks) ----
