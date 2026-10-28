@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.18.2";
+  var VERSION = "1.19.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -202,7 +202,8 @@
       var c = this._config, ids = this._allLights().slice();
       this._rooms().forEach(function (r) { if (r.group) ids.push(r.group); });
       if (c.thermostat) ids.push(c.thermostat);
-      ((c.garage || {}).doors || []).forEach(function (d) { ids.push(d.entity); });
+      ((c.garage || {}).doors || []).forEach(function (d) { ["entity", "light", "obstruction"].forEach(function (k) { if (d[k]) ids.push(d[k]); }); });
+      ((c.garage || {}).remote_locks || []).forEach(function (x) { ids.push(x); });
       if ((c.garage || {}).light) ids.push(c.garage.light);
       (c.noise || []).forEach(function (n) { ["player", "volume", "light"].forEach(function (k) { if (n[k]) ids.push(n[k]); }); });
       this._speakers().forEach(function (sp) { ids.push(sp.entity); });
@@ -676,23 +677,25 @@
 
     /* Garage */
     _garagePage() {   // each door: its camera, open/close (no "are you sure"), how long it's been open, warnings, remote lock
-      var g = this._config.garage || {}, out = [];
+      var g = this._config.garage || {}, out = [], doors = [];
       (g.doors || []).forEach((d, i) => {
-        var s = this._s(d.entity), st = s ? s.state : "unavailable", open = st !== "closed";
+        var s = this._s(d.entity), st = s ? s.state : "unavailable", open = s && st !== "closed" && st !== "unavailable";
         var action = st === "closed" ? "Open" : st === "opening" || st === "closing" ? "Stop" : "Close";
         var line = this._doorWord(st);
         if (st === "open" && s) { var mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000); line = mins < 1 ? "Just opened" : "Open for " + this._dur(mins); }
-        var h = '<div class="card door' + (open ? " open" : "") + '">';
-        var cam = d.camera && this._s(d.camera);
-        if (cam && cam.attributes.entity_picture) h += '<img class="cam" data-cam="' + esc(d.camera) + '" src="' + esc(cam.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(d.name || "Garage") + ' camera">';
+        var h = '<div class="card door' + (open ? " open" : "") + (s ? "" : " shell") + '">';
         var ob = d.obstruction && this._s(d.obstruction);
         if (ob && ob.state === "on") h += '<div class="warn">' + icon("mdi:alert", 30) + "<span>Something is blocking the door</span></div>";
-        h += '<div class="row"><span class="ic xl" style="background:' + (open ? C.amber : "var(--chip)") + ";color:" + (open ? "#fff" : C.green) + '">' + icon(open ? "mdi:garage-open-variant" : "mdi:garage-variant", 64) + "</span>" +
-          '<span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span>" +
-          (i === 0 && g.light && this._s(g.light) ? '<button class="bulb' + (this._on(g.light) ? " on" : "") + '" data-toggle="' + esc(g.light) + '" aria-label="Garage light">' + icon(this._on(g.light) ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 32) + "</button>" : "") +
-          '<button class="pill accent" data-door="' + i + '" data-doorgo="' + action + '">' + action + "</button></div>";
-        out.push(h + "</div>");
+        var cam = d.camera && this._s(d.camera);
+        if (cam && cam.attributes.entity_picture) h += '<img class="cam" data-cam="' + esc(d.camera) + '" src="' + esc(cam.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(d.name || "Garage") + ' camera">';
+        if (!s) line = "Not installed yet";   // a bay whose opener isn't in yet: its camera and a place ready for it
+        h += '<div class="row"><span class="ic dooric" style="background:' + (open ? C.amber : "var(--chip)") + ";color:" + (open ? "#fff" : s ? C.green : "var(--muted)") + '">' + icon(open ? "mdi:garage-open-variant" : "mdi:garage-variant", 44) + "</span>" +
+          '<span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span></div>" +
+          '<div class="doorbtns">' + (d.light && this._s(d.light) ? '<button class="bulb' + (this._on(d.light) ? " on" : "") + '" data-toggle="' + esc(d.light) + '" aria-label="Garage light">' + icon(this._on(d.light) ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 32) + "</button>" : "") +
+          (s ? '<button class="pill accent" data-door="' + i + '" data-doorgo="' + action + '">' + action + "</button>" : '<span class="pill ghost">Coming soon</span>') + "</div>";
+        doors.push(h + "</div>");
       });
+      out.push('<div class="doors" style="--n:' + doors.length + '">' + doors.join("") + "</div>");
       // one quiet switch for every opener's car remotes and keypad
       var locks = (g.remote_locks || []).filter((x) => this._s(x));
       if (locks.length) {
@@ -1153,10 +1156,17 @@ ha-icon { display: flex; }
 
 /* Garage */
 .door { flex-direction: row; align-items: center; gap: 24px; padding: 30px; }
-.door .doorstate { font-size: 34px; line-height: 1.1; color: ${C.green}; white-space: normal; }
+.door .doorstate { font-size: 26px; line-height: 1.15; color: ${C.green}; white-space: normal; }
+.door.shell .doorstate { color: var(--muted); }
+.doors { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 18px; }
+.card.door { padding: 20px; gap: 14px; }
+.ic.dooric { width: 72px; height: 72px; }
+.doorbtns { display: flex; gap: 10px; }
+.doorbtns .pill { flex: 1; }
+.pill.ghost { background: var(--chip); color: var(--muted); text-align: center; }
 .card.door { flex-direction: column; align-items: stretch; }
 .card.door .row { width: 100%; }
-.cam { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 20px; background: var(--chip); display: block; }
+.cam { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 20px; background: var(--chip); display: block; }
 .warn { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 18px; background: ${C.amber}; color: #fff; font-size: 22px; font-weight: 800; }
 .bulb { width: 64px; height: 64px; border-radius: 32px; background: var(--chip); color: var(--ink); display: flex; align-items: center; justify-content: center; flex: none; }
 .bulb.on { background: #f2b25c; color: #3a2410; box-shadow: 0 6px 18px -6px #f2b25c; }
@@ -1313,7 +1323,13 @@ ha-icon { display: flex; }
 :host([narrow]) .hours span { font-size: 12px; top: 8px; }
 :host([narrow]) .door { padding: 14px; gap: 12px; flex-wrap: wrap; }
 :host([narrow]) .door .doorstate { font-size: 20px; white-space: normal; }
-:host([narrow]) .door .pill { padding: 12px 18px; }
+:host([narrow]) .door .pill { padding: 10px 14px; }
+:host([narrow]) .doors { grid-template-columns: 1fr; gap: 10px; }
+:host([narrow]) .card.door { padding: 12px; gap: 8px; display: grid; grid-template-columns: 42% 1fr; align-items: center; }
+:host([narrow]) .card.door .cam { grid-row: span 2; aspect-ratio: 4 / 3; }
+:host([narrow]) .card.door .warn { grid-column: 1 / -1; }
+:host([narrow]) .ic.dooric { display: none; }
+:host([narrow]) .door .doorstate { font-size: 16px; }
 :host([narrow]) .cam { border-radius: 14px; }
 :host([narrow]) .bulb { width: 46px; height: 46px; }
 :host([narrow]) .bulb ha-icon { --mdc-icon-size: 24px !important; }
