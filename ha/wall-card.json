@@ -376,5 +376,31 @@
         "name": "Kitchen speaker"
       }
     ]
-  }
+  },
+  "alerts": [
+    {
+      "entity": "binary_sensor.kitchen_cottonwood_range_operating_state",
+      "state": "on",
+      "for": 120,
+      "icon": "oven",
+      "tone": "red",
+      "text": "Oven on for {dur}"
+    },
+    {
+      "entity": "binary_sensor.kitchen_cottonwood_fridge_fridge_door",
+      "state": "on",
+      "for": 1,
+      "icon": "fridge",
+      "tone": "blue",
+      "text": "Fridge door open for {dur}"
+    },
+    {
+      "entity": "binary_sensor.kitchen_cottonwood_fridge_freezer_door",
+      "state": "on",
+      "for": 1,
+      "icon": "fridge",
+      "tone": "teal",
+      "text": "Freezer door open for {dur}"
+    }
+  ]
 }

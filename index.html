@@ -729,6 +729,9 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 .saver .ss-alert i svg { width: 58%; height: 58%; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .saver .ss-alert span { flex: 1; min-width: 0; }
 .saver .ss-alert b { flex: none; font-size: 1.4em; opacity: .7; font-weight: 700; }
+.saver .ss-alert { padding-right: 1.2vh; }
+.saver .ss-x { flex: none; width: min(8vw, 5.4vh); height: min(8vw, 5.4vh); border-radius: 50%; border: 0; background: rgba(255,255,255,.16); color: #fff; font: inherit; font-size: .9em; font-weight: 800; display: grid; place-items: center; cursor: pointer; }
+.saver .ss-x:active { transform: scale(.92); background: rgba(255,255,255,.3); }
 .saver .ss-alert:active, .saver .ss-wx:active { transform: scale(.97); }
 .saver .ss-day { align-self: stretch; padding: 2.4vh 4vw; display: flex; flex-direction: column; gap: 1.6vh; }
 .saver .ss-day h3 { margin: 0; font-size: min(2.6vw, 1.8vh); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
@@ -844,7 +847,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28o";
+  var VERSION = "2026-10-28p";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1801,14 +1804,25 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       washer: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
       dryer: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10 12c1-1 3 1 4 0M10 14.5c1-1 3 1 4 0"/>',
       dishwasher: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 8h16M7.5 5.5h1.5M9 13c1-1 2 1 3 0s2 1 3 0M9 16.5c1-1 2 1 3 0s2 1 3 0"/>',
+      oven: '<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M3.5 8.5h17"/><rect x="7" y="11.5" width="10" height="6" rx="1"/><path d="M7 6h.5M10.5 6h.5M14 6h3"/>',
+      fridge: '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M5 9.5h14M8.5 5.5v2M8.5 12.5v3.5"/>',
       alert: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'
     };
     var TONES = { amber: "#c98a3e", red: "#d45b6c", blue: "#4f7bd4", green: "#3f9a66", violet: "#8a6bb8", teal: "#36ad9c" };
+    // alerts cleared with their ✕ on this panel (until that thing happens again)
+    function cleared() { try { return JSON.parse(localStorage.getItem("hb-alerts-cleared") || "[]"); } catch (e) { return []; } }
+    function clearAlert(key) {
+      var c = cleared().filter(function (k) { return k !== key; }); c.push(key);
+      try { localStorage.setItem("hb-alerts-cleared", JSON.stringify(c.slice(-60))); } catch (e) {}
+      paintAlerts();
+    }
     function paintAlerts() {
-      var box = el.querySelector(".ss-alerts"), list = HB.alerts || [];
+      var box = el.querySelector(".ss-alerts"), gone = cleared();
+      var list = (HB.alerts || []).filter(function (a) { return gone.indexOf(a.key || a.id) < 0; });
       var html = list.map(function (a) {
-        return '<button type="button" class="ss-glass ss-alert" data-go="' + esc(a.go || "home") + '" style="--tone:' + (TONES[a.tone] || TONES.blue) + '">' +
-          '<i><svg viewBox="0 0 24 24" aria-hidden="true">' + (ALERT_ICONS[a.icon] || ALERT_ICONS.alert) + '</svg></i><span>' + esc(a.text) + '</span><b>›</b></button>';
+        return '<div class="ss-glass ss-alert' + (a.go ? " go" : "") + '" data-go="' + esc(a.go || "") + '" style="--tone:' + (TONES[a.tone] || TONES.blue) + '">' +
+          '<i><svg viewBox="0 0 24 24" aria-hidden="true">' + (ALERT_ICONS[a.icon] || ALERT_ICONS.alert) + '</svg></i><span>' + esc(a.text) + '</span>' +
+          (a.go ? '<b>›</b>' : '') + '<button type="button" class="ss-x" data-key="' + esc(a.key || a.id) + '" aria-label="Clear">✕</button></div>';
       }).join("");
       setHtml(box, html);
       if (box.hidden !== !list.length) box.hidden = !list.length;
@@ -1873,9 +1887,11 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     // an alert opens that page in Home Assistant, the weather opens Weather; anywhere else just wakes the panel
     el.addEventListener("click", function (e) {
       e.preventDefault(); e.stopPropagation();
+      var x = e.target.closest(".ss-x");
+      if (x) { clearAlert(x.dataset.key); return; }   // clearing an alert leaves the photos up
       var al = e.target.closest(".ss-alert"), wx = e.target.closest(".ss-wx");
       stop();
-      if (al && HB.haGo) { go("ha"); HB.haGo(al.dataset.go); }
+      if (al && al.dataset.go && HB.haGo) { go("ha"); HB.haGo(al.dataset.go); }
       else if (wx) go("weather");
     });
     function idle() {
