@@ -67,7 +67,7 @@ body.viewonly #pg-week .vo { display: none; }   /* no room beside the week pill 
 #pg-week .day.today .dname .num { background: var(--today); color: var(--bg); }
 /* today: a soft highlight band from one edge of the screen to the other */
 #pg-week .day.today {
-  --band: color-mix(in srgb, var(--accent) 18%, transparent);
+  --band: color-mix(in srgb, var(--hl, var(--accent)) 80%, var(--bg));
   background: var(--band); box-shadow: 0 0 0 100vmax var(--band); clip-path: inset(0 -100vmax);
   border-bottom-color: transparent;
 }

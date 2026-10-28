@@ -37,6 +37,7 @@
   --ash: #d45b6c; --ben: #4f7bd4; --both: #6f8a5c;
   --chip: #d5d7db; --today: #2b2e33; --field: #d9dbdf; --sheet: #eeeff1;
   --accent: #4f7bd4; --on-accent: #fff;   /* the round + button; each colour theme sets its own */
+  --hl: #ffe066;   /* the marker colour for highlighting today (each colour theme sets its own) */
   /* colours for stores, weekdays and TODO types */
   --s0: #d45b6c; --s1: #4f7bd4; --s2: #6f8a5c; --s3: #c98a3e; --s4: #8a6bb8; --s5: #3f9a93; --s6: #b8735a;
 }
@@ -44,16 +45,16 @@
   --bg: #1d1e22; --ink: #e4e4e2; --muted: #8b9098; --hair: #2c2d32;
   --ash: #cf6475; --ben: #5f86d6; --both: #7d9a68;
   --chip: #2a2b30; --today: #e4e4e2; --field: #26272c; --sheet: #25262b;
-  --accent: #5f86d6; --on-accent: #fff;
+  --accent: #5f86d6; --on-accent: #fff; --hl: #7a6412;
   --s0: #cf6475; --s1: #5f86d6; --s2: #7d9a68; --s3: #cf9550; --s4: #9679c2; --s5: #4fa69f; --s6: #c4826a;
 }
 /* colour themes (picked in the More menu) */
-:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; --sheet: #fdf1f6; --accent: #e0218a; --on-accent: #fff; }
-:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; --sheet: #331c2d; --accent: #ff4fa3; --on-accent: #2a1624; }
-:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; --sheet: #f6eee4; --accent: #6f4a2f; --on-accent: #fff; }
-:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; --sheet: #2a1f19; --accent: #d4a373; --on-accent: #211813; }
-:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; --sheet: #f9f2e9; --accent: #e8772e; --on-accent: #fff; }
-:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; --sheet: #211e26; --accent: #ff7a1a; --on-accent: #17151b; }
+:root[data-skin="barbie"][data-theme="light"] { --bg: #f8e7ef; --ink: #3b1f33; --muted: #9b7489; --hair: #ecd0dd; --ash: #d9467f; --ben: #5b7fd6; --both: #6f9a73; --chip: #f0d5e1; --today: #e0218a; --field: #f2dbe6; --sheet: #fdf1f6; --accent: #e0218a; --on-accent: #fff; --hl: #ff8fc7; }
+:root[data-skin="barbie"][data-theme="dark"] { --bg: #2a1624; --ink: #f7dde9; --muted: #b98ba4; --hair: #3e2437; --ash: #ee5b98; --ben: #7394e0; --both: #80ae83; --chip: #3a2134; --today: #ff4fa3; --field: #331c2d; --sheet: #331c2d; --accent: #ff4fa3; --on-accent: #2a1624; --hl: #a3306a; }
+:root[data-skin="espresso"][data-theme="light"] { --bg: #efe5d8; --ink: #3a2a20; --muted: #8d7866; --hair: #ddcebc; --ash: #c55f5b; --ben: #5a739c; --both: #7b8a58; --chip: #e3d5c3; --today: #6f4a2f; --field: #e8dccc; --sheet: #f6eee4; --accent: #6f4a2f; --on-accent: #fff; --hl: #f2a083; }
+:root[data-skin="espresso"][data-theme="dark"] { --bg: #211813; --ink: #efe2d2; --muted: #a38d79; --hair: #34271f; --ash: #cf7068; --ben: #7390c2; --both: #8f9c69; --chip: #30241c; --today: #d4a373; --field: #2a1f19; --sheet: #2a1f19; --accent: #d4a373; --on-accent: #211813; --hl: #8f4a36; }
+:root[data-skin="halloween"][data-theme="light"] { --bg: #f3e9dc; --ink: #2b2230; --muted: #8b7e86; --hair: #e2d4c3; --ash: #d2574d; --ben: #6b64c9; --both: #6b9a44; --chip: #e9dac8; --today: #e8772e; --field: #eee0cf; --sheet: #f9f2e9; --accent: #e8772e; --on-accent: #fff; --hl: #ffad66; }
+:root[data-skin="halloween"][data-theme="dark"] { --bg: #17151b; --ink: #f1e8dd; --muted: #8f8797; --hair: #2b2731; --ash: #e0645a; --ben: #8a78e6; --both: #80b34c; --chip: #26222c; --today: #ff7a1a; --field: #211e26; --sheet: #211e26; --accent: #ff7a1a; --on-accent: #17151b; --hl: #8f4512; }
 
 *, *::before, *::after { box-sizing: inherit; }
 html, body { touch-action: manipulation; overscroll-behavior: none; }
@@ -823,7 +824,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-27k";
+  var VERSION = "2026-10-27l";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
