@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.14.1";
+  var VERSION = "1.14.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -912,7 +912,6 @@ ha-icon { display: flex; }
 
 /* Lights */
 .room { background: var(--card); border-radius: 28px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-.room.lit { background: color-mix(in srgb, var(--glow, #f2b25c) 14%, var(--card)); }
 
 /* Lights page: three rooms a row, the kids' rooms two a row, Outside across */
 .lgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
@@ -948,7 +947,6 @@ ha-icon { display: flex; }
 
 /* cards */
 .card { background: var(--card); border-radius: 30px; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
-.card.light.lit { background: color-mix(in srgb, var(--glow, #f2b25c) 12%, var(--card)); }
 .card.whole { border: 3px solid color-mix(in srgb, var(--ink) 10%, transparent); }
 .label { font-size: 17px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-top: 4px; }
 .sub { font-size: 20px; font-weight: 700; color: var(--muted); }
