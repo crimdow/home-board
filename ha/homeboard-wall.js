@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.16.0";
+  var VERSION = "1.17.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -603,7 +603,7 @@
       return h + "</div>";
     }
     _slider(kind, ids, val, label, ic, style) {   // ic: an icon in the bar instead of words (no numbers on the bar)
-      var showVal = !ic && label;
+      var showVal = (!ic && label) || (ic && (kind === "num" || kind === "mvol"));
       return '<div class="sl ' + kind + (ic ? " withic" : "") + '" data-sl="' + kind + '" data-ids="' + esc(ids.join(",")) + '" data-v="' + val + '"' + (label ? ' data-label="' + esc(label) + '"' : "") + (style ? ' style="' + style + '"' : "") + ">" +
         '<div class="fill" style="width:' + (kind === "ct" ? 100 : val) + '%"></div><div class="knob" style="left:' + val + '%"></div>' +
         (ic ? '<span class="sic">' + icon(ic, 28) + "</span>" : "") +
@@ -696,9 +696,12 @@
         var p = this._s(n.player), playing = p && p.state === "playing";
         var h = '<div class="card noise' + (playing ? " playing" : "") + '"><div class="row"><span class="ic" style="background:' + (playing ? C.violet : "var(--chip)") + ";color:" + (playing ? "#fff" : C.violet) + '">' + icon(title ? "mdi:waveform" : n.icon || "mdi:bed", 36) + "</span>" +
           '<span class="words"><b>' + esc(title || n.name) + "</b><i>" + (playing ? "Playing" : "Off") + "</i></span></div>" +
-          '<div class="nbtns">' + (n.buttons || []).map(function (b, j) {
-            return '<button class="chipbtn' + (b.off ? " off" : "") + '" data-noise="' + i + "/" + j + '">' + (b.icon ? icon(b.icon, 28) : "") + "<span>" + esc(b.name) + "</span></button>";
-          }).join("") + '<button class="chipbtn sounds" data-go="sounds/' + i + '">' + icon("mdi:music-note", 28) + "<span>Sounds</span></button></div><div class=\"nsl\">";
+          // one sound button: shows what's playing, opens the Sounds page to pick; then Off
+          '<div class="nbtns two"><button class="chipbtn sounds' + (playing ? " on" : "") + '" data-go="sounds/' + i + '">' + icon(playing && SOUNDS[p.attributes.sound_mode] ? SOUNDS[p.attributes.sound_mode].i : "mdi:music-note", 28) +
+          "<span>" + esc(playing && p.attributes.sound_mode && p.attributes.sound_mode !== "NONE" ? this._soundName(p.attributes.sound_mode) : "Sounds") + "</span></button>" +
+          (n.buttons || []).map(function (b, j) {
+            return b.off ? '<button class="chipbtn off" data-noise="' + i + "/" + j + '">' + (b.icon ? icon(b.icon, 28) : "") + "<span>" + esc(b.name) + "</span></button>" : "";
+          }).join("") + '</div><div class="nsl">';
         if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100), "", "mdi:volume-high"); } }
         else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "", "mdi:volume-high");
         if (n.light && this._s(n.light)) {   // the Hatch light has its own page (colour wheel and colours)
@@ -1073,6 +1076,11 @@ ha-icon { display: flex; }
 .lightrow .lightbtn { width: 64px; padding: 0; flex: none; }
 .sl .sic { position: absolute; left: 16px; top: 0; bottom: 0; display: flex; align-items: center; color: var(--ink); pointer-events: none; }
 .sl.withic.num .sic, .sl.withic.mvol .sic { color: #fff; }
+.sl.withic .val { left: auto; right: 16px; font-size: 18px; font-weight: 800; color: var(--muted); }
+.chipbtn.sounds.on { background: ${C.violet}; color: #fff; }
+.chipbtn.sounds.on ha-icon { color: #fff; }
+.nbtns.two { grid-template-columns: 1fr; }
+.card.noise.inroom .nbtns.two, :host([narrow]) .nbtns.two { grid-template-columns: 2fr 1fr; }
 .lightbtn.on { background: var(--lc, #f2b25c); color: #fff; box-shadow: 0 6px 18px -6px var(--lc, transparent); }
 .lightbtn.on ha-icon { color: #fff; }
 .lightbtn.on.darkink { color: #2b2230; }
@@ -1208,6 +1216,7 @@ ha-icon { display: flex; }
 :host([narrow]) .lightrow .sl { min-height: 44px; border-radius: 14px; }
 :host([narrow]) .lightrow .lightbtn { width: 44px; }
 :host([narrow]) .sl .sic { left: 10px; }
+:host([narrow]) .sl.withic .val { left: auto; right: 10px; font-size: 13px; }
 :host([narrow]) .sl .sic ha-icon { --mdc-icon-size: 22px !important; }
 :host([narrow]) .lightbtn .dotc { width: 18px; height: 18px; }
 :host([narrow]) .wheel { width: min(100%, 270px); }
