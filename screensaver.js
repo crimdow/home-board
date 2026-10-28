@@ -102,7 +102,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
     var db = HB.db, pb = db.pb, toast = HB.toast;
     var X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
     var photos = [], busy = 0;
-    var AFTER = [2, 5, 10, 30], EVERY = [5, 7, 10, 15, 30, 60, 300];
+    var AFTER = [2, 5, 10, 30], EVERY = [5, 10, 15, 30, 60, 300];
     function hourOpts() { var o = ""; for (var h = 0; h < 24; h++) o += '<option value="' + h + '">' + (h % 12 || 12) + (h < 12 ? " AM" : " PM") + '</option>'; return o; }
 
     root.innerHTML =
