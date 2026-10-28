@@ -826,7 +826,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28b";
+  var VERSION = "2026-10-28d";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1734,7 +1734,6 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     }
     // a colour for each day of the week, the same every week (Sunday first), to help the girls learn them
     var WEEKDAY_COLORS = ["#ff9ad5", "#ff6b6b", "#ffa94d", "#ffe066", "#8ce99a", "#74c0fc", "#c39bff"];
-    // shrink the big clock just enough that the time and the longest day ("Wednesday") fit on the panel's own fonts
     // one size for every day: measure the widest it can ever be ("12:58 PM", "Wednesday", "September 30"),
     // shrink to fit that on the panel's fonts, and keep it
     var clockFit = null;
@@ -1749,9 +1748,13 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
         var need = ck.scrollWidth - pad, room = ck.clientWidth - pad;
         if (room > 0) clockFit = need > room && need > 0 ? Math.max(.5, room / need * .88) : 1;
         b.innerHTML = keep[0]; wd.textContent = keep[1]; sp.textContent = keep[2];
-        requestAnimationFrame(function () { ck.classList.remove("fitting"); });
+        // settle on the final size while animations are still off, so nothing grows or shrinks on screen
+        ck.style.setProperty("--fit", clockFit === null ? 1 : clockFit.toFixed(3));
+        void ck.offsetWidth;
+        ck.classList.remove("fitting");
+        return;
       }
-      ck.style.setProperty("--fit", clockFit === null ? 1 : clockFit.toFixed(3));
+      if (ck.style.getPropertyValue("--fit") !== clockFit.toFixed(3)) ck.style.setProperty("--fit", clockFit.toFixed(3));
     }
     window.addEventListener("resize", function () { clockFit = null; });
     function paintMusic() {
@@ -1761,22 +1764,26 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       el.classList.toggle("np", !card.hidden);   // the clock makes room for it
       if (wasNp !== el.classList.contains("np")) fitClock();
       if (card.hidden) return;
-      card.querySelector("img").src = np.art || "";
-      card.querySelector("b").textContent = np.title;
-      card.querySelector("span").textContent = [np.artist, np.speaker].filter(Boolean).join(" · ");
+      var img = card.querySelector("img");
+      if (img.getAttribute("src") !== (np.art || "")) img.setAttribute("src", np.art || "");
+      setHtml(card.querySelector("b"), esc(np.title));
+      setHtml(card.querySelector("span"), esc([np.artist, np.speaker].filter(Boolean).join(" · ")));
     }
     document.addEventListener("hb-nowplaying", paintMusic);
+    function setHtml(n, h) { if (n._hb !== h) { n._hb = h; n.innerHTML = h; } }
     function paintInfo() {
       paintMusic();
       var d = new Date(), w = HB.weather(), c = w && w.current;
-      el.querySelector(".ss-clock b").innerHTML = (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0") + "<small>" + (d.getHours() < 12 ? "AM" : "PM") + "</small>";
+      // only touch the screen when something really changed (the time once a minute), so nothing redraws mid-fade
+      setHtml(el.querySelector(".ss-clock b"), (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0") + "<small>" + (d.getHours() < 12 ? "AM" : "PM") + "</small>");
       var wd = el.querySelector(".ss-wd");
-      wd.textContent = DAYS[d.getDay()];
-      wd.style.setProperty("--wd", WEEKDAY_COLORS[d.getDay()]);
-      el.querySelector(".ss-clock span").textContent = MONTHS[d.getMonth()] + " " + d.getDate();
+      setHtml(wd, DAYS[d.getDay()]);
+      if (wd.style.getPropertyValue("--wd") !== WEEKDAY_COLORS[d.getDay()]) wd.style.setProperty("--wd", WEEKDAY_COLORS[d.getDay()]);
+      setHtml(el.querySelector(".ss-clock span"), MONTHS[d.getMonth()] + " " + d.getDate());
       fitClock();
-      el.querySelector(".ss-wx").innerHTML = c ? HB.wxIcon(c.weather_code, c.is_day) + "<b>" + Math.round(c.temperature_2m) + "°</b>" : "";
-      el.querySelector(".ss-wx").hidden = !c;
+      var wx = el.querySelector(".ss-wx");
+      setHtml(wx, c ? HB.wxIcon(c.weather_code, c.is_day) + "<b>" + Math.round(c.temperature_2m) + "°</b>" : "");
+      if (wx.hidden !== !c) wx.hidden = !c;
     }
     // the day card: who's on drop off / pick up / dinner, and the note. Today until 3 pm, then tomorrow.
     function paintDay() {
