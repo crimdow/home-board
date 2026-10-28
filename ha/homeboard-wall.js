@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.13.0";
+  var VERSION = "1.14.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -260,14 +260,21 @@
       this._plistsAt = Date.now(); this._plLoading = false;
       var box = this.shadowRoot.querySelector(".plist"); if (box) box.innerHTML = this._plistHtml();
     }
+    _hatchShown(id) {   // what to show for a Hatch light: a colour just picked wins until the Hatch catches up
+      var s = this._s(id), on = !!s && s.state === "on", rgb = s && s.attributes.rgb_color, o = this._hatchOpt && this._hatchOpt[id];
+      if (o && Date.now() < o.until) return { on: true, rgb: o.rgb };
+      return { on: on, rgb: on && rgb ? rgb.slice(0, 3) : null };
+    }
     _hatchLightPage(i) {
       var n = (this._config.noise || [])[i]; if (!n || !n.light) { this._route = ["noise"]; return this._noisePage(); }
-      var id = n.light, s = this._s(id), on = s && s.state === "on", c = s && s.attributes.rgb_color, bri = on && s.attributes.brightness ? Math.round(s.attributes.brightness / 2.55) : 0;
-      var lc = on && c ? "rgb(" + c.join(",") + ")" : null;
-      var h = '<div class="card light' + (on ? " lit" : "") + '"' + (lc ? ' style="--glow:' + lc + '"' : "") + '><div class="row">' +
+      var id = n.light, s = this._s(id), hs = this._hatchShown(id), on = hs.on, c = hs.rgb;
+      var bri = s && s.state === "on" && s.attributes.brightness ? Math.round(s.attributes.brightness / 2.55) : on ? 60 : 0;
+      var ob = this._hatchBri && this._hatchBri[id]; if (ob && Date.now() < ob.until) bri = ob.v;
+      var lc = c ? "rgb(" + c.join(",") + ")" : null;
+      var h = '<div class="card light hatchcard' + (on ? " lit" : "") + '"' + (lc ? ' style="--glow:' + lc + '"' : "") + '><div class="row">' +
         '<button class="ic" data-toggle="' + esc(id) + '" aria-label="Turn the light on or off">' + icon("mdi:lightbulb-night", 40) + "</button>" +
         '<button class="words" data-toggle="' + esc(id) + '"><b>' + esc(n.name) + "’s Hatch light</b><i>" + (on ? "On" : "Off") + "</i></button></div>" +
-        '<div class="label">Brightness</div>' + this._slider("bri", [id], bri) +
+        '<div class="label">Brightness</div>' + this._slider("hbri", [id], bri) +
         '<div class="label">Color</div><div class="wheelwrap"><div class="wheel" data-wheel="' + esc(id) + '">' + (lc ? '<span class="wmark" style="' + this._wheelPos(c) + "background:" + lc + '"></span>' : "") + "</div></div>" +
         '<div class="swatches hatch">' + HATCH_COLORS.map(function (x, k) {
           return '<button class="sw" data-hcolor="' + k + '" data-ids="' + esc(id) + '" aria-label="' + x.name + '" style="--c1:' + x.c[0] + ";--c2:" + x.c[1] + '"></button>';
@@ -287,8 +294,24 @@
       var f = function (k) { var kk = (k + hue / 60) % 6; return 1 - sat * Math.max(0, Math.min(kk, 4 - kk, 1)); };
       return [Math.round(f(5) * 255), Math.round(f(3) * 255), Math.round(f(1) * 255)];
     }
+    _hueOf(rgb) {   // 0-100 along the colour slider
+      var r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, hh = 0;
+      if (d) hh = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return Math.round(((hh * 60 + 360) % 360) / 3.6);
+    }
+    _hueRgb(v) {   // full, bright colour at 0-100 along the slider
+      var hue = v * 3.6 % 360, f = function (k) { var kk = (k + hue / 60) % 6; return 1 - Math.max(0, Math.min(kk, 4 - kk, 1)); };
+      return [Math.round(f(5) * 255), Math.round(f(3) * 255), Math.round(f(1) * 255)];
+    }
+    _paintHatch(id, rgb) {   // show a picked colour right away, before the Hatch answers
+      this._hatchOpt = this._hatchOpt || {}; this._hatchOpt[id] = { rgb: rgb, until: Date.now() + 9000 };
+      var card = this.shadowRoot.querySelector(".hatchcard"); if (!card) return;
+      card.style.setProperty("--glow", "rgb(" + rgb.join(",") + ")"); card.classList.add("lit");
+      var mk = card.querySelector(".wmark"); if (mk) mk.setAttribute("style", this._wheelPos(rgb) + "background:rgb(" + rgb.join(",") + ")");
+    }
     _setHatch(id, rgb) {
       this._hatchLast = this._hatchLast || {}; this._hatchLast[id] = rgb;
+      this._paintHatch(id, rgb);
       var s = this._s(id), bri = s && s.state === "on" && s.attributes.brightness ? Math.round(s.attributes.brightness / 2.55) : 60;
       this._call("light", "turn_on", { entity_id: id, rgb_color: rgb, brightness_pct: Math.max(5, bri) });
     }
@@ -540,13 +563,13 @@
       return h + "</div>";
     }
     _slider(kind, ids, val, label) {
-      var showVal = kind === "bri" || label;
+      var showVal = kind === "bri" || kind === "hbri" || label;
       return '<div class="sl ' + kind + '" data-sl="' + kind + '" data-ids="' + esc(ids.join(",")) + '" data-v="' + val + '"' + (label ? ' data-label="' + esc(label) + '"' : "") + ">" +
         '<div class="fill" style="width:' + (kind === "ct" ? 100 : val) + '%"></div><div class="knob" style="left:' + val + '%"></div>' +
         (showVal ? '<span class="val">' + this._valText(kind, val, label) + "</span>" : "") + "</div>";
     }
     _valText(kind, v, label) {
-      var t = kind === "bri" ? (v ? v + "%" : "Off") : v + "%";
+      var t = kind === "bri" || kind === "hbri" ? (v ? v + "%" : "Off") : v + "%";
       return label ? label + " · " + t : t;
     }
 
@@ -638,8 +661,8 @@
         if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100), "Volume"); } }
         else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "Volume");
         if (n.light && this._s(n.light)) {   // the Hatch light has its own page (colour wheel and colours)
-          var ls = this._s(n.light), lon = ls.state === "on", lc = ls.attributes.rgb_color;
-          h += '<button class="lightbtn' + (lon ? " on" : "") + '" data-go="hatchlight/' + i + '"' + (lon && lc ? ' style="--lc:rgb(' + lc.join(",") + ')"' : "") + '><span class="dotc"></span><span>Light · ' + (lon ? "On" : "Off") + "</span>" + icon("mdi:chevron-right", 26) + "</button>";
+          var hl = this._hatchShown(n.light), lc = hl.rgb;
+          h += '<button class="lightbtn' + (hl.on ? " on" : "") + (hl.on && lc && lc[0] * .3 + lc[1] * .59 + lc[2] * .11 > 170 ? " darkink" : "") + '" data-go="hatchlight/' + i + '"' + (hl.on && lc ? ' style="--lc:rgb(' + lc.join(",") + ')"' : "") + "><span>Light</span>" + icon("mdi:chevron-right", 26) + "</button>";
         }
         return h + "</div></div>";
     }
@@ -696,6 +719,10 @@
       if (final || Date.now() - d.sent > 900) { d.sent = Date.now(); this._setHatch(d.id, rgb); }
     }
     _dragTo(clientX, final) {
+      if (this._drag && this._drag.kind === "hhue") {   // colour slider: the card takes the colour as the finger moves
+        var rr = this._drag.el.getBoundingClientRect(), vv = Math.round(clamp((clientX - rr.left) / rr.width * 100, 0, 100));
+        this._paintHatch(this._drag.ids[0], this._hueRgb(vv));
+      }
       var d = this._drag, r = d.el.getBoundingClientRect();
       var v = Math.round(clamp((clientX - r.left) / r.width * 100, 0, 100));
       d.v = v;
@@ -703,6 +730,7 @@
       var t = d.el.querySelector(".val"); if (t) t.textContent = this._valText(d.kind, v, d.el.dataset.label);
       d.el.querySelector(".knob").style.left = v + "%";
       var now = Date.now();
+      if (d.kind === "hbri") { if (final) this._send(d.kind, d.ids, v); return; }   // the Hatch is slow: one change, on lift
       if (final || now - d.sent > 450) { d.sent = now; this._send(d.kind, d.ids, v); }
     }
     _rgbOnly(id) { var s = this._s(id), m = s ? s.attributes.supported_color_modes || [] : []; return m.length && m.every(function (x) { return x === "rgb" || x === "rgbw" || x === "hs" || x === "xy"; }); }
@@ -727,6 +755,12 @@
         var rg = this._ctRange(ids), k = Math.round(rg[0] + (rg[1] - rg[0]) * v / 100);
         var ct = ids.filter((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).indexOf("color_temp") >= 0; });
         this._call("light", "turn_on", { entity_id: ct.length ? ct : ids, color_temp_kelvin: k });
+      } else if (kind === "hbri") {
+        this._hatchBri = this._hatchBri || {}; this._hatchBri[ids[0]] = { v: v, until: Date.now() + 10000 };
+        if (v <= 0) this._call("light", "turn_off", { entity_id: ids[0] });
+        else { var hs = this._hatchShown(ids[0]); this._call("light", "turn_on", { entity_id: ids[0], rgb_color: hs.rgb || this._keepColor(ids[0]), brightness_pct: Math.max(1, v) }); }
+      } else if (kind === "hhue") {
+        this._setHatch(ids[0], this._hueRgb(v));
       } else if (kind === "hue") {
         var col = ids.filter((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).some(function (m) { return COLOR_MODES.indexOf(m) >= 0; }); });
         this._call("light", "turn_on", { entity_id: col.length ? col : ids, hs_color: [Math.round(v * 3.6) % 360, 100] });
@@ -928,6 +962,11 @@ ha-icon { display: flex; }
 .sl[data-label] .val { left: auto; right: 18px; }
 .sl.ct { background: linear-gradient(90deg, #ff9d3d, #ffe6c2 45%, #f4f7ff 70%, #bcd6ff); }
 .sl.ct .fill, .sl.hue .fill { display: none; }
+.sl.hhue .fill { display: none; }
+.sl.hbri { height: 84px; border-radius: 26px; }
+.sl.hbri .fill { background: var(--glow, #f2b25c); border-radius: 26px 0 0 26px; transition: background .2s; }
+.sl.hbri .knob { margin-left: -18px; }
+.sl.hhue { background: linear-gradient(90deg, #f00, #ff8000, #ff0, #0f0, #0ff, #00f, #8000ff, #f0f, #f00); }
 .sl.hue { background: linear-gradient(90deg, #ff3b30, #ff9500, #ffd60a, #34c759, #00c7be, #0a84ff, #5e5ce6, #bf5af2, #ff2d55, #ff3b30); }
 .sl .knob { position: absolute; top: 12px; bottom: 12px; width: 10px; margin-left: -5px; border-radius: 5px; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.35); }
 .sl.bri .knob, .sl.num .knob { margin-left: -18px; }
@@ -980,7 +1019,11 @@ ha-icon { display: flex; }
 
 /* Hatch light: button on the noise cards, and its page */
 .lightbtn { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 18px; border-radius: 20px; background: var(--chip); font-size: 20px; font-weight: 800; }
-.lightbtn span:nth-child(2) { flex: 1; }
+.lightbtn span:first-child { flex: 1; }
+.lightbtn.on { background: var(--lc, #f2b25c); color: #fff; box-shadow: 0 6px 18px -6px var(--lc, transparent); }
+.lightbtn.on ha-icon { color: rgba(255,255,255,.85); }
+.lightbtn.on.darkink { color: #2b2230; }
+.lightbtn.on.darkink ha-icon { color: rgba(0,0,0,.5); }
 .lightbtn .dotc { width: 26px; height: 26px; border-radius: 13px; background: var(--lc, color-mix(in srgb, var(--ink) 18%, transparent)); box-shadow: 0 0 12px var(--lc, transparent); flex: none; }
 .lightbtn ha-icon { color: var(--muted); }
 .wheelwrap { display: flex; justify-content: center; padding: 6px 0 4px; }
