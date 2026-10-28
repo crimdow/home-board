@@ -826,7 +826,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28a";
+  var VERSION = "2026-10-28b";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1735,21 +1735,31 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     // a colour for each day of the week, the same every week (Sunday first), to help the girls learn them
     var WEEKDAY_COLORS = ["#ff9ad5", "#ff6b6b", "#ffa94d", "#ffe066", "#8ce99a", "#74c0fc", "#c39bff"];
     // shrink the big clock just enough that the time and the longest day ("Wednesday") fit on the panel's own fonts
+    // one size for every day: measure the widest it can ever be ("12:58 PM", "Wednesday", "September 30"),
+    // shrink to fit that on the panel's fonts, and keep it
+    var clockFit = null;
     function fitClock() {
       var ck = el.querySelector(".ss-clock");
-      ck.classList.add("fitting");            // measure without the size animation
-      ck.style.setProperty("--fit", 1);
-      var cs = getComputedStyle(ck), pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-      var need = ck.scrollWidth - pad, room = ck.clientWidth - pad;
-      ck.style.setProperty("--fit", need > room && need > 0 ? Math.max(.5, room / need * .88).toFixed(3) : 1);
-      requestAnimationFrame(function () { ck.classList.remove("fitting"); });
+      if (clockFit === null) {
+        var b = ck.querySelector("b"), wd = ck.querySelector(".ss-wd"), sp = ck.querySelector("span");
+        var keep = [b.innerHTML, wd.textContent, sp.textContent];
+        b.innerHTML = "12:58<small>PM</small>"; wd.textContent = "Wednesday"; sp.textContent = "September 30";
+        ck.classList.add("fitting"); ck.style.setProperty("--fit", 1);
+        var cs = getComputedStyle(ck), pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        var need = ck.scrollWidth - pad, room = ck.clientWidth - pad;
+        if (room > 0) clockFit = need > room && need > 0 ? Math.max(.5, room / need * .88) : 1;
+        b.innerHTML = keep[0]; wd.textContent = keep[1]; sp.textContent = keep[2];
+        requestAnimationFrame(function () { ck.classList.remove("fitting"); });
+      }
+      ck.style.setProperty("--fit", clockFit === null ? 1 : clockFit.toFixed(3));
     }
+    window.addEventListener("resize", function () { clockFit = null; });
     function paintMusic() {
       var card = el.querySelector(".ss-music"), np = HB.nowPlaying || {};
       card.hidden = !np.playing || !np.title;
       var wasNp = el.classList.contains("np");
       el.classList.toggle("np", !card.hidden);   // the clock makes room for it
-      if (wasNp !== el.classList.contains("np")) setTimeout(fitClock, 450);
+      if (wasNp !== el.classList.contains("np")) fitClock();
       if (card.hidden) return;
       card.querySelector("img").src = np.art || "";
       card.querySelector("b").textContent = np.title;
