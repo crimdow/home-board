@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.19.4";
+  var VERSION = "1.19.5";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -433,8 +433,8 @@
     }
 
     _head(title, back, right) {
+      // no back arrow: the Home Assistant button (and a swipe) goes back to the wall's home page
       return '<div class="head">' +
-        (back ? '<button class="back" data-go="' + back + '" aria-label="Back">' + icon("mdi:chevron-left", 44) + "</button>" : "") +
         '<h1>' + esc(title) + "</h1>" + (right || "") +
         (back ? '<button class="back homebtn" data-go="home" aria-label="Wall home">' + icon("mdi:home-assistant", 40) + "</button>" : "") + "</div>";
     }
@@ -971,6 +971,9 @@ ha-icon { display: flex; }
 .head h1 { margin: 0; flex: 1; font-size: 42px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
 .homebtn { margin-left: auto; color: var(--accent); }
 .head h1 + .homebtn { margin-left: auto; }
+/* the title stays put while a page scrolls, like Home Board's own page headers */
+:host(:not([full])) .head { position: sticky; top: var(--header-height, 0px); z-index: 3; background: var(--bg); margin: -20px -22px 0; padding: 20px 22px 0; }
+:host(:not([full])[narrow]) .head { margin: -10px -12px 0; padding: 10px 12px 0; }
 .back { width: 72px; height: 72px; border-radius: 36px; background: var(--card); display: flex; align-items: center; justify-content: center; flex: none; }
 .back:active, .big:active, .room:active, .chipbtn:active, .pill:active, .round:active, .mode:active, .sw:active { transform: scale(.97); }
 .pill { border-radius: 999px; background: var(--card); font-size: 24px; font-weight: 800; padding: 20px 30px; flex: none; text-align: center; }
