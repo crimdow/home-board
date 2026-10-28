@@ -75,9 +75,9 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
 .ssx .lay.off { opacity: 0; }
 .ssx .lay > div { box-sizing: border-box; position: absolute; border-radius: 5cqw; background: rgba(20, 20, 24, .42); border: 1px solid rgba(255, 255, 255, .3);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; display: flex; flex-direction: column; justify-content: center; padding: 0 4cqw; }
-.ssx .lay .clock { left: 5%; right: 5%; top: 6%; height: 27%; align-items: center; text-align: center; }
-.ssx .lay .clock b { font-size: 27cqw; font-weight: 800; line-height: 1; letter-spacing: -.04em; }
-.ssx .lay .clock i { font-style: normal; font-size: 11cqw; font-weight: 800; color: #ffa94d; }
+.ssx .lay .clock { left: 5%; right: 5%; top: 6%; height: 14.5%; flex-direction: row; align-items: center; justify-content: center; gap: 5cqw; }
+.ssx .lay .clock b { font-size: 17cqw; font-weight: 800; line-height: 1; letter-spacing: -.04em; }
+.ssx .lay .clock i { font-style: normal; font-size: 8.4cqw; font-weight: 800; color: #ffa94d; }
 .ssx .lay .np { display: none; left: 42%; top: 6%; width: 53%; height: 16%; background: transparent; border: 1.5px dashed rgba(255, 255, 255, .7); -webkit-backdrop-filter: none; backdrop-filter: none; align-items: center; text-align: center; font-size: 3cqw; font-weight: 800; }
 .ssx .lay .wx { right: 5%; top: 71%; width: 15%; height: 6.5%; border-radius: 99px; align-items: center; font-size: 4.4cqw; font-weight: 800; padding: 0; }
 .ssx .lay .day { left: 5%; right: 5%; top: 79.5%; height: 14.5%; font-size: 2.6cqw; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; justify-content: flex-start; padding-top: 3cqw; }
