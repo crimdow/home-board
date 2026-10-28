@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.19.2";
+  var VERSION = "1.19.3";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -93,6 +93,7 @@
         this._ro.observe(this);
       }
       requestAnimationFrame(() => this._paintLook());   // the theme's colours are only readable once on the page
+      this._askLook();   // Home Board answers with its colours right away
       // a wall panel left on a sub-page drifts home after a few minutes
       this._idle = setInterval(() => {
         if (this._route[0] !== "home" && Date.now() - (this._touched || 0) > 3 * 60000) { this._route = ["home"]; this._sig = ""; this._render(); }
@@ -105,11 +106,24 @@
       var ok = (this._config && this._config.homeboard_origin) || "https://home.jermins.com";
       if (e.origin !== ok || !e.data || e.data.hb !== "look") return;
       var look = e.data.look;
+      this._matchHaTheme(look);
       if (JSON.stringify(look) === JSON.stringify(this._look)) return;
       this._look = look;
       try { localStorage.setItem("hb-wall-look", JSON.stringify(look)); } catch (x) {}
       this._paintLook();
     }
+
+    // Put Home Assistant itself (its loading screen, its other pages) on the same theme and light/dark as Home
+    // Board, in this browser only. Home Assistant remembers it, so the next start is already right.
+    _matchHaTheme(look) {
+      var h = this._hass; if (!h || !h.themes || !look || !look.skin) return;
+      var name = Object.keys(h.themes.themes || {}).find((n) => n.toLowerCase() === String(look.skin).toLowerCase());
+      if (!name) return;
+      var cur = h.selectedTheme || {};
+      if (cur.theme === name && cur.dark === !!look.dark) return;
+      this.dispatchEvent(new CustomEvent("settheme", { detail: { theme: name, dark: !!look.dark }, bubbles: true, composed: true }));
+    }
+    _askLook() { if (window.parent !== window) { try { window.parent.postMessage({ hb: "wantlook" }, "*"); } catch (e) {} } }
 
     // Tell Home Board what the speakers are playing, so its screensaver can show it (title, artist, cover).
     _tellNowPlaying() {
@@ -135,6 +149,7 @@
       var themeChanged = this._hass && hass.themes !== this._hass.themes;
       this._hass = hass;
       if (this._config && this._config.music) this._tellNowPlaying();
+      if (!this._themed && this._look) { this._themed = true; this._matchHaTheme(this._look); }
       if (themeChanged) requestAnimationFrame(() => this._paintLook());
       if (!this.shadowRoot.firstChild) this._render();
       else this._maybeRender();

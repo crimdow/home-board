@@ -57,16 +57,20 @@ HB.register("ha", {
     function sendLook() {
       var f = root.querySelector("iframe"); if (!f || !f.contentWindow) return;
       var cs = getComputedStyle(document.documentElement), v = function (k) { return cs.getPropertyValue(k).trim(); };
-      var look = { bg: v("--bg"), ink: v("--ink"), muted: v("--muted"), chip: v("--chip"), sheet: v("--sheet"), field: v("--field"), accent: v("--accent"), onAccent: v("--on-accent") };
+      var look = { bg: v("--bg"), ink: v("--ink"), muted: v("--muted"), chip: v("--chip"), sheet: v("--sheet"), field: v("--field"), accent: v("--accent"), onAccent: v("--on-accent"),
+        skin: document.documentElement.getAttribute("data-skin") || "classic", dark: document.documentElement.getAttribute("data-theme") === "dark" };
       var key = JSON.stringify(look); if (key === sentLook && !sendLook.force) return;
       sentLook = key; sendLook.force = false;
       try { f.contentWindow.postMessage({ hb: "look", look: look }, new URL(f.src).origin); } catch (e) {}
     }
     setInterval(function () { sendLook.force = true; sendLook(); }, 5000);
+    // a new theme or light/dark in Home Board: tell Home Assistant now, not at the next tick
+    document.addEventListener("hb-look", function () { requestAnimationFrame(function () { sendLook.force = true; sendLook(); }); });
     // swipes inside Home Assistant's Home page flip the wall panel's pages, like everywhere else on the panel
     window.addEventListener("message", function (e) {
       var f = root.querySelector("iframe");
       if (!f || e.source !== f.contentWindow || !e.data) return;
+      if (e.data.hb === "wantlook") { sendLook.force = true; sendLook(); return; }   // the wall card just started
       if (e.data.hb === "swipe") { if (HB.panel && HB.panelSwipe) HB.panelSwipe(e.data.dir); return; }
       // what the speakers are playing, for the screensaver
       if (e.data.hb === "nowplaying") { HB.nowPlaying = e.data.np || { playing: false }; document.dispatchEvent(new CustomEvent("hb-nowplaying")); }
