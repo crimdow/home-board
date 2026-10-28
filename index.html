@@ -630,6 +630,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 }
 :root.panel .phead .ptime { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 18px; }
 :root.panel .phead .ptime b { font-size: 76px; font-weight: 800; letter-spacing: -2.5px; line-height: 1; font-variant-numeric: tabular-nums; }
+:root.panel .phead .ptime b small, .saver .ss-clock b small { font-size: .36em; font-weight: 800; letter-spacing: 0; margin-left: .18em; vertical-align: .9em; opacity: .85; }
 :root.panel .phead .ptime span { font-size: 26px; font-weight: 700; color: var(--muted); white-space: nowrap; }
 :root.panel .phead button {
   appearance: none; border: 0; cursor: pointer; font: inherit; color: var(--ink); background: var(--sheet);
@@ -822,7 +823,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-27i";
+  var VERSION = "2026-10-27j";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1743,7 +1744,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     function paintInfo() {
       paintMusic();
       var d = new Date(), w = HB.weather(), c = w && w.current;
-      el.querySelector(".ss-clock b").textContent = (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0");
+      el.querySelector(".ss-clock b").innerHTML = (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0") + "<small>" + (d.getHours() < 12 ? "AM" : "PM") + "</small>";
       var wd = el.querySelector(".ss-wd");
       wd.textContent = DAYS[d.getDay()];
       wd.style.setProperty("--wd", WEEKDAY_COLORS[d.getDay()]);
@@ -2292,7 +2293,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var lastDay = new Date().toDateString(), lastRefresh = Date.now();
     function tick() {
       var d = new Date();
-      clock.textContent = (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0");
+      clock.innerHTML = (d.getHours() % 12 || 12) + ":" + String(d.getMinutes()).padStart(2, "0") + "<small>" + (d.getHours() < 12 ? "AM" : "PM") + "</small>";
       dateEl.textContent = DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate();
       // nobody "opens" a wall panel, so it catches up by itself: at midnight, and every 10 minutes
       var m = current && mods[current];
