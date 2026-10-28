@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.18.0";
+  var VERSION = "1.18.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -690,16 +690,16 @@
         h += '<div class="row"><span class="ic xl" style="background:' + (open ? C.amber : "var(--chip)") + ";color:" + (open ? "#fff" : C.green) + '">' + icon(open ? "mdi:garage-open-variant" : "mdi:garage-variant", 64) + "</span>" +
           '<span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span>" +
           '<button class="pill accent" data-door="' + i + '" data-doorgo="' + action + '">' + action + "</button></div>";
-        var lk = d.lock && this._s(d.lock);
-        if (lk) {
-          var locked = lk.state === "locked";
-          h += '<div class="row lockrow"><span class="ic sm" style="background:' + (locked ? C.red : "var(--chip)") + ";color:" + (locked ? "#fff" : "var(--muted)") + '">' + icon(locked ? "mdi:remote-off" : "mdi:remote", 30) + "</span>" +
-            '<span class="words"><b>Car remotes &amp; keypad</b><i>' + (locked ? "Locked out" : "Working") + "</i></span>" +
-            '<button class="switch' + (locked ? " on red" : "") + '" data-lock="' + esc(d.lock) + '" data-locked="' + (locked ? 1 : 0) + '" aria-label="Lock out the car remotes"><span></span></button></div>';
-        }
         out.push(h + "</div>");
       });
       if (g.light) out.push(this._lightCard("Garage light", "mdi:lightbulb", [g.light], false));
+      // one quiet switch for every opener's car remotes and keypad
+      var locks = (g.remote_locks || []).filter((x) => this._s(x));
+      if (locks.length) {
+        var locked = locks.some((x) => this._s(x).state === "locked");
+        out.push('<div class="quiet"><span>' + icon(locked ? "mdi:remote-off" : "mdi:remote", 22) + (locked ? "Car remotes and keypad locked out" : "Lock out car remotes and keypad") + "</span>" +
+          '<button class="switch small' + (locked ? " on red" : "") + '" data-lock="' + esc(locks.join(",")) + '" data-locked="' + (locked ? 1 : 0) + '" aria-label="Lock out the car remotes and keypad"><span></span></button></div>');
+      }
       // keep the pictures fresh while this page is up
       clearInterval(this._camT);
       this._camT = setInterval(() => {
@@ -907,7 +907,7 @@
         if (go === "Stop") { this._call("cover", "stop_cover", { entity_id: door.entity }); return; }
         this._call("cover", go === "Open" ? "open_cover" : "close_cover", { entity_id: door.entity }); return;
       }
-      if (ds.lock) { this._call("lock", ds.locked === "1" ? "unlock" : "lock", { entity_id: ds.lock }); return; }
+      if (ds.lock) { this._call("lock", ds.locked === "1" ? "unlock" : "lock", { entity_id: ds.lock.split(",") }); return; }
       if (ds.sheetgo) { var run = this._sheet && this._sheet.run; this._sheet = null; this._render(); if (run) run(); return; }
       if (ds.cancel && (b.tagName === "BUTTON" || e.target === b)) { this._sheet = null; this._render(); return; }
     }
@@ -1158,7 +1158,11 @@ ha-icon { display: flex; }
 .card.door .row { width: 100%; }
 .cam { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 20px; background: var(--chip); display: block; }
 .warn { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 18px; background: ${C.amber}; color: #fff; font-size: 22px; font-weight: 800; }
-.lockrow { padding-top: 6px; border-top: 2px solid color-mix(in srgb, var(--ink) 7%, transparent); }
+.quiet { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px; color: var(--muted); font-size: 18px; font-weight: 700; }
+.quiet span { display: flex; align-items: center; gap: 10px; }
+.switch.small { width: 64px; height: 38px; border-radius: 19px; }
+.switch.small span { top: 4px; left: 4px; width: 30px; height: 30px; border-radius: 15px; }
+.switch.small.on span { left: 30px; }
 .switch.on.red { background: ${C.red}; }
 .door.open .doorstate { color: ${C.amber}; }
 
@@ -1309,6 +1313,10 @@ ha-icon { display: flex; }
 :host([narrow]) .door .doorstate { font-size: 20px; white-space: normal; }
 :host([narrow]) .door .pill { padding: 12px 18px; }
 :host([narrow]) .cam { border-radius: 14px; }
+:host([narrow]) .quiet { font-size: 13px; padding: 2px 4px; }
+:host([narrow]) .switch.small { width: 48px; height: 28px; border-radius: 14px; }
+:host([narrow]) .switch.small span { top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 11px; }
+:host([narrow]) .switch.small.on span { left: 23px; }
 :host([narrow]) .warn { font-size: 15px; padding: 10px 12px; border-radius: 12px; }
 :host([narrow]) .sheet { padding: 22px 18px 28px; gap: 10px; }
 :host([narrow]) .sheet b { font-size: 21px; }
