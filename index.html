@@ -826,7 +826,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28d";
+  var VERSION = "2026-10-28e";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1837,6 +1837,13 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     HB.screensaver = { start: start, stop: stop, on: function () { return on; } };
     document.getElementById("pSaver").addEventListener("click", function (e) { e.stopPropagation(); setTimeout(start, 50); });
     idle();
+    // back from an update reload that happened while the screensaver was showing: put it straight back up
+    var resume = false;
+    try { resume = PANEL && sessionStorage.getItem("hb-resaver") === "1"; sessionStorage.removeItem("hb-resaver"); } catch (e) {}
+    if (resume) {
+      var tries = 0;
+      (function again() { start(); if (!on && ++tries < 60) setTimeout(again, 500); })();
+    }
   })();
   // ---- task types (Tasks) ----
   HB.taskTypes = function () { return family.taskTypes; };
@@ -2351,7 +2358,11 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       }, function () {});
     }
     function reloadWhenIdle() {
-      if (Date.now() - lastTouch > 60000) location.reload();
+      if (Date.now() - lastTouch > 60000) {
+        // the screensaver was up: come straight back to it after the reload instead of waking the panel
+        try { if (HB.screensaver && HB.screensaver.on()) sessionStorage.setItem("hb-resaver", "1"); } catch (e) {}
+        location.reload();
+      }
       else setTimeout(reloadWhenIdle, 15000);
     }
     function paintWx(w) {
