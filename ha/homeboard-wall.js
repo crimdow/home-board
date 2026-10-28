@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.12.0";
+  var VERSION = "1.13.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -21,6 +21,18 @@
     { name: "Purple", c: ["#b05cff", "#6a00f4"], rgb: [140, 0, 255] },
     { name: "Blue", c: ["#36a3ff", "#0047ff"], rgb: [0, 80, 255] },
     { name: "Green", c: ["#3cf07a", "#00a83e"], rgb: [0, 255, 0] }
+  ];
+  var HATCH_COLORS = [   // bright, saturated presets for the Hatch light
+    { name: "Red", c: ["#ff3b4f", "#c4001d"], rgb: [255, 0, 0] },
+    { name: "Orange", c: ["#ff8c1a", "#ff3d00"], rgb: [255, 90, 0] },
+    { name: "Amber", c: ["#ffc53d", "#ff9500"], rgb: [255, 160, 0] },
+    { name: "Yellow", c: ["#fff05a", "#ffd000"], rgb: [255, 230, 0] },
+    { name: "Green", c: ["#3cf07a", "#00a83e"], rgb: [0, 255, 60] },
+    { name: "Teal", c: ["#3ff5e0", "#00b3a4"], rgb: [0, 255, 200] },
+    { name: "Blue", c: ["#36a3ff", "#0047ff"], rgb: [0, 70, 255] },
+    { name: "Purple", c: ["#b05cff", "#6a00f4"], rgb: [130, 0, 255] },
+    { name: "Pink", c: ["#ff5cbf", "#ff0080"], rgb: [255, 0, 140] },
+    { name: "White", c: ["#ffffff", "#e6ecf5"], rgb: [255, 255, 255] }
   ];
   var CT_SWATCHES = [   // lights that only do whites
     { name: "Warm white", c: ["#ffe2b0", "#ffb35c"], kelvin: 2700 },
@@ -248,6 +260,39 @@
       this._plistsAt = Date.now(); this._plLoading = false;
       var box = this.shadowRoot.querySelector(".plist"); if (box) box.innerHTML = this._plistHtml();
     }
+    _hatchLightPage(i) {
+      var n = (this._config.noise || [])[i]; if (!n || !n.light) { this._route = ["noise"]; return this._noisePage(); }
+      var id = n.light, s = this._s(id), on = s && s.state === "on", c = s && s.attributes.rgb_color, bri = on && s.attributes.brightness ? Math.round(s.attributes.brightness / 2.55) : 0;
+      var lc = on && c ? "rgb(" + c.join(",") + ")" : null;
+      var h = '<div class="card light' + (on ? " lit" : "") + '"' + (lc ? ' style="--glow:' + lc + '"' : "") + '><div class="row">' +
+        '<button class="ic" data-toggle="' + esc(id) + '" aria-label="Turn the light on or off">' + icon("mdi:lightbulb-night", 40) + "</button>" +
+        '<button class="words" data-toggle="' + esc(id) + '"><b>' + esc(n.name) + "’s Hatch light</b><i>" + (on ? "On" : "Off") + "</i></button></div>" +
+        '<div class="label">Brightness</div>' + this._slider("bri", [id], bri) +
+        '<div class="label">Color</div><div class="wheelwrap"><div class="wheel" data-wheel="' + esc(id) + '">' + (lc ? '<span class="wmark" style="' + this._wheelPos(c) + "background:" + lc + '"></span>' : "") + "</div></div>" +
+        '<div class="swatches hatch">' + HATCH_COLORS.map(function (x, k) {
+          return '<button class="sw" data-hcolor="' + k + '" data-ids="' + esc(id) + '" aria-label="' + x.name + '" style="--c1:' + x.c[0] + ";--c2:" + x.c[1] + '"></button>';
+        }).join("") + "</div></div>";
+      var back = this._from && this._from[0] === "room" ? this._from.join("/") : "noise";
+      return '<div class="page">' + this._head("Hatch light", back) + '<div class="scroll"><div class="stack">' + h + "</div></div></div>";
+    }
+    _wheelPos(rgb) {   // where a colour sits on the wheel (hue round the edge, paler towards the middle)
+      var r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, hh = 0;
+      if (d) hh = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      var hue = (hh * 60 + 360) % 360, sat = mx ? d / mx : 0, ang = hue * Math.PI / 180, rad = 46 * sat;
+      return "left:" + (50 + Math.sin(ang) * rad).toFixed(1) + "%;top:" + (50 - Math.cos(ang) * rad).toFixed(1) + "%;";
+    }
+    _wheelAt(el, x, y) {   // the colour under a finger on the wheel
+      var r = el.getBoundingClientRect(), dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2);
+      var sat = clamp(Math.sqrt(dx * dx + dy * dy) / (r.width / 2), 0, 1), hue = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+      var f = function (k) { var kk = (k + hue / 60) % 6; return 1 - sat * Math.max(0, Math.min(kk, 4 - kk, 1)); };
+      return [Math.round(f(5) * 255), Math.round(f(3) * 255), Math.round(f(1) * 255)];
+    }
+    _setHatch(id, rgb) {
+      this._hatchLast = this._hatchLast || {}; this._hatchLast[id] = rgb;
+      var s = this._s(id), bri = s && s.state === "on" && s.attributes.brightness ? Math.round(s.attributes.brightness / 2.55) : 60;
+      this._call("light", "turn_on", { entity_id: id, rgb_color: rgb, brightness_pct: Math.max(5, bri) });
+    }
+
     _transport(id, playing) {
       var e = esc(id);
       return '<div class="transport"><button class="round" data-mpact="media_previous_track" data-mp="' + e + '" aria-label="Back">' + icon("mdi:skip-previous", 40) + "</button>" +
@@ -296,6 +341,7 @@
       else if (r[0] === "garage") body = this._garagePage();
       else if (r[0] === "noise") body = this._noisePage();
       else if (r[0] === "music") body = this._musicPage();
+      else if (r[0] === "hatchlight") body = this._hatchLightPage(+r[1]);
       else body = this._homePage();
       var scroller = this.shadowRoot.querySelector(".scroll"), top = scroller && this._lastRoute === r.join("/") ? scroller.scrollTop : 0;
       this.shadowRoot.innerHTML = "<style>" + CSS + "</style>" + body + (this._sheet ? this._sheetHtml() : "") +
@@ -426,7 +472,7 @@
         else rest.push(id);
       });
       Object.keys(byK).forEach((k) => this._call("light", "turn_on", Object.assign({ entity_id: byK[k], color_temp_kelvin: +k }, extra || {})));
-      if (rest.length) this._call("light", "turn_on", Object.assign({ entity_id: rest }, extra || {}));
+      if (rest.length) this._lightOn(rest, extra);
     }
 
     /* A room: the whole room on top, then each light */
@@ -591,7 +637,10 @@
           }).join("") + "</div><div class=\"nsl\">";
         if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100), "Volume"); } }
         else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "Volume");
-        if (n.light && this._s(n.light)) h += this._slider("bri", [n.light], this._bri([n.light]), "Light");
+        if (n.light && this._s(n.light)) {   // the Hatch light has its own page (colour wheel and colours)
+          var ls = this._s(n.light), lon = ls.state === "on", lc = ls.attributes.rgb_color;
+          h += '<button class="lightbtn' + (lon ? " on" : "") + '" data-go="hatchlight/' + i + '"' + (lon && lc ? ' style="--lc:rgb(' + lc.join(",") + ')"' : "") + '><span class="dotc"></span><span>Light · ' + (lon ? "On" : "Off") + "</span>" + icon("mdi:chevron-right", 26) + "</button>";
+        }
         return h + "</div></div>";
     }
 
@@ -608,6 +657,12 @@
       root.addEventListener("click", (e) => this._click(e));
       root.addEventListener("pointerdown", (e) => {
         this._touched = Date.now();
+        var wh = e.target.closest && e.target.closest(".wheel");
+        if (wh) {
+          e.preventDefault(); wh.setPointerCapture(e.pointerId); this._sw = null;
+          this._wdrag = { el: wh, id: wh.dataset.wheel, sent: 0 };
+          this._wheelMove(e, false); return;
+        }
         this._sw = e.target.closest && e.target.closest(".sl") ? null : { x: e.clientX, y: e.clientY, t: Date.now() };
         var sl = e.target.closest && e.target.closest(".sl"); if (!sl) return;
         e.preventDefault();
@@ -615,9 +670,10 @@
         this._drag = { el: sl, kind: sl.dataset.sl, ids: sl.dataset.ids.split(","), sent: 0, x0: e.clientX, moved: false };
         this._dragTo(e.clientX, false);
       });
-      root.addEventListener("pointermove", (e) => { if (this._drag) { if (Math.abs(e.clientX - this._drag.x0) > 4) this._drag.moved = true; this._dragTo(e.clientX, false); } });
+      root.addEventListener("pointermove", (e) => { if (this._wdrag) { this._wheelMove(e, false); return; } if (this._drag) { if (Math.abs(e.clientX - this._drag.x0) > 4) this._drag.moved = true; this._dragTo(e.clientX, false); } });
       var end = (e) => { if (!this._drag) return; this._dragTo(e.clientX, true); this._drag = null; this._hold = Date.now() + 2500; };
       root.addEventListener("pointerup", (e) => {
+        if (this._wdrag) { this._wheelMove(e, true); this._wdrag = null; this._hold = Date.now() + 3000; return; }
         var w = this._sw; this._sw = null;
         if (w && !this._drag) {
           var dx = e.clientX - w.x, dy = e.clientY - w.y;
@@ -632,6 +688,13 @@
       });
       root.addEventListener("pointercancel", () => { this._drag = null; this._hold = Date.now() + 1500; });
     }
+    _wheelMove(e, final) {   // show the colour under the finger; send it now and then (Hatch's cloud is slow), and on lift
+      var d = this._wdrag, rgb = this._wheelAt(d.el, e.clientX, e.clientY), mk = d.el.querySelector(".wmark");
+      if (!mk) { mk = document.createElement("span"); mk.className = "wmark"; d.el.appendChild(mk); }
+      mk.setAttribute("style", this._wheelPos(rgb) + "background:rgb(" + rgb.join(",") + ")");
+      d.rgb = rgb;
+      if (final || Date.now() - d.sent > 900) { d.sent = Date.now(); this._setHatch(d.id, rgb); }
+    }
     _dragTo(clientX, final) {
       var d = this._drag, r = d.el.getBoundingClientRect();
       var v = Math.round(clamp((clientX - r.left) / r.width * 100, 0, 100));
@@ -642,10 +705,24 @@
       var now = Date.now();
       if (final || now - d.sent > 450) { d.sent = now; this._send(d.kind, d.ids, v); }
     }
+    _rgbOnly(id) { var s = this._s(id), m = s ? s.attributes.supported_color_modes || [] : []; return m.length && m.every(function (x) { return x === "rgb" || x === "rgbw" || x === "hs" || x === "xy"; }); }
+    _keepColor(id) {   // a colour-only light (the Hatch) needs a colour with every change, or it goes dark
+      var s = this._s(id), c = s && s.attributes.rgb_color;
+      if (c && s.state === "on" && (c[0] + c[1] + c[2]) > 30) return c.slice(0, 3);
+      return (this._hatchLast && this._hatchLast[id]) || [255, 120, 30];
+    }
+    _lightOn(ids, extra) {   // turn_on, adding a colour for the lights that need one
+      var plain = [], self = this;
+      ids.forEach(function (id) {
+        if (self._rgbOnly(id)) self._call("light", "turn_on", Object.assign({ entity_id: id, rgb_color: self._keepColor(id) }, extra || {}));
+        else plain.push(id);
+      });
+      if (plain.length) this._call("light", "turn_on", Object.assign({ entity_id: plain }, extra || {}));
+    }
     _send(kind, ids, v) {
       if (kind === "bri") {
         if (v <= 0) this._call("light", "turn_off", { entity_id: ids });
-        else this._call("light", "turn_on", { entity_id: ids, brightness_pct: Math.max(1, v) });
+        else this._lightOn(ids, { brightness_pct: Math.max(1, v) });
       } else if (kind === "ct") {
         var rg = this._ctRange(ids), k = Math.round(rg[0] + (rg[1] - rg[0]) * v / 100);
         var ct = ids.filter((id) => { var s = this._s(id); return s && (s.attributes.supported_color_modes || []).indexOf("color_temp") >= 0; });
@@ -665,7 +742,8 @@
       var b = e.target.closest && e.target.closest('button, [role="button"], .shade'); if (!b) return;
       this._touched = Date.now();
       var ds = b.dataset, c = this._config;
-      if (ds.go) { var p = ds.go.split("/"); this._route = p[0] === "room" ? ["room", +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
+      if (ds.go) { var p = ds.go.split("/"); this._from = this._route.slice(); this._route = p.length > 1 ? [p[0], +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
+      if (ds.hcolor) { this._setHatch(ds.ids, HATCH_COLORS[+ds.hcolor].rgb); return; }
       if (ds.toggle) {
         var ids = ds.toggle.split(","), anyOn = this._onCount(this._members(ids).concat(ids)) > 0;
         if (anyOn) this._call("light", "turn_off", { entity_id: ids });
@@ -900,6 +978,19 @@ ha-icon { display: flex; }
 .dots.big .dot { width: auto; }
 .dots.big .sw { width: 104px; height: 104px; border-radius: 52px; }
 
+/* Hatch light: button on the noise cards, and its page */
+.lightbtn { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 18px; border-radius: 20px; background: var(--chip); font-size: 20px; font-weight: 800; }
+.lightbtn span:nth-child(2) { flex: 1; }
+.lightbtn .dotc { width: 26px; height: 26px; border-radius: 13px; background: var(--lc, color-mix(in srgb, var(--ink) 18%, transparent)); box-shadow: 0 0 12px var(--lc, transparent); flex: none; }
+.lightbtn ha-icon { color: var(--muted); }
+.wheelwrap { display: flex; justify-content: center; padding: 6px 0 4px; }
+.wheel { position: relative; width: min(100%, 440px); aspect-ratio: 1; border-radius: 50%; touch-action: none; cursor: crosshair;
+  background: radial-gradient(circle closest-side, #fff 0%, rgba(255,255,255,0) 100%), conic-gradient(from 0deg, #f00, #ff0 60deg, #0f0 120deg, #0ff 180deg, #00f 240deg, #f0f 300deg, #f00);
+  box-shadow: 0 10px 30px -12px rgba(0,0,0,.35); }
+.wmark { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.4); pointer-events: none; }
+.swatches.hatch { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px 10px; justify-items: center; }
+.swatches.hatch .sw { width: 76px; height: 76px; border-radius: 38px; }
+
 /* scene tiles */
 .scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .scene { min-height: 120px; border-radius: 24px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
@@ -1013,6 +1104,11 @@ ha-icon { display: flex; }
 :host([narrow]) .pl b { font-size: 13px; }
 :host([narrow]) .pl img, :host([narrow]) .pl .noart { border-radius: 12px; }
 :host([narrow]) .chip { padding: 10px 14px; font-size: 14px; }
+:host([narrow]) .lightbtn { min-height: 44px; font-size: 15px; padding: 0 12px; border-radius: 14px; gap: 8px; }
+:host([narrow]) .lightbtn .dotc { width: 18px; height: 18px; }
+:host([narrow]) .wheel { width: min(100%, 270px); }
+:host([narrow]) .wmark { width: 32px; height: 32px; margin: -16px 0 0 -16px; border-width: 3px; }
+:host([narrow]) .swatches.hatch .sw { width: 48px; height: 48px; }
 :host([narrow]) .lpill { padding: 10px 14px; font-size: 14px; gap: 6px; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
