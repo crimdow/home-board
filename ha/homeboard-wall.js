@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.19.5";
+  var VERSION = "1.19.6";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -419,17 +419,24 @@
       if (r[0] === "lights") body = this._lightsPage();
       else if (r[0] === "room") body = this._roomPage(this._rooms()[r[1]]);
       else if (r[0] === "thermostat") body = this._thermoPage();
-      else if (r[0] === "garage") body = this._garagePage();
+      else if (r[0] === "garage") {
+        if (this._lastRoute !== "garage") this._camSrc = {};   // a fresh picture each time the garage is opened, then it holds
+        body = this._garagePage();
+      }
       else if (r[0] === "noise") body = this._noisePage();
       else if (r[0] === "music") body = this._musicPage();
       else if (r[0] === "hatchlight") body = this._hatchLightPage(+r[1]);
       else if (r[0] === "sounds") body = this._soundsPage(+r[1]);
       else body = this._homePage();
       var scroller = this.shadowRoot.querySelector(".scroll"), top = scroller && this._lastRoute === r.join("/") ? scroller.scrollTop : 0;
+      // garage pictures already on screen are kept as they are through redraws (no reload, no flicker)
+      var cams = {};
+      if (r[0] === "garage" && this._lastRoute === "garage") this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { cams[im.dataset.cam] = im; });
       this.shadowRoot.innerHTML = "<style>" + CSS + "</style>" + body + (this._sheet ? this._sheetHtml() : "") +
         '<div class="turn">' + icon("mdi:phone-rotate-portrait", 64) + "<span>Turn your phone upright</span></div>";
       this._lastRoute = r.join("/");
       var sc = this.shadowRoot.querySelector(".scroll"); if (sc) sc.scrollTop = top;
+      this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var old = cams[im.dataset.cam]; if (old) im.replaceWith(old); else this._camSrc[im.dataset.cam] = im.getAttribute("src"); });
     }
 
     _head(title, back, right) {
@@ -706,7 +713,6 @@
         var cam = d.camera && this._s(d.camera);
         h += '<div class="campane">' + warn;
         // the last picture that finished loading, so a redraw shows it at once instead of a blank while a new one loads
-        this._camSrc = this._camSrc || {};
         if (cam && cam.attributes.entity_picture) h += '<img class="cam" data-cam="' + esc(d.camera) + '" src="' + esc(this._camSrc[d.camera] || cam.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(d.name || "Garage") + ' camera">';
         h += "</div>";
         if (!s) line = "Not installed yet";   // a bay whose opener isn't in yet: its camera and a place ready for it
@@ -722,21 +728,6 @@
         out.push('<div class="quiet"><span>' + icon(locked ? "mdi:remote-off" : "mdi:remote", 22) + (locked ? "Car remotes and keypad locked out" : "Lock out car remotes and keypad") + "</span>" +
           '<button class="switch small' + (locked ? " on red" : "") + '" data-lock="' + esc(locks.join(",")) + '" data-locked="' + (locked ? 1 : 0) + '" aria-label="Lock out the car remotes and keypad"><span></span></button></div>');
       }
-      // keep the pictures fresh while this page is up
-      clearInterval(this._camT);
-      this._camT = setInterval(() => {
-        if (this._route[0] !== "garage") { clearInterval(this._camT); return; }
-        // load the next picture off screen and swap it in whole once it's ready: no blank, no flicker
-        this.shadowRoot.querySelectorAll("img.cam").forEach((im) => {
-          var id = im.dataset.cam, c = this._s(id);
-          if (!c || !c.attributes.entity_picture || im._next) return;
-          var n = new Image(); im._next = n;
-          n.className = im.className; n.dataset.cam = id; n.alt = im.alt;
-          n.onload = () => { (n.decode ? n.decode() : Promise.resolve()).catch(() => {}).then(() => { if (im.isConnected) im.replaceWith(n); this._camSrc[id] = n.src; }); };
-          n.onerror = () => { im._next = null; };
-          n.src = c.attributes.entity_picture + "&t=" + Date.now();
-        });
-      }, 5000);
       return '<div class="page garage">' + this._head("Garage", "home") + '<div class="gfill">' + out.join("") + "</div></div>";
     }
     _dur(m) { return m < 60 ? m + (m === 1 ? " minute" : " minutes") : Math.floor(m / 60) + " hr" + (m % 60 ? " " + (m % 60) + " min" : ""); }
