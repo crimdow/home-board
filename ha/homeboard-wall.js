@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.18.1";
+  var VERSION = "1.18.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -689,10 +689,10 @@
         if (ob && ob.state === "on") h += '<div class="warn">' + icon("mdi:alert", 30) + "<span>Something is blocking the door</span></div>";
         h += '<div class="row"><span class="ic xl" style="background:' + (open ? C.amber : "var(--chip)") + ";color:" + (open ? "#fff" : C.green) + '">' + icon(open ? "mdi:garage-open-variant" : "mdi:garage-variant", 64) + "</span>" +
           '<span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span>" +
+          (i === 0 && g.light && this._s(g.light) ? '<button class="bulb' + (this._on(g.light) ? " on" : "") + '" data-toggle="' + esc(g.light) + '" aria-label="Garage light">' + icon(this._on(g.light) ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 32) + "</button>" : "") +
           '<button class="pill accent" data-door="' + i + '" data-doorgo="' + action + '">' + action + "</button></div>";
         out.push(h + "</div>");
       });
-      if (g.light) out.push(this._lightCard("Garage light", "mdi:lightbulb", [g.light], false));
       // one quiet switch for every opener's car remotes and keypad
       var locks = (g.remote_locks || []).filter((x) => this._s(x));
       if (locks.length) {
@@ -1153,11 +1153,13 @@ ha-icon { display: flex; }
 
 /* Garage */
 .door { flex-direction: row; align-items: center; gap: 24px; padding: 30px; }
-.door .doorstate { font-size: 40px; color: ${C.green}; }
+.door .doorstate { font-size: 34px; line-height: 1.1; color: ${C.green}; white-space: normal; }
 .card.door { flex-direction: column; align-items: stretch; }
 .card.door .row { width: 100%; }
 .cam { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 20px; background: var(--chip); display: block; }
 .warn { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 18px; background: ${C.amber}; color: #fff; font-size: 22px; font-weight: 800; }
+.bulb { width: 64px; height: 64px; border-radius: 32px; background: var(--chip); color: var(--ink); display: flex; align-items: center; justify-content: center; flex: none; }
+.bulb.on { background: #f2b25c; color: #3a2410; box-shadow: 0 6px 18px -6px #f2b25c; }
 .quiet { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px; color: var(--muted); font-size: 18px; font-weight: 700; }
 .quiet span { display: flex; align-items: center; gap: 10px; }
 .switch.small { width: 64px; height: 38px; border-radius: 19px; }
@@ -1313,6 +1315,8 @@ ha-icon { display: flex; }
 :host([narrow]) .door .doorstate { font-size: 20px; white-space: normal; }
 :host([narrow]) .door .pill { padding: 12px 18px; }
 :host([narrow]) .cam { border-radius: 14px; }
+:host([narrow]) .bulb { width: 46px; height: 46px; }
+:host([narrow]) .bulb ha-icon { --mdc-icon-size: 24px !important; }
 :host([narrow]) .quiet { font-size: 13px; padding: 2px 4px; }
 :host([narrow]) .switch.small { width: 48px; height: 28px; border-radius: 14px; }
 :host([narrow]) .switch.small span { top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 11px; }
