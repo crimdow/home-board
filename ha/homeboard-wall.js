@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.15.0";
+  var VERSION = "1.16.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -34,6 +34,17 @@
     { name: "Pink", c: ["#ff5cbf", "#ff0080"], rgb: [255, 0, 140] },
     { name: "White", c: ["#ffffff", "#e6ecf5"], rgb: [255, 255, 255] }
   ];
+  var SOUND_COLORS = [["#b05cff", "#6a00f4"], ["#36a3ff", "#0047ff"], ["#3cf07a", "#00a83e"], ["#ff8c1a", "#ff3d00"], ["#ff5cbf", "#ff0080"], ["#3ff5e0", "#00b3a4"], ["#ffc53d", "#ff9500"]];
+  var SOUNDS = {   // Hatch sound names → an icon and a colour (noise purple, water blue, nature green, music pink, home amber)
+    BrownNoise: { i: "mdi:waveform", c: ["#b05cff", "#6a00f4"] }, WhiteNoise: { i: "mdi:sine-wave", c: ["#c99bff", "#8a4dff"] },
+    Fan: { i: "mdi:fan", c: ["#ffc53d", "#ff9500"] }, Dryer: { i: "mdi:tumble-dryer", c: ["#ffc53d", "#ff9500"] }, Vacuum: { i: "mdi:vacuum", c: ["#ffc53d", "#ff9500"] },
+    Heartbeat: { i: "mdi:heart-pulse", c: ["#ff3b4f", "#c4001d"] },
+    Rain: { i: "mdi:weather-pouring", c: ["#36a3ff", "#0047ff"] }, Thunderstorm: { i: "mdi:weather-lightning-rainy", c: ["#5b6cff", "#2a2fd6"] },
+    Ocean: { i: "mdi:waves", c: ["#3ff5e0", "#00b3a4"] }, CalmSea: { i: "mdi:wave", c: ["#36d1ff", "#0090d6"] }, Water: { i: "mdi:water", c: ["#36a3ff", "#0067ff"] },
+    Wind: { i: "mdi:weather-windy", c: ["#9fe8ff", "#3fb4e6"] },
+    Birds: { i: "mdi:bird", c: ["#3cf07a", "#00a83e"] }, Crickets: { i: "mdi:grass", c: ["#8be04a", "#3f9a1e"] }, ForestLake: { i: "mdi:pine-tree", c: ["#3cf07a", "#00875a"] }, CampfireLake: { i: "mdi:campfire", c: ["#ff8c1a", "#ff3d00"] },
+    Brahms: { i: "mdi:music-clef-treble", c: ["#ff5cbf", "#ff0080"] }, RockABye: { i: "mdi:baby-carriage", c: ["#ff7ad1", "#e0218a"] }, Twinkle: { i: "mdi:star-four-points", c: ["#ffe45c", "#ffb700"] }
+  };
   var CT_SWATCHES = [   // lights that only do whites
     { name: "Warm white", c: ["#ffe2b0", "#ffb35c"], kelvin: 2700 },
     { name: "Daylight", c: ["#ffffff", "#dfe9ff"], kelvin: 5000 }
@@ -260,6 +271,34 @@
       this._plistsAt = Date.now(); this._plLoading = false;
       var box = this.shadowRoot.querySelector(".plist"); if (box) box.innerHTML = this._plistHtml();
     }
+    /* Sounds: every Hatch sound, and the favourites saved in the Hatch app (a story saved there shows up too) */
+    _soundsPage(i) {
+      var n = (this._config.noise || [])[i]; if (!n || !n.player) { this._route = ["noise"]; return this._noisePage(); }
+      var p = this._s(n.player), a = p ? p.attributes : {}, playing = p && p.state === "playing", cur = playing ? a.sound_mode : null;
+      var list = (a.sound_mode_list || []).filter(function (x) { return x !== "White Noise" && x !== "NONE"; });
+      var prefix = "scene." + n.player.replace(/^media_player\./, "").replace(/_media_player$/, "") + "_";
+      var favs = Object.keys(this._hass.states).filter(function (e) { return e.indexOf(prefix) === 0; });
+      var out = [];
+      out.push('<div class="card"><div class="row"><span class="ic" style="background:' + (playing ? C.violet : "var(--chip)") + ";color:" + (playing ? "#fff" : C.violet) + '">' + icon(playing ? SOUNDS[cur] && SOUNDS[cur].i || "mdi:music-note" : "mdi:music-note-off", 40) + "</span>" +
+        '<span class="words"><b>' + (playing ? esc(this._soundName(cur)) : "Nothing playing") + "</b><i>" + esc(n.name) + "’s Hatch</i></span>" +
+        (playing ? '<button class="pill" data-mpact="media_stop" data-mp="' + esc(n.player) + '">Off</button>' : "") + "</div></div>");
+      if (favs.length) out.push('<div class="card"><div class="label">Favorites</div><div class="scenes">' + favs.map((e, k) => {
+        var nm = (this._s(e).attributes.friendly_name || e).replace(/^.*?Hatch\s*/i, "").replace(/^Primary Bedroom\s*/i, "") || "Favorite";
+        var c = SOUND_COLORS[k % SOUND_COLORS.length];
+        return '<button class="scene" data-scene="' + esc(e) + '" style="--c1:' + c[0] + ";--c2:" + c[1] + '">' + icon("mdi:star", 34) + "<span>" + esc(nm) + "</span></button>";
+      }).join("") + "</div></div>");
+      out.push('<div class="card"><div class="label">Sounds</div><div class="scenes snd">' + list.map((x) => {
+        var d = SOUNDS[x] || { i: "mdi:music-note", c: SOUND_COLORS[0] }, on = x === cur;
+        return '<button class="scene' + (on ? " playing" : "") + '" data-sound="' + esc(x) + '" data-mp="' + esc(n.player) + '" style="--c1:' + d.c[0] + ";--c2:" + d.c[1] + '">' + icon(d.i, 34) + "<span>" + esc(this._soundName(x)) + "</span></button>";
+      }).join("") + "</div></div>");
+      var back = this._from && this._from[0] === "room" ? this._from.join("/") : "noise";
+      return '<div class="page">' + this._head(n.name + "’s sounds", back) + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
+    }
+    _soundName(x) {
+      var names = { BrownNoise: "Brown noise", WhiteNoise: "White noise", CalmSea: "Calm sea", CampfireLake: "Campfire", ForestLake: "Forest lake", RockABye: "Rock-a-bye" };
+      return names[x] || x;
+    }
+
     _hatchShown(id) {   // what to show for a Hatch light: a colour just picked wins until the Hatch catches up
       var s = this._s(id), on = !!s && s.state === "on", rgb = s && s.attributes.rgb_color, o = this._hatchOpt && this._hatchOpt[id];
       if (o && Date.now() < o.until) return { on: true, rgb: o.rgb };
@@ -365,6 +404,7 @@
       else if (r[0] === "noise") body = this._noisePage();
       else if (r[0] === "music") body = this._musicPage();
       else if (r[0] === "hatchlight") body = this._hatchLightPage(+r[1]);
+      else if (r[0] === "sounds") body = this._soundsPage(+r[1]);
       else body = this._homePage();
       var scroller = this.shadowRoot.querySelector(".scroll"), top = scroller && this._lastRoute === r.join("/") ? scroller.scrollTop : 0;
       this.shadowRoot.innerHTML = "<style>" + CSS + "</style>" + body + (this._sheet ? this._sheetHtml() : "") +
@@ -658,7 +698,7 @@
           '<span class="words"><b>' + esc(title || n.name) + "</b><i>" + (playing ? "Playing" : "Off") + "</i></span></div>" +
           '<div class="nbtns">' + (n.buttons || []).map(function (b, j) {
             return '<button class="chipbtn' + (b.off ? " off" : "") + '" data-noise="' + i + "/" + j + '">' + (b.icon ? icon(b.icon, 28) : "") + "<span>" + esc(b.name) + "</span></button>";
-          }).join("") + "</div><div class=\"nsl\">";
+          }).join("") + '<button class="chipbtn sounds" data-go="sounds/' + i + '">' + icon("mdi:music-note", 28) + "<span>Sounds</span></button></div><div class=\"nsl\">";
         if (n.volume) { var v = this._s(n.volume); if (v) { var mn = +v.attributes.min || 0, mx = +v.attributes.max || 100; h += this._slider("num", [n.volume], Math.round((+v.state - mn) / (mx - mn) * 100), "", "mdi:volume-high"); } }
         else if (p && p.attributes.volume_level != null) h += this._slider("mvol", [n.player], Math.round(p.attributes.volume_level * 100), "", "mdi:volume-high");
         if (n.light && this._s(n.light)) {   // the Hatch light has its own page (colour wheel and colours)
@@ -789,6 +829,12 @@
         else this._call("light", "turn_on", { entity_id: ids });
         return;
       }
+      if (ds.sound) {   // pick the sound, then play
+        this._call("media_player", "select_sound_mode", { entity_id: ds.mp, sound_mode: ds.sound });
+        setTimeout(() => this._call("media_player", "media_play", { entity_id: ds.mp }), 2000);
+        return;
+      }
+      if (ds.scene) { this._call("scene", "turn_on", { entity_id: ds.scene }); return; }
       if (ds.pick) { this._mp = ds.pick; this._sig = ""; this._render(); return; }
       if (ds.plist) {
         var pl = this._plists && this._plists[+ds.plist]; if (!pl || !this._mp) return;
@@ -1048,6 +1094,10 @@ ha-icon { display: flex; }
   color: #fff; font-size: 21px; font-weight: 800; text-shadow: 0 1px 6px rgba(0,0,0,.25);
   box-shadow: 0 8px 22px -6px color-mix(in srgb, var(--c1) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.35); transition: transform .12s; }
 .scene.darktext { color: #3a2410; text-shadow: none; }
+.scene.playing { outline: 5px solid var(--ink); outline-offset: 3px; }
+.card.noise.inroom .nbtns, :host([narrow]) .nbtns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+:host([narrow]) .scenes.snd { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+:host([narrow]) .scenes.snd .scene { min-height: 74px; font-size: 13px; padding: 8px 10px; }
 .scene:active { transform: scale(.95); }
 
 /* Thermostat */
