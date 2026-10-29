@@ -847,7 +847,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28q";
+  var VERSION = "2026-10-28r";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1724,8 +1724,15 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     }
     var night = false;
     // switch between photos and the black night screen (also while it's already showing, at 11 PM / 5 AM)
+    // A black page still glows on an LCD, so at night the panel asks a tiny helper on the Surface itself
+    // (panel/panel-screen.py, on 127.0.0.1:8399) to switch the backlight off, and back on at a tap or at morning.
+    // Anywhere without the helper this quietly does nothing.
+    function screenPower(lit) {
+      if (!PANEL) return;
+      try { fetch("http://127.0.0.1:8399/" + (lit ? "on" : "off"), { mode: "no-cors", cache: "no-store" }).catch(function () {}); } catch (e) {}
+    }
     function setNight(v) {
-      night = v; el.classList.toggle("night", v);
+      night = v; el.classList.toggle("night", v); screenPower(!v);
       if (v) { clearTimeout(flipT); layers.forEach(function (l) { l.classList.remove("on"); }); }
       else if (on) loadPhotos().then(function () { order = []; showNext(); });
     }
@@ -1870,15 +1877,16 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       clockT = setInterval(function () {
         paintInfo(); if (new Date().getMinutes() % 10 === 0) paintDay();
         if (isNight() !== night) setNight(!night);
+        else if (night) screenPower(false);   // keep it dark (the helper may have restarted)
       }, 15000);
       el.classList.add("show");
-      night = isNight(); el.classList.toggle("night", night);
+      night = isNight(); el.classList.toggle("night", night); if (night) screenPower(false);
       if (!night) loadPhotos().then(function () { order = []; if (!night) showNext(); });
     }
     function stop() {
       document.documentElement.classList.remove("saving");
       if (!on) return;
-      on = false; clearTimeout(flipT); clearInterval(clockT);
+      on = false; clearTimeout(flipT); clearInterval(clockT); screenPower(true);
       el.classList.remove("show");
       setTimeout(function () { if (!on) layers.forEach(function (l) { l.classList.remove("on"); l.querySelector("img").removeAttribute("src"); }); }, 600);
       idle();
@@ -1907,6 +1915,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     // back from an update reload that happened while the screensaver was showing: put it straight back up
     var resume = false;
     try { resume = PANEL && sessionStorage.getItem("hb-resaver") === "1"; sessionStorage.removeItem("hb-resaver"); } catch (e) {}
+    screenPower(true);   // a fresh start never leaves the backlight off
     if (resume) {
       var tries = 0;
       (function again() { start(); if (!on && ++tries < 60) setTimeout(again, 500); })();
