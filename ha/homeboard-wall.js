@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.21.0";
+  var VERSION = "1.21.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -828,7 +828,8 @@
       root.addEventListener("pointermove", (e) => { if (this._wdrag) { this._wheelMove(e, false); return; } if (this._drag) { if (Math.abs(e.clientX - this._drag.x0) > 4) this._drag.moved = true; this._dragTo(e.clientX, false); } });
       var end = (e) => { if (!this._drag) return; this._dragTo(e.clientX, true); this._drag = null; this._hold = Date.now() + 2500; };
       root.addEventListener("pointerup", (e) => {
-        if (this._wdrag) { this._wheelMove(e, true); this._wdrag = null; this._hold = Date.now() + 3000; return; }
+        if (this._wdrag) { this._wheelMove(e, true); this._wdrag = null; this._hold = Date.now() + 3000; this._haptic("selection"); return; }
+        if (this._drag) this._haptic("selection");   // a slider was let go
         var w = this._sw; this._sw = null;
         if (w && !this._drag) {
           var dx = e.clientX - w.x, dy = e.clientY - w.y;
@@ -842,6 +843,11 @@
         end(e);
       });
       root.addEventListener("pointercancel", () => { this._drag = null; this._hold = Date.now() + 1500; });
+    }
+    // the little buzz Home Assistant's own buttons give in the phone app (the app listens for this event)
+    _haptic(kind) {
+      var ev = new Event("haptic", { bubbles: true, composed: true }); ev.detail = kind || "light";
+      window.dispatchEvent(ev);
     }
     _wheelMove(e, final) {   // show the colour under the finger; send it now and then (Hatch's cloud is slow), and on lift
       var d = this._wdrag, rgb = this._wheelAt(d.el, e.clientX, e.clientY), mk = d.el.querySelector(".wmark");
@@ -907,6 +913,7 @@
       if (this._swiped && Date.now() - this._swiped < 400) return;   // the end of a swipe is not a tap
       var b = e.target.closest && e.target.closest('button, [role="button"], .shade'); if (!b) return;
       this._touched = Date.now();
+      if (!b.classList.contains("shade")) this._haptic("light");
       var ds = b.dataset, c = this._config;
       if (ds.go) { var p = ds.go.split("/"); this._from = this._route.slice(); this._route = p.length > 1 ? [p[0], +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
       if (ds.hcolor) { this._setHatch(ds.ids, HATCH_COLORS[+ds.hcolor].rgb); return; }
