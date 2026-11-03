@@ -222,6 +222,12 @@
           "controls": []
         },
         {
+          "controls": [],
+          "entity": "light.front_yard_front_door_over_head",
+          "icon": "mdi:ceiling-light",
+          "name": "Front door overhead"
+        },
+        {
           "entity": "light.lamp_post",
           "name": "Lamp post",
           "icon": "mdi:post-lamp",
