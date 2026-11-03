@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.21.2";
+  var VERSION = "1.21.3";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -161,14 +161,18 @@
           if (mins >= after) out.push({ id: "door" + i, key: "door" + i + ":" + s.last_changed, icon: "garage", tone: "amber", text: name + " open for " + this._dur(mins), go: "garage" });
         }
       });
-      // { entity, state ("on"), for (minutes), text ("{dur}" = how long), icon, tone, go (a wall page, or none) }
+      // { entity, state ("on"), for (minutes), text ("{dur}" = how long), alt, icon, tone, go (a wall page, or none) }
       (c.alerts || []).forEach((a, i) => {
         var s = this._s(a.entity); if (!s) return;
         var when = a.state == null ? "on" : String(a.state);
         if (s.state !== when) return;
         var mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         if (mins < (a.for || 0)) return;
-        var text = (a.text || s.attributes.friendly_name || a.entity).replace("{dur}", mins < 1 ? "a moment" : this._dur(mins));
+        var text = a.text || s.attributes.friendly_name || a.entity;
+        // alt: { entity, above, text } — a different wording while another reading is high (e.g. CO instead of smoke)
+        var alt = a.alt && this._s(a.alt.entity);
+        if (alt && parseFloat(alt.state) > (a.alt.above || 0) && a.alt.text) text = a.alt.text;
+        text = text.replace("{dur}", mins < 1 ? "a moment" : this._dur(mins));
         out.push({ id: "a" + i, key: "a" + i + ":" + s.last_changed, icon: a.icon || "alert", tone: a.tone || "blue", text: text, go: a.go || "" });
       });
       return out;
