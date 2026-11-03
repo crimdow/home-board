@@ -282,11 +282,14 @@
       {
         "entity": "cover.garage_3rd_bay_door",
         "name": "3rd bay",
-        "camera": "camera.garage_1_snapshots_fluent"
+        "camera": "camera.garage_1_snapshots_fluent",
+        "light": "light.garage_3rd_bay_light",
+        "obstruction": "binary_sensor.garage_3rd_bay_obstruction"
       }
     ],
     "remote_locks": [
-      "lock.ratgdo32_7aad0c_lock_remotes"
+      "lock.ratgdo32_7aad0c_lock_remotes",
+      "lock.garage_3rd_bay_lock_remotes"
     ]
   },
   "noise": [
