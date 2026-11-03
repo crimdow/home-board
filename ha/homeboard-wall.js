@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.22.3";
+  var VERSION = "1.22.4";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -548,11 +548,13 @@
       if (Array.isArray(order)) ds.sort((a, b) => (order.indexOf(a.d.entity) + 1 || 99) - (order.indexOf(b.d.entity) + 1 || 99));
       var short = (x) => (x.d.short || (x.d.name || "Door").replace(/\s*door$/i, ""));
       var open = ds.filter((x) => x.s.state !== "closed");
-      var line = !ds.length ? "" : !open.length ? (ds.length === 1 ? "Closed" : ds.length === 2 ? "Both closed" : "All closed")
-        : ds.length === 1 ? this._doorWord(open[0].s.state)
-        // only the doors that aren't shut (the green icons already say closed), so it fits on one line
-        : open.length === ds.length && open.every((x) => x.s.state === "open") ? (ds.length === 2 ? "Both open" : "All open")
-        : open.map((x) => short(x) + " " + this._doorWord(x.s.state).toLowerCase()).join(" · ");
+      // a door on the move says so alone ("Main door opening…"); otherwise every door's state, in tile order
+      var moving = ds.filter((x) => x.s.state === "opening" || x.s.state === "closing");
+      var line = !ds.length ? ""
+        : moving.length ? moving.map((x) => short(x) + " door " + x.s.state + "…").join(" · ")
+        : ds.length === 1 ? this._doorWord(ds[0].s.state)
+        : ds.every((x) => x.s.state === ds[0].s.state) ? (ds.length === 2 ? "Both " : "All ") + this._doorWord(ds[0].s.state).toLowerCase()
+        : ds.map((x) => short(x) + " " + this._doorWord(x.s.state).toLowerCase()).join(" · ");
       // the same circles as every other tile, one per door, side by side where the others have their one icon
       var icons = ds.map((x) => {
         var o = x.s.state !== "closed";
