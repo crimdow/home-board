@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.21.3";
+  var VERSION = "1.22.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -518,7 +518,7 @@
         var open = doors.filter(function (s) { return s.state !== "closed"; });
         var line = !doors.length ? "" : !open.length ? (doors.length > 1 ? (doors.length === 2 ? "Both closed" : "All closed") : "Closed")
           : doors.length === 1 ? this._doorWord(open[0].state) : open.length + " open";
-        tiles.push(this._bigTile("garage", "Garage", line, open.length ? "mdi:garage-open-variant" : "mdi:garage-variant", open.length ? C.amber : C.green, open.length > 0, null, open.length > 0));
+        tiles.push(this._garageTile());
       }
       // White noise
       if (c.noise) {
@@ -534,10 +534,27 @@
       return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div></div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
-      return '<div role="button" tabindex="0" class="big' + (warn ? " warn" : "") + '" data-go="' + go + '">' +
+      return '<div role="button" tabindex="0" class="big' + (warn ? " hot" : "") + '" data-go="' + go + '">' +
         '<span class="ic" style="background:' + (active ? color : "var(--chip)") + ";color:" + (active ? "#fff" : color) + '">' + icon(ic, 54) + "</span>" +
         (big ? '<span class="bignum">' + esc(big) + "</span>" : "") +
         '<span class="words"><b>' + esc(name) + "</b><i>" + esc(line) + "</i></span></div>";
+    }
+    // The Garage tile: one big door icon per door, all the same size and centred, each with its name and state.
+    // The tile looks the same open or closed; only an open door's icon turns amber, and the line says which.
+    _garageTile() {
+      var ds = (this._config.garage.doors || []).map((d) => ({ d: d, s: this._s(d.entity) })).filter((x) => x.s);
+      var short = (x) => (x.d.short || (x.d.name || "Door").replace(/\s*door$/i, ""));
+      var open = ds.filter((x) => x.s.state !== "closed");
+      var line = !ds.length ? "" : !open.length ? (ds.length === 1 ? "Closed" : ds.length === 2 ? "Both closed" : "All closed")
+        : ds.length === 1 ? this._doorWord(open[0].s.state)
+        : ds.map((x) => short(x) + " " + this._doorWord(x.s.state).toLowerCase()).join(" · ");
+      var icons = ds.map((x) => {
+        var o = x.s.state !== "closed";
+        return '<span class="gdoor' + (o ? " open" : "") + '"><span class="ic">' + icon(o ? "mdi:garage-open-variant" : "mdi:garage-variant", 60) + "</span><em>" + esc(short(x)) + "</em></span>";
+      }).join("");
+      return '<div role="button" tabindex="0" class="big gtile' + (open.length ? " hot" : "") + '" data-go="garage">' +
+        '<span class="gdoors">' + icons + "</span>" +
+        '<span class="words"><b>Garage</b><i>' + esc(line) + "</i></span></div>";
     }
     _doorWord(s) { return { open: "Open", closed: "Closed", opening: "Opening…", closing: "Closing…" }[s] || s; }
 
@@ -1063,7 +1080,13 @@ ha-icon { display: flex; }
 .big .words { flex: none; display: flex; flex-direction: column; gap: 6px; }
 .big b { font-size: 40px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
 .big i { font-style: normal; font-size: 25px; font-weight: 700; color: var(--muted); }
-.big.warn i { color: ${C.amber}; }
+.big.hot i { color: ${C.amber}; }   /* not "warn": that's the amber warning banner */
+.gtile .gdoors { flex: 1; align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 36px; padding-bottom: 12px; }
+.gdoor { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.gdoor .ic { width: 112px; height: 112px; border-radius: 56px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: ${C.green}; transition: background-color .3s, color .3s; }
+.gdoor.open .ic { background: ${C.amber}; color: #fff; }
+.gdoor em { font-style: normal; font-size: 20px; font-weight: 800; color: var(--muted); }
+.gdoor.open em { color: ${C.amber}; }
 .bignum { position: absolute; top: 34px; right: 32px; font-size: 64px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
 
 /* rows of icon + words */
@@ -1308,6 +1331,11 @@ ha-icon { display: flex; }
 :host([narrow]) .big .ic ha-icon { --mdc-icon-size: 26px !important; }
 :host([narrow]) .big b { font-size: 18px; }
 :host([narrow]) .big i { font-size: 13px; }
+:host([narrow]) .gtile .gdoors { gap: 14px; padding-bottom: 4px; }
+:host([narrow]) .gdoor { gap: 4px; }
+:host([narrow]) .gdoor .ic { width: 52px; height: 52px; }
+:host([narrow]) .gdoor .ic ha-icon { --mdc-icon-size: 30px !important; }
+:host([narrow]) .gdoor em { font-size: 12px; }
 :host([narrow]) .bignum { top: 14px; right: 14px; font-size: 28px; letter-spacing: -1px; }
 :host([narrow]) .room { padding: 12px; gap: 10px; border-radius: 20px; }
 :host([narrow]) .card { padding: 14px; gap: 8px; border-radius: 20px; }
