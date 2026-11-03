@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.22.4";
+  var VERSION = "1.22.5";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -547,17 +547,16 @@
       var order = this._config.garage.tile_order;
       if (Array.isArray(order)) ds.sort((a, b) => (order.indexOf(a.d.entity) + 1 || 99) - (order.indexOf(b.d.entity) + 1 || 99));
       var short = (x) => (x.d.short || (x.d.name || "Door").replace(/\s*door$/i, ""));
-      var open = ds.filter((x) => x.s.state !== "closed");
-      // a door on the move says so alone ("Main door opening…"); otherwise every door's state, in tile order
-      var moving = ds.filter((x) => x.s.state === "opening" || x.s.state === "closing");
-      var line = !ds.length ? ""
-        : moving.length ? moving.map((x) => short(x) + " door " + x.s.state + "…").join(" · ")
-        : ds.length === 1 ? this._doorWord(ds[0].s.state)
-        : ds.every((x) => x.s.state === ds[0].s.state) ? (ds.length === 2 ? "Both " : "All ") + this._doorWord(ds[0].s.state).toLowerCase()
-        : ds.map((x) => short(x) + " " + this._doorWord(x.s.state).toLowerCase()).join(" · ");
+      // a moving door keeps showing where it started until it's done (opening = still closed, closing = still open)
+      ds.forEach((x) => { x.open = x.s.state === "opening" ? false : x.s.state === "closing" ? true : x.s.state !== "closed"; });
+      var open = ds.filter((x) => x.open);
+      var line = !ds.length ? "" : ds.length === 1 ? (open.length ? "Open" : "Closed")
+        : !open.length ? (ds.length === 2 ? "Both closed" : "All closed")
+        : open.length === ds.length ? (ds.length === 2 ? "Both open" : "All open")
+        : open.length === 1 ? "One open" : open.length + " open";
       // the same circles as every other tile, one per door, side by side where the others have their one icon
       var icons = ds.map((x) => {
-        var o = x.s.state !== "closed";
+        var o = x.open;
         return '<span class="ic" title="' + esc(short(x)) + '" style="background:' + (o ? C.amber : "var(--chip)") + ";color:" + (o ? "#fff" : C.green) + '">' +
           icon(o ? "mdi:garage-open-variant" : "mdi:garage-variant", 54) + "</span>";
       }).join("");
