@@ -382,111 +382,111 @@
   },
   "alerts": [
     {
-      "entity": "binary_sensor.water_heater_alarm_status",
+      "entity": "binary_sensor.basement_leak_detector_basement_alarm_status",
       "state": "on",
       "icon": "water",
       "tone": "blue",
       "text": "Water leak detected in Basement"
     },
     {
-      "entity": "binary_sensor.laundry_room_alarm_status",
+      "entity": "binary_sensor.laundry_room_leak_detector_laundry_room_alarm_status",
       "state": "on",
       "icon": "water",
       "tone": "blue",
       "text": "Water leak detected in Laundry Room"
     },
     {
-      "entity": "binary_sensor.hallway_alarm_status",
+      "entity": "binary_sensor.hallway_smoke_co_upstairs_hallway_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Upstairs Hallway",
       "alt": {
-        "entity": "sensor.hallway_co_reading",
+        "entity": "sensor.hallway_smoke_co_upstairs_hallway_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Upstairs Hallway"
       }
     },
     {
-      "entity": "binary_sensor.stellas_room_alarm_status",
+      "entity": "binary_sensor.stella_s_room_smoke_co_stellas_room_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Stella’s Room",
       "alt": {
-        "entity": "sensor.stellas_room_co_reading",
+        "entity": "sensor.stella_s_room_smoke_co_stellas_room_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Stella’s Room"
       }
     },
     {
-      "entity": "binary_sensor.guest_bedroom_alarm_status",
+      "entity": "binary_sensor.office_smoke_co_office_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Office",
       "alt": {
-        "entity": "sensor.guest_bedroom_co_reading",
+        "entity": "sensor.office_smoke_co_office_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Office"
       }
     },
     {
-      "entity": "binary_sensor.master_bedroom_alarm_status",
+      "entity": "binary_sensor.primary_bedroom_smoke_co_master_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Primary Bedroom",
       "alt": {
-        "entity": "sensor.master_bedroom_co_reading",
+        "entity": "sensor.primary_bedroom_smoke_co_master_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Primary Bedroom"
       }
     },
     {
-      "entity": "binary_sensor.kitchen_alarm_status",
+      "entity": "binary_sensor.kitchen_smoke_co_kitchen_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Kitchen",
       "alt": {
-        "entity": "sensor.kitchen_co_reading",
+        "entity": "sensor.kitchen_smoke_co_kitchen_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Kitchen"
       }
     },
     {
-      "entity": "binary_sensor.garage_alarm_status",
+      "entity": "binary_sensor.garage_smoke_co_garage_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Garage",
       "alt": {
-        "entity": "sensor.garage_co_reading",
+        "entity": "sensor.garage_smoke_co_garage_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Garage"
       }
     },
     {
-      "entity": "binary_sensor.evalyns_room_alarm_status",
+      "entity": "binary_sensor.evalyn_s_room_smoke_co_evalyns_room_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Evalyn’s Room",
       "alt": {
-        "entity": "sensor.evalyns_room_co_reading",
+        "entity": "sensor.evalyn_s_room_smoke_co_evalyns_room_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Evalyn’s Room"
       }
     },
     {
-      "entity": "binary_sensor.basement_alarm_status",
+      "entity": "binary_sensor.basement_smoke_co_basement_alarm_status",
       "state": "on",
       "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Basement",
       "alt": {
-        "entity": "sensor.basement_co_reading",
+        "entity": "sensor.basement_smoke_co_basement_co_reading",
         "above": 0,
         "text": "Carbon monoxide detected in Basement"
       }
