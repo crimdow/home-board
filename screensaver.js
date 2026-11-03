@@ -26,7 +26,20 @@ HB.register("screensaver", {
 #pg-screensaver .hrs { display: flex; align-items: center; gap: 8px; }
 #pg-screensaver .hrs em { font-style: normal; color: var(--muted); font-size: 15px; font-weight: 700; }
 #pg-screensaver .hrs select { appearance: none; border: 0; border-radius: 10px; background: var(--chip); color: var(--ink); font: inherit; font-size: 15px; font-weight: 750; padding: 8px 12px; cursor: pointer; }
-#pg-screensaver #ssHours.off { opacity: .4; pointer-events: none; }
+#pg-screensaver #ssHours.off, #pg-screensaver .away.off { opacity: .4; pointer-events: none; }
+#pg-screensaver .wdays { display: flex; gap: 4px; flex: none; }
+#pg-screensaver .wdays button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--chip); color: var(--muted); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; padding: 0; }
+#pg-screensaver .wdays button.on { background: var(--accent); color: var(--on-accent); }
+#pg-screensaver .offdays { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+#pg-screensaver .offdays button { border: 0; border-radius: 999px; background: var(--chip); color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 750; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+#pg-screensaver .offdays button.on { background: var(--both); color: #fff; }
+#pg-screensaver .offdays input[type=date] { border: 0; border-radius: 999px; background: var(--chip); color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 750; padding: 6px 10px; }
+#pg-screensaver .rowx.wrap { flex-wrap: wrap; }
+#pg-screensaver .note { margin: 0; padding: 0 12px 12px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+body.viewonly #pg-screensaver .wdays, body.viewonly #pg-screensaver .offdays { pointer-events: none; opacity: .6; }
+:root.panel #pg-screensaver .wdays button { width: 46px; height: 46px; font-size: 17px; }
+:root.panel #pg-screensaver .offdays button, :root.panel #pg-screensaver .offdays input[type=date] { font-size: 18px; padding: 10px 16px; }
+:root.panel #pg-screensaver .note { font-size: 17px; padding: 0 20px 16px; }
 body.viewonly #pg-screensaver .hrs select { pointer-events: none; opacity: .6; }
 :root.panel #pg-screensaver .hrs select, :root.panel #pg-screensaver .hrs em { font-size: 20px; }
 #pg-screensaver .pill { border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 14px; font-weight: 800; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
@@ -118,6 +131,17 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
           '<div class="rowx" id="ssHours"><span>From</span><span class="hrs"><select id="ssFrom" aria-label="Dark from">' + hourOpts() + '</select>' +
             '<em>to</em><select id="ssTo" aria-label="Dark until">' + hourOpts() + '</select></span></div>' +
         '</div>' +
+        '<h2>Dark during the workday</h2>' +
+        '<div class="grp">' +
+          '<div class="rowx"><span>Dark while we’re out</span><label class="sw"><input type="checkbox" id="ssAway"><i></i></label></div>' +
+          '<div class="away" id="ssAwayBox">' +
+            '<div class="rowx"><span>Days</span><div class="wdays" id="ssDays">' + ["S", "M", "T", "W", "T", "F", "S"].map(function (l, i) { return '<button type="button" data-d="' + i + '" aria-label="' + ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][i] + '">' + l + '</button>'; }).join("") + '</div></div>' +
+            '<div class="rowx"><span>From</span><span class="hrs"><select id="ssAFrom" aria-label="Dark from">' + hourOpts() + '</select>' +
+              '<em>to</em><select id="ssATo" aria-label="Dark until">' + hourOpts() + '</select></span></div>' +
+            '<div class="rowx wrap"><span>Days off</span><div class="offdays" id="ssOff"></div></div>' +
+            '<p class="note" id="ssAwayNote"></p>' +
+          '</div>' +
+        '</div>' +
         '<h2><span>Photos <small id="ssCount"></small></span><button type="button" class="pill ed-only" id="ssAdd">+ Add photos</button></h2>' +
         '<input type="file" id="ssFile" accept="image/*" multiple hidden>' +
         '<div id="ssGrid"></div>' +
@@ -146,6 +170,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       root.querySelector("#ssFrom").value = String(p.night.from);
       root.querySelector("#ssTo").value = String(p.night.to);
       root.querySelector("#ssHours").classList.toggle("off", !p.night.on);
+      paintAway();
       if (document.activeElement !== haIn) haIn.value = p.ha || "";
       var hp = root.querySelector("#ssHaPanel"); if (document.activeElement !== hp) hp.value = p.haPanel || "";
       paintQuotes();
@@ -163,6 +188,69 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
     root.querySelector("#ssFrom").addEventListener("change", function (e) { setNight({ from: +e.target.value }); });
     root.querySelector("#ssTo").addEventListener("change", function (e) { setNight({ to: +e.target.value }); });
     root.querySelector("#ssNow").addEventListener("click", function () { HB.screensaver.start(); });
+
+    // ---- dark during the workday, with days off ----
+    function isoOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function hr(h) { return (h % 12 || 12) + (h < 12 ? " AM" : " PM"); }
+    function setAway(o) {
+      var a = Object.assign({}, HB.family().panel.away, o), today = isoOf(new Date());
+      a.skip = (a.skip || []).filter(function (x) { return x >= today; }).sort();   // old days off drop away by themselves
+      HB.setPanel({ away: a }); paintSettings();
+    }
+    function toggleSkip(day) {
+      var skip = (HB.family().panel.away.skip || []).slice(), i = skip.indexOf(day);
+      if (i >= 0) skip.splice(i, 1); else skip.push(day);
+      setAway({ skip: skip });
+    }
+    // the next few workdays (on the chosen days), so a day off is one tap
+    function nextWorkdays(a, n) {
+      var out = [], d = new Date();
+      if (d.getHours() >= a.to && a.to > a.from) d.setDate(d.getDate() + 1);   // today's dark hours are over
+      for (var k = 0; k < 14 && out.length < n; k++, d.setDate(d.getDate() + 1)) if (a.days.indexOf(d.getDay()) >= 0) out.push(new Date(d));
+      return out;
+    }
+    function dayLabel(d) {
+      var t = new Date(); t.setHours(0, 0, 0, 0);
+      var diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - t) / 86400000);
+      return diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()] + " " + (d.getMonth() + 1) + "/" + d.getDate();
+    }
+    function paintAway() {
+      var a = HB.family().panel.away;
+      root.querySelector("#ssAway").checked = !!a.on;
+      root.querySelector("#ssAwayBox").classList.toggle("off", !a.on);
+      root.querySelectorAll("#ssDays button").forEach(function (b) { b.classList.toggle("on", a.days.indexOf(+b.dataset.d) >= 0); });
+      root.querySelector("#ssAFrom").value = String(a.from);
+      root.querySelector("#ssATo").value = String(a.to);
+      var soon = nextWorkdays(a, 5), soonIso = soon.map(isoOf);
+      var extra = (a.skip || []).filter(function (x) { return soonIso.indexOf(x) < 0 && x >= isoOf(new Date()); });
+      root.querySelector("#ssOff").innerHTML = soon.map(function (d) {
+        var k = isoOf(d); return '<button type="button" data-skip="' + k + '" class="' + (a.skip.indexOf(k) >= 0 ? "on" : "") + '">' + dayLabel(d) + '</button>';
+      }).join("") + extra.map(function (k) {
+        var p = k.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+        return '<button type="button" data-skip="' + k + '" class="on">' + dayLabel(d) + ' ✕</button>';
+      }).join("") + '<input type="date" id="ssOffPick" aria-label="Add another day off" min="' + isoOf(new Date()) + '">';
+      root.querySelector("#ssAwayNote").textContent = a.days.length
+        ? "Dark " + hr(a.from) + " to " + hr(a.to) + " on the days above. Tap a day to keep it a normal day (green), or pick a date. A tap on the panel still wakes it."
+        : "Pick the days it goes dark.";
+    }
+    root.querySelector("#ssAway").addEventListener("change", function (e) { setAway({ on: e.target.checked }); });
+    root.querySelector("#ssDays").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b || HB.viewer) return;
+      var days = HB.family().panel.away.days.slice(), d = +b.dataset.d, i = days.indexOf(d);
+      if (i >= 0) days.splice(i, 1); else days.push(d);
+      setAway({ days: days.sort() });
+    });
+    root.querySelector("#ssAFrom").addEventListener("change", function (e) { setAway({ from: +e.target.value }); });
+    root.querySelector("#ssATo").addEventListener("change", function (e) { setAway({ to: +e.target.value }); });
+    root.querySelector("#ssOff").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-skip]"); if (!b || HB.viewer) return;
+      toggleSkip(b.dataset.skip);
+    });
+    root.querySelector("#ssOff").addEventListener("change", function (e) {
+      if (e.target.id !== "ssOffPick" || !e.target.value || HB.viewer) return;
+      var skip = (HB.family().panel.away.skip || []).slice(); if (skip.indexOf(e.target.value) < 0) skip.push(e.target.value);
+      setAway({ skip: skip });
+    });
 
     function paintHaNote() {
       var v = haIn.value.trim(), note = root.querySelector("#ssHaNote");

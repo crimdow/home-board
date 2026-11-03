@@ -847,7 +847,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-10-28r";
+  var VERSION = "2026-11-02a";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1642,6 +1642,10 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     s.panel = Object.assign({ after: 5, every: 30, info: true, ha: "", haPanel: "" }, s.panel && typeof s.panel === "object" ? s.panel : {});
     // night: the screensaver is a plain black screen between these hours (no photos, no clock)
     s.panel.night = Object.assign({ on: true, from: 23, to: 5 }, s.panel.night && typeof s.panel.night === "object" ? s.panel.night : {});
+    // away: also dark on these days between these hours (the workday); skip: dates it stays normal (a day off)
+    s.panel.away = Object.assign({ on: true, days: [1, 2, 3, 4, 5], from: 8, to: 16, skip: [] }, s.panel.away && typeof s.panel.away === "object" ? s.panel.away : {});
+    if (!Array.isArray(s.panel.away.days)) s.panel.away.days = [1, 2, 3, 4, 5];
+    if (!Array.isArray(s.panel.away.skip)) s.panel.away.skip = [];
     // quotes: family-written messages for the panel's Today view, one a day ({ text, by })
     s.panel.quotes = (Array.isArray(s.panel.quotes) ? s.panel.quotes : []).filter(function (q) { return q && q.text; }).slice(0, 100);
     return s;
@@ -1717,10 +1721,12 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function inHours(from, to, h) { return from === to ? false : from > to ? (h >= from || h < to) : (h >= from && h < to); }
+    // dark: at night, and in the away hours on their days (the workday), unless today is marked as a day off
     function isNight() {
-      var n = family.panel.night, h = new Date().getHours();
-      if (!n || !n.on || n.from === n.to) return false;
-      return n.from > n.to ? (h >= n.from || h < n.to) : (h >= n.from && h < n.to);
+      var d = new Date(), h = d.getHours(), n = family.panel.night, a = family.panel.away;
+      if (n && n.on && inHours(n.from, n.to, h)) return true;
+      return !!(a && a.on && a.days.indexOf(d.getDay()) >= 0 && a.skip.indexOf(iso(d)) < 0 && inHours(a.from, a.to, h));
     }
     var night = false;
     // switch between photos and the black night screen (also while it's already showing, at 11 PM / 5 AM)
