@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.22.2";
+  var VERSION = "1.22.3";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -550,7 +550,9 @@
       var open = ds.filter((x) => x.s.state !== "closed");
       var line = !ds.length ? "" : !open.length ? (ds.length === 1 ? "Closed" : ds.length === 2 ? "Both closed" : "All closed")
         : ds.length === 1 ? this._doorWord(open[0].s.state)
-        : ds.map((x) => short(x) + " " + this._doorWord(x.s.state).toLowerCase()).join(" · ");
+        // only the doors that aren't shut (the green icons already say closed), so it fits on one line
+        : open.length === ds.length && open.every((x) => x.s.state === "open") ? (ds.length === 2 ? "Both open" : "All open")
+        : open.map((x) => short(x) + " " + this._doorWord(x.s.state).toLowerCase()).join(" · ");
       // the same circles as every other tile, one per door, side by side where the others have their one icon
       var icons = ds.map((x) => {
         var o = x.s.state !== "closed";
@@ -1082,7 +1084,8 @@ ha-icon { display: flex; }
 /* Home */
 .big { cursor: pointer; background: var(--card); border-radius: 32px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; position: relative; min-height: 260px; transition: transform .12s; }
 .big .ic { width: 112px; height: 112px; border-radius: 56px; display: flex; align-items: center; justify-content: center; }
-.big .words { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.big .words { flex: none; display: flex; flex-direction: column; gap: 6px; max-width: 100%; }   /* a long line wraps inside the tile */
+.big .words i { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
 .big b { font-size: 40px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
 .big i { font-style: normal; font-size: 25px; font-weight: 700; color: var(--muted); }
 .big.hot i { color: ${C.amber}; }   /* not "warn": that's the amber warning banner */
