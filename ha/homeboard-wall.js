@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.21.1";
+  var VERSION = "1.21.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -85,6 +85,10 @@
 
     connectedCallback() {
       window.addEventListener("message", this._onMsg);
+      // ?page=garage (e.g. from a phone alert) opens that page of the wall
+      if (!this._onLoc) this._onLoc = () => this._routeFromUrl();
+      window.addEventListener("location-changed", this._onLoc); window.addEventListener("popstate", this._onLoc);
+      this._routeFromUrl();
       this._full = window.top !== window || /[?&](kiosk|wall)\b/.test(location.search);
       this.toggleAttribute("full", this._full);
       if (!this._wired) this._wire();
@@ -101,7 +105,18 @@
         else if (this._route[0] === "garage" && !this._drag) { this._sig = ""; this._render(); }
       }, 30000);
     }
-    disconnectedCallback() { window.removeEventListener("message", this._onMsg); clearInterval(this._idle); }
+    disconnectedCallback() {
+      window.removeEventListener("message", this._onMsg); clearInterval(this._idle);
+      if (this._onLoc) { window.removeEventListener("location-changed", this._onLoc); window.removeEventListener("popstate", this._onLoc); }
+    }
+    _routeFromUrl() {
+      var m = /[?&]page=([a-z]+)(?:\/(\d+))?/.exec(location.search); if (!m) return;
+      var key = m[0] + location.pathname; if (key === this._urlRoute && Date.now() - (this._urlAt || 0) < 3000) return;
+      this._urlRoute = key; this._urlAt = Date.now();
+      if (["home", "lights", "thermostat", "garage", "noise", "music"].indexOf(m[1]) < 0 && !m[2]) return;
+      this._route = m[2] ? [m[1], +m[2]] : [m[1]]; this._sheet = null; this._touched = Date.now(); this._sig = "";
+      if (this._hass && this._config) this._render();
+    }
 
     _onMsg(e) {
       var ok = (this._config && this._config.homeboard_origin) || "https://home.jermins.com";
