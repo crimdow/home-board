@@ -296,6 +296,10 @@
     "remote_locks": [
       "lock.ratgdo32_7aad0c_lock_remotes",
       "lock.garage_3rd_bay_lock_remotes"
+    ],
+    "tile_order": [
+      "cover.garage_3rd_bay_door",
+      "cover.ratgdo32_7aad0c_door"
     ]
   },
   "noise": [

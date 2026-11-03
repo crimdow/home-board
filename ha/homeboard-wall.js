@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.22.1";
+  var VERSION = "1.22.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -543,6 +543,9 @@
     // The tile looks the same open or closed; only an open door's icon turns amber, and the line says which.
     _garageTile() {
       var ds = (this._config.garage.doors || []).map((d) => ({ d: d, s: this._s(d.entity) })).filter((x) => x.s);
+      // garage.tile_order: the doors left to right as they really are (e.g. Aux on the left)
+      var order = this._config.garage.tile_order;
+      if (Array.isArray(order)) ds.sort((a, b) => (order.indexOf(a.d.entity) + 1 || 99) - (order.indexOf(b.d.entity) + 1 || 99));
       var short = (x) => (x.d.short || (x.d.name || "Door").replace(/\s*door$/i, ""));
       var open = ds.filter((x) => x.s.state !== "closed");
       var line = !ds.length ? "" : !open.length ? (ds.length === 1 ? "Closed" : ds.length === 2 ? "Both closed" : "All closed")
