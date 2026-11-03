@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.22.0";
+  var VERSION = "1.22.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -548,9 +548,11 @@
       var line = !ds.length ? "" : !open.length ? (ds.length === 1 ? "Closed" : ds.length === 2 ? "Both closed" : "All closed")
         : ds.length === 1 ? this._doorWord(open[0].s.state)
         : ds.map((x) => short(x) + " " + this._doorWord(x.s.state).toLowerCase()).join(" · ");
+      // the same circles as every other tile, one per door, side by side where the others have their one icon
       var icons = ds.map((x) => {
         var o = x.s.state !== "closed";
-        return '<span class="gdoor' + (o ? " open" : "") + '"><span class="ic">' + icon(o ? "mdi:garage-open-variant" : "mdi:garage-variant", 60) + "</span><em>" + esc(short(x)) + "</em></span>";
+        return '<span class="ic" title="' + esc(short(x)) + '" style="background:' + (o ? C.amber : "var(--chip)") + ";color:" + (o ? "#fff" : C.green) + '">' +
+          icon(o ? "mdi:garage-open-variant" : "mdi:garage-variant", 54) + "</span>";
       }).join("");
       return '<div role="button" tabindex="0" class="big gtile' + (open.length ? " hot" : "") + '" data-go="garage">' +
         '<span class="gdoors">' + icons + "</span>" +
@@ -1081,12 +1083,7 @@ ha-icon { display: flex; }
 .big b { font-size: 40px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
 .big i { font-style: normal; font-size: 25px; font-weight: 700; color: var(--muted); }
 .big.hot i { color: ${C.amber}; }   /* not "warn": that's the amber warning banner */
-.gtile .gdoors { flex: 1; align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 36px; padding-bottom: 12px; }
-.gdoor { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.gdoor .ic { width: 112px; height: 112px; border-radius: 56px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: ${C.green}; transition: background-color .3s, color .3s; }
-.gdoor.open .ic { background: ${C.amber}; color: #fff; }
-.gdoor em { font-style: normal; font-size: 20px; font-weight: 800; color: var(--muted); }
-.gdoor.open em { color: ${C.amber}; }
+.gtile .gdoors { display: flex; gap: 16px; }
 .bignum { position: absolute; top: 34px; right: 32px; font-size: 64px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
 
 /* rows of icon + words */
@@ -1331,11 +1328,7 @@ ha-icon { display: flex; }
 :host([narrow]) .big .ic ha-icon { --mdc-icon-size: 26px !important; }
 :host([narrow]) .big b { font-size: 18px; }
 :host([narrow]) .big i { font-size: 13px; }
-:host([narrow]) .gtile .gdoors { gap: 14px; padding-bottom: 4px; }
-:host([narrow]) .gdoor { gap: 4px; }
-:host([narrow]) .gdoor .ic { width: 52px; height: 52px; }
-:host([narrow]) .gdoor .ic ha-icon { --mdc-icon-size: 30px !important; }
-:host([narrow]) .gdoor em { font-size: 12px; }
+:host([narrow]) .gtile .gdoors { gap: 8px; }
 :host([narrow]) .bignum { top: 14px; right: 14px; font-size: 28px; letter-spacing: -1px; }
 :host([narrow]) .room { padding: 12px; gap: 10px; border-radius: 20px; }
 :host([narrow]) .card { padding: 14px; gap: 8px; border-radius: 20px; }
