@@ -524,6 +524,44 @@
       "icon": "fridge",
       "tone": "teal",
       "text": "Freezer door open for {dur}"
+    },
+    {
+      "entity": "input_select.washer_status",
+      "state": "Done",
+      "icon": "washer",
+      "tone": "green",
+      "text": "Washer is done"
+    },
+    {
+      "entity": "input_select.dryer_status",
+      "state": "Done",
+      "icon": "dryer",
+      "tone": "green",
+      "text": "Dryer is done"
+    },
+    {
+      "entity": "input_select.dishwasher_status",
+      "state": "Done",
+      "icon": "dishwasher",
+      "tone": "green",
+      "text": "The dishes are done"
+    }
+  ],
+  "appliances": [
+    {
+      "name": "Washer",
+      "entity": "input_select.washer_status",
+      "icon": "mdi:washing-machine"
+    },
+    {
+      "name": "Dryer",
+      "entity": "input_select.dryer_status",
+      "icon": "mdi:tumble-dryer"
+    },
+    {
+      "name": "Dishwasher",
+      "entity": "input_select.dishwasher_status",
+      "icon": "mdi:dishwasher"
     }
   ]
 }
