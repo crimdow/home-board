@@ -382,6 +382,62 @@
   },
   "alerts": [
     {
+      "entity": "binary_sensor.hallway_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Upstairs hallway"
+    },
+    {
+      "entity": "binary_sensor.stellas_room_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Stella’s room"
+    },
+    {
+      "entity": "binary_sensor.guest_bedroom_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Office"
+    },
+    {
+      "entity": "binary_sensor.master_bedroom_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Primary bedroom"
+    },
+    {
+      "entity": "binary_sensor.kitchen_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Kitchen"
+    },
+    {
+      "entity": "binary_sensor.garage_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Garage"
+    },
+    {
+      "entity": "binary_sensor.evalyns_room_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Evie’s room"
+    },
+    {
+      "entity": "binary_sensor.basement_alarm_status",
+      "state": "on",
+      "icon": "alert",
+      "tone": "red",
+      "text": "Smoke / CO alarm: Basement"
+    },
+    {
       "entity": "binary_sensor.kitchen_cottonwood_range_operating_state",
       "state": "on",
       "for": 120,
