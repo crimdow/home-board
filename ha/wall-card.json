@@ -382,9 +382,23 @@
   },
   "alerts": [
     {
+      "entity": "binary_sensor.water_heater_alarm_status",
+      "state": "on",
+      "icon": "water",
+      "tone": "blue",
+      "text": "Water leak detected in Basement"
+    },
+    {
+      "entity": "binary_sensor.laundry_room_alarm_status",
+      "state": "on",
+      "icon": "water",
+      "tone": "blue",
+      "text": "Water leak detected in Laundry Room"
+    },
+    {
       "entity": "binary_sensor.hallway_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Upstairs Hallway",
       "alt": {
@@ -396,7 +410,7 @@
     {
       "entity": "binary_sensor.stellas_room_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Stella’s Room",
       "alt": {
@@ -408,7 +422,7 @@
     {
       "entity": "binary_sensor.guest_bedroom_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Office",
       "alt": {
@@ -420,7 +434,7 @@
     {
       "entity": "binary_sensor.master_bedroom_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Primary Bedroom",
       "alt": {
@@ -432,7 +446,7 @@
     {
       "entity": "binary_sensor.kitchen_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Kitchen",
       "alt": {
@@ -444,7 +458,7 @@
     {
       "entity": "binary_sensor.garage_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Garage",
       "alt": {
@@ -456,7 +470,7 @@
     {
       "entity": "binary_sensor.evalyns_room_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Evalyn’s Room",
       "alt": {
@@ -468,7 +482,7 @@
     {
       "entity": "binary_sensor.basement_alarm_status",
       "state": "on",
-      "icon": "alert",
+      "icon": "smoke",
       "tone": "red",
       "text": "Smoke detected in Basement",
       "alt": {
