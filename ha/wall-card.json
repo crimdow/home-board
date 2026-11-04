@@ -571,7 +571,7 @@
       "on_icon": "mdi:fridge",
       "tone": "open",
       "off_text": "Closed",
-      "both_text": "Both open",
+      "both_text": "Open",
       "parts": [
         {
           "entity": "binary_sensor.kitchen_cottonwood_fridge_fridge_door",
@@ -579,7 +579,7 @@
         },
         {
           "entity": "binary_sensor.kitchen_cottonwood_fridge_freezer_door",
-          "label": "Freezer open"
+          "label": "Open"
         }
       ]
     },
