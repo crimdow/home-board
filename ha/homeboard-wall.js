@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.24.2";
+  var VERSION = "1.25.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -536,8 +536,7 @@
         tiles.push(this._bigTile("music", "Music", line, "mdi:music", C.teal, (sp && sp.state === "playing") || on.length > 0));
       }
       return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div>" +
-        (function (rows) { var n = rows.filter(Boolean).length;   // each row gets an equal share of the height, the tiles the rest
-          return '<div class="rows" style="flex-grow:' + (n * 0.4).toFixed(2) + '">' + rows.join("") + "</div>"; })([this._doorRow(), this._applianceRow(), this._kitchenRow()]) + "</div>";
+        this._statusGrid() + "</div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
       return '<div role="button" tabindex="0" class="big' + (warn ? " hot" : "") + '" data-go="' + go + '">' +
@@ -573,37 +572,46 @@
     // Doors (contact sensors): grey closed, amber open, the whole pill red when one opens while the house is armed.
     // config: door_sensors: [{ name, entity, icon }], armed: "input_boolean.house_armed"
     _doorRow() {
-      var list = (this._config.door_sensors || []).filter((d) => this._s(d.entity)); if (!list.length) return "";
+      var list = (this._config.door_sensors || []).filter((d) => this._s(d.entity)); if (!list.length) return [];
       var armed = this._config.armed && this._on(this._config.armed);
-      return '<div class="pills p4">' + list.map((d) => {
+      return list.map((d) => {
         var s = this._s(d.entity), open = s.state === "on", mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         var cls = open ? (armed ? "alarm" : "open") : "";
         var ic = open ? (d.icon_open || (d.icon === "mdi:door-sliding" ? "mdi:door-sliding-open" : "mdi:door-open")) : (d.icon || "mdi:door-closed");
         return this._pill(cls, ic, d.name, open ? "Open · " + (mins < 1 ? "now" : this._dur(mins).replace(" minutes", " min").replace(" minute", " min")) : "Closed");
-      }).join("") + "</div>";
+      });
     }
     // Washer, dryer, dishwasher: each has a status helper (input_select Idle / Running / Done) kept by an automation.
     // Tapping one that's Done puts it back to Idle. config: appliances: [{ name, entity, icon }]
     _applianceRow() {
-      var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return "";
-      return '<div class="pills p3">' + list.map((a) => {
+      var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return [];
+      return list.map((a) => {
         var s = this._s(a.entity), st = s.state, mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         var line = st === "Running" ? (mins < 1 ? "Running" : "Running · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min")) : st === "Done" ? "Done" : "Idle";
         return this._pill(st === "Running" ? "run" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
-      }).join("") + "</div>";
+      });
     }
     // Fridge and oven, side by side. config: kitchen: [{ name, icon, tone ("open" amber / "alarm" red),
     //   parts: [{ entity, label }] }] — the pill lights up while any part is on ("Freezer open · 2 min", "On · 45 min")
     _kitchenRow() {
-      var list = (this._config.kitchen || []).filter((k) => (k.parts || []).some((x) => this._s(x.entity))); if (!list.length) return "";
-      return '<div class="pills p2">' + list.map((k) => {
+      var list = (this._config.kitchen || []).filter((k) => (k.parts || []).some((x) => this._s(x.entity))); if (!list.length) return [];
+      return list.map((k) => {
         var on = k.parts.filter((x) => this._on(x.entity));
         if (!on.length) return this._pill("", k.icon, k.name, k.off_text || "Closed");
         var first = on.map((x) => this._s(x.entity)).sort((a, b) => new Date(a.last_changed) - new Date(b.last_changed))[0];
         var mins = Math.floor((Date.now() - new Date(first.last_changed)) / 60000);
         var what = on.length > 1 ? (k.both_text || "Open") : (on[0].label || k.on_text || "Open");
         return this._pill(k.tone || "open", k.on_icon || k.icon, k.name, what + (mins < 1 ? "" : " · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min")));
-      }).join("") + "</div>";
+      });
+    }
+    // All the small status pills in one grid, three across: the first three doors, then washer / dryer / dishwasher,
+    // then fridge and oven with the next door beside them (and any more doors after). Each row gets an equal share
+    // of the height; the big tiles get the rest.
+    _statusGrid() {
+      var doors = this._doorRow(), cells = doors.slice(0, 3).concat(this._applianceRow(), this._kitchenRow(), doors.slice(3));
+      if (!cells.length) return "";
+      var rows = Math.ceil(cells.length / 3);
+      return '<div class="rows" style="flex-grow:' + (rows * 0.4).toFixed(2) + '"><div class="pills p3 grid">' + cells.join("") + "</div></div>";
     }
     _pill(cls, ic, name, line, clear) {
       return '<' + (clear ? 'button data-applianceclear="' + esc(clear) + '"' : "div") + ' class="pill2 ' + cls + '"><span class="c">' + icon(ic, 30) + '</span><span class="w"><b>' + esc(name) + "</b><i>" + esc(line) + "</i></span></" + (clear ? "button" : "div") + ">";
@@ -1119,18 +1127,14 @@ ha-icon { display: flex; }
 .page.home .grid2.fill { flex: 1.15 1 0; min-height: 0; grid-auto-rows: 1fr; }
 .page.home .grid2 .big { min-height: 0; justify-content: center; gap: 22px; padding: 26px 32px; }
 .page.home .rows { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
-:host(:not([narrow])) .page.home .rows .pills { flex: 1; min-height: 0; }
+:host(:not([narrow])) .page.home .rows .pills { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
 :host(:not([narrow])) .page.home .rows .pill2 { height: 100%; }
 .page.home .rows:empty { display: none; }
 :host(:not([narrow])) .page.home .rows .pill2 { border-radius: 28px; padding: 22px 20px 22px 18px; gap: 18px; }
 :host(:not([narrow])) .page.home .rows .pill2 .c { width: 68px; height: 68px; border-radius: 34px; }
 :host(:not([narrow])) .page.home .rows .pill2 .c ha-icon { --mdc-icon-size: 38px !important; }
-:host(:not([narrow])) .page.home .rows .pill2 b { font-size: 27px; }
-:host(:not([narrow])) .page.home .rows .pill2 i { font-size: 21px; }
-:host(:not([narrow])) .page.home .rows .p4 .pill2 { padding: 18px 14px 18px 12px; gap: 12px; }
-:host(:not([narrow])) .page.home .rows .p4 .pill2 .c { width: 54px; height: 54px; }
-:host(:not([narrow])) .page.home .rows .p4 .pill2 .c ha-icon { --mdc-icon-size: 30px !important; }
-:host(:not([narrow])) .page.home .rows .p4 .pill2 b { font-size: 21px; } :host(:not([narrow])) .page.home .rows .p4 .pill2 i { font-size: 17px; }
+:host(:not([narrow])) .page.home .rows .pill2 b { font-size: 25px; }
+:host(:not([narrow])) .page.home .rows .pill2 i { font-size: 20px; }
 .pill2 { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 10px; border-radius: 999px; background: var(--card); min-width: 0; width: 100%; }
 .pill2 .c { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: var(--muted); }
 .pill2 .w { display: flex; flex-direction: column; min-width: 0; }
