@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.26.0";
+  var VERSION = "1.26.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -602,12 +602,11 @@
         var first = on.map((x) => this._s(x.entity)).sort((a, b) => new Date(a.last_changed) - new Date(b.last_changed))[0];
         var mins = Math.floor((Date.now() - new Date(first.last_changed)) / 60000);
         var dur = mins < 1 ? "" : " · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min");
-        // the oven: its set temperature, or how far preheating has got ("Preheat · 385/400°", "400° · 45 min")
+        // the oven: its set temperature ("Preheat to 400°", then "400° · 45 min")
         var set = k.setpoint && this._s(k.setpoint), now = k.temperature && this._s(k.temperature), job = k.job && this._s(k.job);
         var sp = set && !isNaN(parseFloat(set.state)) ? Math.round(parseFloat(set.state)) : null;
         if (sp != null) {
-          var cur = now && !isNaN(parseFloat(now.state)) ? Math.round(parseFloat(now.state)) : null;
-          var line = job && job.state === "preheat" ? "Preheat" + (cur != null ? " · " + cur + "/" + sp + "°" : " to " + sp + "°") : sp + "°" + dur;
+          var line = job && job.state === "preheat" ? "Preheat to " + sp + "°" : sp + "°" + dur;
           return this._pill(k.tone || "open", k.on_icon || k.icon, k.name, line);
         }
         var what = on.length > 1 ? (k.both_text || "Open") : (on[0].label || k.on_text || "Open");
