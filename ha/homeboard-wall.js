@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.25.1";
+  var VERSION = "1.26.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -287,7 +287,7 @@
       (c.appliances || []).forEach(function (x) { ids.push(x.entity); });
       (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); });
       if (c.armed) ids.push(c.armed);
-      (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); });
+      (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); ["setpoint", "temperature", "job"].forEach(function (f) { if (k[f]) ids.push(k[f]); }); });
       return ids;
     }
     /* ---------- music ---------- */
@@ -594,14 +594,24 @@
     // Fridge and oven, side by side. config: kitchen: [{ name, icon, tone ("open" amber / "alarm" red),
     //   parts: [{ entity, label }] }] — the pill lights up while any part is on ("Freezer open · 2 min", "On · 45 min")
     _kitchenRow() {
+      var isOn = (x) => { var st = this._s(x.entity); return !!st && st.state === (x.on || "on"); };
       var list = (this._config.kitchen || []).filter((k) => (k.parts || []).some((x) => this._s(x.entity))); if (!list.length) return [];
       return list.map((k) => {
-        var on = k.parts.filter((x) => this._on(x.entity));
+        var on = k.parts.filter(isOn);
         if (!on.length) return this._pill("", k.icon, k.name, k.off_text || "Closed");
         var first = on.map((x) => this._s(x.entity)).sort((a, b) => new Date(a.last_changed) - new Date(b.last_changed))[0];
         var mins = Math.floor((Date.now() - new Date(first.last_changed)) / 60000);
+        var dur = mins < 1 ? "" : " · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min");
+        // the oven: its set temperature, or how far preheating has got ("Preheat · 385/400°", "400° · 45 min")
+        var set = k.setpoint && this._s(k.setpoint), now = k.temperature && this._s(k.temperature), job = k.job && this._s(k.job);
+        var sp = set && !isNaN(parseFloat(set.state)) ? Math.round(parseFloat(set.state)) : null;
+        if (sp != null) {
+          var cur = now && !isNaN(parseFloat(now.state)) ? Math.round(parseFloat(now.state)) : null;
+          var line = job && job.state === "preheat" ? "Preheat" + (cur != null ? " · " + cur + "/" + sp + "°" : " to " + sp + "°") : sp + "°" + dur;
+          return this._pill(k.tone || "open", k.on_icon || k.icon, k.name, line);
+        }
         var what = on.length > 1 ? (k.both_text || "Open") : (on[0].label || k.on_text || "Open");
-        return this._pill(k.tone || "open", k.on_icon || k.icon, k.name, what + (mins < 1 ? "" : " · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min")));
+        return this._pill(k.tone || "open", k.on_icon || k.icon, k.name, what + dur);
       });
     }
     // All the small status pills in one grid, three across: the first three doors, then washer / dryer / dishwasher,

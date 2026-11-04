@@ -502,8 +502,8 @@
       }
     },
     {
-      "entity": "binary_sensor.kitchen_cottonwood_range_operating_state",
-      "state": "on",
+      "entity": "sensor.kitchen_cottonwood_range_machine_state",
+      "state": "running",
       "for": 120,
       "icon": "oven",
       "tone": "red",
@@ -591,10 +591,14 @@
       "on_text": "On",
       "parts": [
         {
-          "entity": "binary_sensor.kitchen_cottonwood_range_operating_state",
+          "entity": "sensor.kitchen_cottonwood_range_machine_state",
+          "on": "running",
           "label": "On"
         }
-      ]
+      ],
+      "setpoint": "sensor.kitchen_cottonwood_range_setpoint",
+      "temperature": "sensor.kitchen_cottonwood_range_temperature",
+      "job": "sensor.kitchen_cottonwood_range_job_state"
     }
   ]
 }
