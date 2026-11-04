@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.25.0";
+  var VERSION = "1.25.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -1130,11 +1130,11 @@ ha-icon { display: flex; }
 :host(:not([narrow])) .page.home .rows .pills { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
 :host(:not([narrow])) .page.home .rows .pill2 { height: 100%; }
 .page.home .rows:empty { display: none; }
-:host(:not([narrow])) .page.home .rows .pill2 { border-radius: 28px; padding: 22px 20px 22px 18px; gap: 18px; }
+:host(:not([narrow])) .page.home .rows .pill2 { border-radius: 28px; padding: 20px 22px; gap: 12px; flex-direction: column; align-items: flex-start; justify-content: center; }   /* text under the icon: the full width for words */
 :host(:not([narrow])) .page.home .rows .pill2 .c { width: 68px; height: 68px; border-radius: 34px; }
 :host(:not([narrow])) .page.home .rows .pill2 .c ha-icon { --mdc-icon-size: 38px !important; }
-:host(:not([narrow])) .page.home .rows .pill2 b { font-size: 25px; }
-:host(:not([narrow])) .page.home .rows .pill2 i { font-size: 20px; }
+:host(:not([narrow])) .page.home .rows .pill2 b { font-size: 28px; }
+:host(:not([narrow])) .page.home .rows .pill2 i { font-size: 22px; }
 .pill2 { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 10px; border-radius: 999px; background: var(--card); min-width: 0; width: 100%; }
 .pill2 .c { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: var(--muted); }
 .pill2 .w { display: flex; flex-direction: column; min-width: 0; }
