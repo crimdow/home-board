@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.26.3";
+  var VERSION = "1.26.4";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -499,7 +499,6 @@
         '<div class="turn">' + icon("mdi:phone-rotate-portrait", 64) + "<span>Turn your phone upright</span></div>";
       this._lastRoute = r.join("/");
       var sc = this.shadowRoot.querySelector(".scroll"); if (sc) sc.scrollTop = top;
-      requestAnimationFrame(() => this._fitPills());
       this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var old = cams[im.dataset.cam]; if (old) im.replaceWith(old); else this._camSrc[im.dataset.cam] = im.getAttribute("src"); });
     }
 
@@ -579,7 +578,7 @@
         var s = this._s(d.entity), open = s.state === "on", mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         var cls = open ? (armed ? "alarm" : "open") : "";
         var ic = open ? (d.icon_open || (d.icon === "mdi:door-sliding" ? "mdi:door-sliding-open" : "mdi:door-open")) : (d.icon || "mdi:door-closed");
-        return this._pill(cls, ic, d.name, open ? "Open · " + (mins < 1 ? "now" : this._short(mins)) : "Closed");
+        return this._pill(cls, ic, d.name, open ? "Open" + (mins < 1 ? "" : " " + this._short(mins)) : "Closed");
       });
     }
     // Washer, dryer, dishwasher: each has a status helper (input_select Idle / Running / Done) kept by an automation.
@@ -588,7 +587,7 @@
       var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return [];
       return list.map((a) => {
         var s = this._s(a.entity), st = s.state, mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
-        var line = st === "Running" ? (mins < 1 ? "Running" : "Running · " + this._short(mins)) : st === "Done" ? "Done" : "Idle";
+        var line = st === "Running" ? (mins < 1 ? "Running" : "Running " + (mins < 60 ? mins + "m" : Math.floor(mins / 60) + "h")) : st === "Done" ? "Done" : "Idle";
         return this._pill(st === "Running" ? "run" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
       });
     }
@@ -602,12 +601,12 @@
         if (!on.length) return this._pill("", k.icon, k.name, k.off_text || "Closed");
         var first = on.map((x) => this._s(x.entity)).sort((a, b) => new Date(a.last_changed) - new Date(b.last_changed))[0];
         var mins = Math.floor((Date.now() - new Date(first.last_changed)) / 60000);
-        var dur = mins < 1 ? "" : " · " + this._short(mins);
-        // the oven: its set temperature ("Preheat to 400°", then "400° · 45 min")
+        var dur = mins < 1 ? "" : " " + this._short(mins);
+        // the oven: its set temperature ("Preheat 400°", then "400° 45m")
         var set = k.setpoint && this._s(k.setpoint), now = k.temperature && this._s(k.temperature), job = k.job && this._s(k.job);
         var sp = set && !isNaN(parseFloat(set.state)) ? Math.round(parseFloat(set.state)) : null;
         if (sp != null) {
-          var line = job && job.state === "preheat" ? "Preheat to " + sp + "°" : sp + "°" + dur;
+          var line = job && job.state === "preheat" ? "Preheat " + sp + "°" : sp + "°" + dur;
           return this._pill(k.tone || "open", k.on_icon || k.icon, k.name, line);
         }
         var what = on.length > 1 ? (k.both_text || "Open") : (on[0].label || k.on_text || "Open");
@@ -624,14 +623,8 @@
       return '<div class="rows" style="flex-grow:' + (rows * 0.4).toFixed(2) + '"><div class="pills p3 grid">' + cells.join("") + "</div></div>";
     }
     // Keep every pill's words inside the pill: shrink a line that doesn't fit (down to 70%), then trim it with "…".
-    _short(m) { return m < 60 ? m + " min" : Math.floor(m / 60) + "h" + (m % 60 ? " " + (m % 60) + "m" : ""); }   // pills: "12 min", "2h 12m"
-    _fitPills() {
-      this.shadowRoot.querySelectorAll(".pill2 .w b, .pill2 .w i").forEach((t) => {
-        t.style.fontSize = "";
-        var base = parseFloat(getComputedStyle(t).fontSize), size = base;
-        while (t.scrollWidth > t.clientWidth + 1 && size > base * 0.7) { size -= 1; t.style.fontSize = size + "px"; }
-      });
-    }
+    // pill times are short and fixed in size: "5m", "45m", "2h", "2h 5m" (a status line stays 12 characters or fewer)
+    _short(m) { return m < 60 ? m + "m" : Math.floor(m / 60) + "h" + (m % 60 ? " " + (m % 60) + "m" : ""); }
     _pill(cls, ic, name, line, clear) {
       return '<' + (clear ? 'button data-applianceclear="' + esc(clear) + '"' : "div") + ' class="pill2 ' + cls + '"><span class="c">' + icon(ic, 30) + '</span><span class="w"><b>' + esc(name) + "</b><i>" + esc(line) + "</i></span></" + (clear ? "button" : "div") + ">";
     }
