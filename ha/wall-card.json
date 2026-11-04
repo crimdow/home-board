@@ -561,7 +561,8 @@
     {
       "name": "Dishwasher",
       "entity": "input_select.dishwasher_status",
-      "icon": "mdi:dishwasher"
+      "icon": "mdi:dishwasher",
+      "started": "input_datetime.dishwasher_started"
     }
   ],
   "kitchen": [

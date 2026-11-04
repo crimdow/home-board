@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.29.0";
+  var VERSION = "1.29.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -289,7 +289,7 @@
       (c.noise || []).forEach(function (n) { ["player", "volume", "light"].forEach(function (k) { if (n[k]) ids.push(n[k]); }); });
       this._speakers().forEach(function (sp) { ids.push(sp.entity); });
       var sp = this._spotify(); if (sp) ids.push(sp);
-      (c.appliances || []).forEach(function (x) { ids.push(x.entity); });
+      (c.appliances || []).forEach(function (x) { ids.push(x.entity); if (x.started) ids.push(x.started); });
       (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); });
       if (c.armed) ids.push(c.armed);
       (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); ["setpoint", "temperature", "job"].forEach(function (f) { if (k[f]) ids.push(k[f]); }); });
@@ -596,6 +596,9 @@
       var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return [];
       return list.map((a) => {
         var s = this._s(a.entity), st = s.state, mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
+        // drying keeps counting the whole cycle, from when it started running (config: started: input_datetime.…)
+        var started = st === "Drying" && a.started && this._s(a.started);
+        if (started && started.attributes.timestamp) mins = Math.floor((Date.now() / 1000 - started.attributes.timestamp) / 60);
         var busy = st === "Running" || st === "Drying";   // the dishwasher has a Drying stage (fine to open early)
         var line = busy ? st + (mins < 1 ? "" : " " + (mins < 60 ? mins + "m" : Math.floor(mins / 60) + "h")) : st === "Done" ? "Done" : "Idle";
         return this._pill(st === "Running" ? "run" : st === "Drying" ? "dry" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
