@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.27.0";
+  var VERSION = "1.28.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -540,7 +540,11 @@
         var line = sp && sp.state === "playing" ? (sp.attributes.media_title || "Spotify playing") : on.length ? (on[0].attributes.media_title || on[0].attributes.friendly_name + " playing") : "Off";
         tiles.push(this._bigTile("music", "Music", line, "mdi:music", C.teal, (sp && sp.state === "playing") || on.length > 0));
       }
-      return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div>" +
+      // the Armed button: grey "Disarmed" / green "Armed", one tap to switch (config: armed: input_boolean.…)
+      var arm = c.armed && this._s(c.armed), armed = arm && arm.state === "on";
+      var shield = arm ? '<button class="shield' + (armed ? " on" : "") + '" data-armtoggle="' + esc(c.armed) + '" aria-label="' + (armed ? "Armed. Tap to disarm" : "Disarmed. Tap to arm") + '"><span class="c">' +
+        icon(armed ? "mdi:shield-check" : "mdi:shield-outline", 30) + "</span>" + (armed ? "Armed" : "Disarmed") + "</button>" : "";
+      return '<div class="page home">' + this._head(c.title || "Home", null, shield) + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div>" +
         this._statusGrid() + "</div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
@@ -1029,6 +1033,7 @@
       if (!b.classList.contains("shade")) this._haptic("light");
       var ds = b.dataset, c = this._config;
       if (ds.go) { var p = ds.go.split("/"); this._from = this._route.slice(); this._route = p.length > 1 ? [p[0], +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
+      if (ds.armtoggle) { this._call("input_boolean", "toggle", { entity_id: ds.armtoggle }); return; }
       if (ds.applianceclear) { this._call("input_select", "select_option", { entity_id: ds.applianceclear, option: "Idle" }); return; }
       if (ds.hcolor) { this._setHatch(ds.ids, HATCH_COLORS[+ds.hcolor].rgb); return; }
       if (ds.toggle) {
@@ -1135,6 +1140,11 @@ ha-icon { display: flex; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .grid2.fill { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
 .grid2.fill.odd > :last-child { grid-column: 1 / -1; }
+/* the Armed button in the home header: same size armed or not */
+.head .shield { margin-left: auto; width: 230px; height: 72px; display: flex; align-items: center; gap: 12px; padding: 0 24px 0 12px; border-radius: 36px; background: var(--card); color: var(--muted); font-size: 24px; font-weight: 800; flex: none; }
+.head .shield .c { flex: none; width: 50px; height: 50px; border-radius: 25px; display: flex; align-items: center; justify-content: center; background: var(--chip); }
+.head .shield.on { background: ${C.green}; color: #fff; }
+.head .shield.on .c { background: rgba(255,255,255,.22); }
 /* the slim rows under the home tiles: doors, then washer / dryer / dishwasher */
 .pills { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .pills.p4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -1432,6 +1442,9 @@ ha-icon { display: flex; }
 :host([narrow]) .page.home .grid2.fill { flex: none; grid-auto-rows: auto; }
 :host([narrow]) .page.home .grid2 .big { justify-content: flex-start; }
 :host([narrow]) .page.home .rows { flex: none; gap: 8px; }
+:host([narrow]) .head .shield { width: 132px; height: 40px; gap: 6px; padding: 0 12px 0 5px; border-radius: 20px; font-size: 14px; }
+:host([narrow]) .head .shield .c { width: 30px; height: 30px; }
+:host([narrow]) .head .shield .c ha-icon { --mdc-icon-size: 19px !important; }
 :host([narrow]) .pills { gap: 8px; } :host([narrow]) .pills.p4 { gap: 6px; }
 :host([narrow]) .pill2 { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px 12px; border-radius: 20px; }
 :host([narrow]) .pill2 .c { width: 32px; height: 32px; }

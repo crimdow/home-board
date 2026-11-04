@@ -600,5 +600,6 @@
       "temperature": "sensor.kitchen_cottonwood_range_temperature",
       "job": "sensor.kitchen_cottonwood_range_job_state"
     }
-  ]
+  ],
+  "armed": "input_boolean.house_armed"
 }
