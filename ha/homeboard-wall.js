@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.28.0";
+  var VERSION = "1.29.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -596,8 +596,9 @@
       var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return [];
       return list.map((a) => {
         var s = this._s(a.entity), st = s.state, mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
-        var line = st === "Running" ? (mins < 1 ? "Running" : "Running " + (mins < 60 ? mins + "m" : Math.floor(mins / 60) + "h")) : st === "Done" ? "Done" : "Idle";
-        return this._pill(st === "Running" ? "run" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
+        var busy = st === "Running" || st === "Drying";   // the dishwasher has a Drying stage (fine to open early)
+        var line = busy ? st + (mins < 1 ? "" : " " + (mins < 60 ? mins + "m" : Math.floor(mins / 60) + "h")) : st === "Done" ? "Done" : "Idle";
+        return this._pill(st === "Running" ? "run" : st === "Drying" ? "dry" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
       });
     }
     // Fridge and oven, side by side. config: kitchen: [{ name, icon, tone ("open" amber / "alarm" red),
@@ -1172,6 +1173,7 @@ ha-icon { display: flex; }
 .pills.p4 .pill2 b { font-size: 19px; } .pills.p4 .pill2 i { font-size: 15px; }
 .pill2.run .c { background: var(--accent); color: var(--on-accent); } .pill2.run i { color: var(--accent); }
 .pill2.done .c { background: ${C.green}; color: #fff; } .pill2.done i { color: ${C.green}; }
+.pill2.dry .c { background: ${C.teal}; color: #fff; } .pill2.dry i { color: ${C.teal}; }
 .pill2.open .c { background: ${C.amber}; color: #fff; } .pill2.open i { color: ${C.amber}; }
 .pill2.hot .c { background: ${C.red}; color: #fff; } .pill2.hot i { color: ${C.red}; }
 .pill2.alarm { background: ${C.red}; color: #fff; } .pill2.alarm .c { background: rgba(255,255,255,.25); color: #fff; } .pill2.alarm i { color: #fff; }
