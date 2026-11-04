@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.24.0";
+  var VERSION = "1.24.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -536,7 +536,8 @@
         tiles.push(this._bigTile("music", "Music", line, "mdi:music", C.teal, (sp && sp.state === "playing") || on.length > 0));
       }
       return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div>" +
-        this._doorRow() + this._applianceRow() + this._kitchenRow() + "</div>";
+        (function (rows) { var n = rows.filter(Boolean).length;   // each row gets an equal share of the height, the tiles the rest
+          return '<div class="rows" style="flex-grow:' + (n * 0.4).toFixed(2) + '">' + rows.join("") + "</div>"; })([this._doorRow(), this._applianceRow(), this._kitchenRow()]) + "</div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
       return '<div role="button" tabindex="0" class="big' + (warn ? " hot" : "") + '" data-go="' + go + '">' +
@@ -1113,6 +1114,23 @@ ha-icon { display: flex; }
 .pills { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .pills.p4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .pills.p2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* home page: the rows below the tiles get roomy, readable pills; the tiles take what's left, with their icon and
+   words kept together in the middle instead of an empty gap between them */
+.page.home .grid2.fill { flex: 1.15 1 0; min-height: 0; grid-auto-rows: 1fr; }
+.page.home .grid2 .big { min-height: 0; justify-content: center; gap: 22px; padding: 26px 32px; }
+.page.home .rows { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+:host(:not([narrow])) .page.home .rows .pills { flex: 1; min-height: 0; }
+:host(:not([narrow])) .page.home .rows .pill2 { height: 100%; }
+.page.home .rows:empty { display: none; }
+:host(:not([narrow])) .page.home .rows .pill2 { border-radius: 28px; padding: 22px 20px 22px 18px; gap: 18px; }
+:host(:not([narrow])) .page.home .rows .pill2 .c { width: 68px; height: 68px; border-radius: 34px; }
+:host(:not([narrow])) .page.home .rows .pill2 .c ha-icon { --mdc-icon-size: 38px !important; }
+:host(:not([narrow])) .page.home .rows .pill2 b { font-size: 27px; }
+:host(:not([narrow])) .page.home .rows .pill2 i { font-size: 21px; }
+:host(:not([narrow])) .page.home .rows .p4 .pill2 { padding: 18px 14px 18px 12px; gap: 12px; }
+:host(:not([narrow])) .page.home .rows .p4 .pill2 .c { width: 54px; height: 54px; }
+:host(:not([narrow])) .page.home .rows .p4 .pill2 .c ha-icon { --mdc-icon-size: 30px !important; }
+:host(:not([narrow])) .page.home .rows .p4 .pill2 b { font-size: 21px; } :host(:not([narrow])) .page.home .rows .p4 .pill2 i { font-size: 17px; }
 .pill2 { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 10px; border-radius: 999px; background: var(--card); min-width: 0; width: 100%; }
 .pill2 .c { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: var(--muted); }
 .pill2 .w { display: flex; flex-direction: column; min-width: 0; }
@@ -1389,6 +1407,10 @@ ha-icon { display: flex; }
 :host([narrow]) .back ha-icon { --mdc-icon-size: 28px !important; }
 :host([narrow]) .pill { font-size: 15px; padding: 10px 16px; }
 :host([narrow]) .grid2 { gap: 10px; }
+:host([narrow]) .page.home .grid2 .big { gap: 10px; padding: 14px 14px 16px; }
+:host([narrow]) .page.home .grid2.fill { flex: none; grid-auto-rows: auto; }
+:host([narrow]) .page.home .grid2 .big { justify-content: flex-start; }
+:host([narrow]) .page.home .rows { flex: none; gap: 8px; }
 :host([narrow]) .pills { gap: 8px; } :host([narrow]) .pills.p4 { gap: 6px; }
 :host([narrow]) .pill2 { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px 12px; border-radius: 20px; }
 :host([narrow]) .pill2 .c { width: 32px; height: 32px; }
