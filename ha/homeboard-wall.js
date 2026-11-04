@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.26.4";
+  var VERSION = "1.26.5";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -513,7 +513,7 @@
       var c = this._config, tiles = [];
       // Lights
       var all = this._allLights(), n = this._onCount(all), rooms = this._rooms().filter((r) => this._onCount(this._roomIds(r)) > 0).length;
-      tiles.push(this._bigTile("lights", "Lights", n ? n + " on in " + rooms + (rooms === 1 ? " room" : " rooms") : "All off", "mdi:lightbulb-group", C.amber, n > 0));
+      tiles.push(this._bigTile("lights", "Lights", n ? "On in " + rooms + (rooms === 1 ? " room" : " rooms") : "All off", "mdi:lightbulb-group", C.amber, n > 0));
       // Thermostat
       if (c.thermostat) { var t = this._thermoWords(); tiles.push(this._bigTile("thermostat", "Thermostat", t.line, "mdi:thermostat", t.color, t.active, t.big)); }
       // Garage
