@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.23.0";
+  var VERSION = "1.23.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -586,7 +586,7 @@
       var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return "";
       return '<div class="pills apps">' + list.map((a) => {
         var s = this._s(a.entity), st = s.state, mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
-        var line = st === "Running" ? "Running · " + (mins < 1 ? "just started" : this._dur(mins).replace(" minutes", " min").replace(" minute", " min")) : st === "Done" ? "Done" : "Idle";
+        var line = st === "Running" ? (mins < 1 ? "Running" : "Running · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min")) : st === "Done" ? "Done" : "Idle";
         return this._pill(st === "Running" ? "run" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
       }).join("") + "</div>";
     }
