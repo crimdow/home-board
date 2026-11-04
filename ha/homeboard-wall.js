@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.26.5";
+  var VERSION = "1.27.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -164,11 +164,16 @@
       // { entity, state ("on"), for (minutes), text ("{dur}" = how long), alt, icon, tone, go (a wall page, or none) }
       (c.alerts || []).forEach((a, i) => {
         var s = this._s(a.entity); if (!s) return;
-        var when = a.state == null ? "on" : String(a.state);
-        if (s.state !== when) return;
+        // shows while: state equals `state` ("on"), or the number is above `above` / below `below`
+        var num = parseFloat(s.state);
+        if (a.above != null || a.below != null) { if (isNaN(num) || (a.above != null && !(num > a.above)) || (a.below != null && !(num < a.below))) return; }
+        else if (s.state !== (a.state == null ? "on" : String(a.state))) return;
         var mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         if (mins < (a.for || 0)) return;
         var text = a.text || s.attributes.friendly_name || a.entity;
+        // "{attr}" = an attribute (a path like "Alerts.0.Headline"), "{state}" = the state, rounded
+        if (a.attr) { var v = a.attr.split(".").reduce((o, k) => (o == null ? o : o[k]), s.attributes); text = text.replace("{attr}", v == null ? "" : String(v)); }
+        text = text.replace("{state}", isNaN(num) ? s.state : String(Math.round(num)));
         // alt: { entity, above, text } — a different wording while another reading is high (e.g. CO instead of smoke)
         var alt = a.alt && this._s(a.alt.entity);
         if (alt && parseFloat(alt.state) > (a.alt.above || 0) && a.alt.text) text = a.alt.text;
