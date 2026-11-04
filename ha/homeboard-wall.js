@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.26.1";
+  var VERSION = "1.26.3";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -499,6 +499,7 @@
         '<div class="turn">' + icon("mdi:phone-rotate-portrait", 64) + "<span>Turn your phone upright</span></div>";
       this._lastRoute = r.join("/");
       var sc = this.shadowRoot.querySelector(".scroll"); if (sc) sc.scrollTop = top;
+      requestAnimationFrame(() => this._fitPills());
       this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var old = cams[im.dataset.cam]; if (old) im.replaceWith(old); else this._camSrc[im.dataset.cam] = im.getAttribute("src"); });
     }
 
@@ -578,7 +579,7 @@
         var s = this._s(d.entity), open = s.state === "on", mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         var cls = open ? (armed ? "alarm" : "open") : "";
         var ic = open ? (d.icon_open || (d.icon === "mdi:door-sliding" ? "mdi:door-sliding-open" : "mdi:door-open")) : (d.icon || "mdi:door-closed");
-        return this._pill(cls, ic, d.name, open ? "Open · " + (mins < 1 ? "now" : this._dur(mins).replace(" minutes", " min").replace(" minute", " min")) : "Closed");
+        return this._pill(cls, ic, d.name, open ? "Open · " + (mins < 1 ? "now" : this._short(mins)) : "Closed");
       });
     }
     // Washer, dryer, dishwasher: each has a status helper (input_select Idle / Running / Done) kept by an automation.
@@ -587,7 +588,7 @@
       var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return [];
       return list.map((a) => {
         var s = this._s(a.entity), st = s.state, mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
-        var line = st === "Running" ? (mins < 1 ? "Running" : "Running · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min")) : st === "Done" ? "Done" : "Idle";
+        var line = st === "Running" ? (mins < 1 ? "Running" : "Running · " + this._short(mins)) : st === "Done" ? "Done" : "Idle";
         return this._pill(st === "Running" ? "run" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
       });
     }
@@ -601,7 +602,7 @@
         if (!on.length) return this._pill("", k.icon, k.name, k.off_text || "Closed");
         var first = on.map((x) => this._s(x.entity)).sort((a, b) => new Date(a.last_changed) - new Date(b.last_changed))[0];
         var mins = Math.floor((Date.now() - new Date(first.last_changed)) / 60000);
-        var dur = mins < 1 ? "" : " · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min");
+        var dur = mins < 1 ? "" : " · " + this._short(mins);
         // the oven: its set temperature ("Preheat to 400°", then "400° · 45 min")
         var set = k.setpoint && this._s(k.setpoint), now = k.temperature && this._s(k.temperature), job = k.job && this._s(k.job);
         var sp = set && !isNaN(parseFloat(set.state)) ? Math.round(parseFloat(set.state)) : null;
@@ -621,6 +622,15 @@
       if (!cells.length) return "";
       var rows = Math.ceil(cells.length / 3);
       return '<div class="rows" style="flex-grow:' + (rows * 0.4).toFixed(2) + '"><div class="pills p3 grid">' + cells.join("") + "</div></div>";
+    }
+    // Keep every pill's words inside the pill: shrink a line that doesn't fit (down to 70%), then trim it with "…".
+    _short(m) { return m < 60 ? m + " min" : Math.floor(m / 60) + "h" + (m % 60 ? " " + (m % 60) + "m" : ""); }   // pills: "12 min", "2h 12m"
+    _fitPills() {
+      this.shadowRoot.querySelectorAll(".pill2 .w b, .pill2 .w i").forEach((t) => {
+        t.style.fontSize = "";
+        var base = parseFloat(getComputedStyle(t).fontSize), size = base;
+        while (t.scrollWidth > t.clientWidth + 1 && size > base * 0.7) { size -= 1; t.style.fontSize = size + "px"; }
+      });
     }
     _pill(cls, ic, name, line, clear) {
       return '<' + (clear ? 'button data-applianceclear="' + esc(clear) + '"' : "div") + ' class="pill2 ' + cls + '"><span class="c">' + icon(ic, 30) + '</span><span class="w"><b>' + esc(name) + "</b><i>" + esc(line) + "</i></span></" + (clear ? "button" : "div") + ">";
@@ -1146,9 +1156,9 @@ ha-icon { display: flex; }
 :host(:not([narrow])) .page.home .rows .pill2 i { font-size: 22px; }
 .pill2 { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 10px; border-radius: 999px; background: var(--card); min-width: 0; width: 100%; }
 .pill2 .c { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: var(--muted); }
-.pill2 .w { display: flex; flex-direction: column; min-width: 0; }
-.pill2 b { font-size: 21px; font-weight: 800; line-height: 1.15; white-space: nowrap; }
-.pill2 i { font-style: normal; font-size: 17px; font-weight: 700; color: var(--muted); line-height: 1.2; white-space: nowrap; }
+.pill2 .w { display: flex; flex-direction: column; min-width: 0; max-width: 100%; overflow: hidden; }
+.pill2 b { font-size: 21px; font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill2 i { font-style: normal; font-size: 17px; font-weight: 700; color: var(--muted); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pills.p4 .pill2 { gap: 10px; padding: 10px 14px 10px 10px; }
 .pills.p4 .pill2 .c { width: 46px; height: 46px; }
 .pills.p4 .pill2 b { font-size: 19px; } .pills.p4 .pill2 i { font-size: 15px; }
