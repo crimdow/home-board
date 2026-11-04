@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.23.1";
+  var VERSION = "1.24.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -287,6 +287,7 @@
       (c.appliances || []).forEach(function (x) { ids.push(x.entity); });
       (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); });
       if (c.armed) ids.push(c.armed);
+      (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); });
       return ids;
     }
     /* ---------- music ---------- */
@@ -535,7 +536,7 @@
         tiles.push(this._bigTile("music", "Music", line, "mdi:music", C.teal, (sp && sp.state === "playing") || on.length > 0));
       }
       return '<div class="page home">' + this._head(c.title || "Home") + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div>" +
-        this._doorRow() + this._applianceRow() + "</div>";
+        this._doorRow() + this._applianceRow() + this._kitchenRow() + "</div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
       return '<div role="button" tabindex="0" class="big' + (warn ? " hot" : "") + '" data-go="' + go + '">' +
@@ -573,7 +574,7 @@
     _doorRow() {
       var list = (this._config.door_sensors || []).filter((d) => this._s(d.entity)); if (!list.length) return "";
       var armed = this._config.armed && this._on(this._config.armed);
-      return '<div class="pills doors">' + list.map((d) => {
+      return '<div class="pills p4">' + list.map((d) => {
         var s = this._s(d.entity), open = s.state === "on", mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         var cls = open ? (armed ? "alarm" : "open") : "";
         var ic = open ? (d.icon_open || (d.icon === "mdi:door-sliding" ? "mdi:door-sliding-open" : "mdi:door-open")) : (d.icon || "mdi:door-closed");
@@ -584,10 +585,23 @@
     // Tapping one that's Done puts it back to Idle. config: appliances: [{ name, entity, icon }]
     _applianceRow() {
       var list = (this._config.appliances || []).filter((a) => this._s(a.entity)); if (!list.length) return "";
-      return '<div class="pills apps">' + list.map((a) => {
+      return '<div class="pills p3">' + list.map((a) => {
         var s = this._s(a.entity), st = s.state, mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
         var line = st === "Running" ? (mins < 1 ? "Running" : "Running · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min")) : st === "Done" ? "Done" : "Idle";
         return this._pill(st === "Running" ? "run" : st === "Done" ? "done" : "", a.icon, a.name, line, st === "Done" ? a.entity : "");
+      }).join("") + "</div>";
+    }
+    // Fridge and oven, side by side. config: kitchen: [{ name, icon, tone ("open" amber / "alarm" red),
+    //   parts: [{ entity, label }] }] — the pill lights up while any part is on ("Freezer open · 2 min", "On · 45 min")
+    _kitchenRow() {
+      var list = (this._config.kitchen || []).filter((k) => (k.parts || []).some((x) => this._s(x.entity))); if (!list.length) return "";
+      return '<div class="pills p2">' + list.map((k) => {
+        var on = k.parts.filter((x) => this._on(x.entity));
+        if (!on.length) return this._pill("", k.icon, k.name, k.off_text || "Closed");
+        var first = on.map((x) => this._s(x.entity)).sort((a, b) => new Date(a.last_changed) - new Date(b.last_changed))[0];
+        var mins = Math.floor((Date.now() - new Date(first.last_changed)) / 60000);
+        var what = on.length > 1 ? (k.both_text || "Open") : (on[0].label || k.on_text || "Open");
+        return this._pill(k.tone || "open", k.on_icon || k.icon, k.name, what + (mins < 1 ? "" : " · " + this._dur(mins).replace(" minutes", " min").replace(" minute", " min")));
       }).join("") + "</div>";
     }
     _pill(cls, ic, name, line, clear) {
@@ -1097,18 +1111,20 @@ ha-icon { display: flex; }
 .grid2.fill.odd > :last-child { grid-column: 1 / -1; }
 /* the slim rows under the home tiles: doors, then washer / dryer / dishwasher */
 .pills { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.pills.doors { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.pills.p4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.pills.p2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pill2 { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 10px; border-radius: 999px; background: var(--card); min-width: 0; width: 100%; }
 .pill2 .c { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: var(--muted); }
 .pill2 .w { display: flex; flex-direction: column; min-width: 0; }
 .pill2 b { font-size: 21px; font-weight: 800; line-height: 1.15; white-space: nowrap; }
 .pill2 i { font-style: normal; font-size: 17px; font-weight: 700; color: var(--muted); line-height: 1.2; white-space: nowrap; }
-.pills.doors .pill2 { gap: 10px; padding: 10px 14px 10px 10px; }
-.pills.doors .pill2 .c { width: 46px; height: 46px; }
-.pills.doors .pill2 b { font-size: 19px; } .pills.doors .pill2 i { font-size: 15px; }
+.pills.p4 .pill2 { gap: 10px; padding: 10px 14px 10px 10px; }
+.pills.p4 .pill2 .c { width: 46px; height: 46px; }
+.pills.p4 .pill2 b { font-size: 19px; } .pills.p4 .pill2 i { font-size: 15px; }
 .pill2.run .c { background: var(--accent); color: var(--on-accent); } .pill2.run i { color: var(--accent); }
 .pill2.done .c { background: ${C.green}; color: #fff; } .pill2.done i { color: ${C.green}; }
 .pill2.open .c { background: ${C.amber}; color: #fff; } .pill2.open i { color: ${C.amber}; }
+.pill2.hot .c { background: ${C.red}; color: #fff; } .pill2.hot i { color: ${C.red}; }
 .pill2.alarm { background: ${C.red}; color: #fff; } .pill2.alarm .c { background: rgba(255,255,255,.25); color: #fff; } .pill2.alarm i { color: #fff; }
 
 /* Music */
@@ -1373,14 +1389,14 @@ ha-icon { display: flex; }
 :host([narrow]) .back ha-icon { --mdc-icon-size: 28px !important; }
 :host([narrow]) .pill { font-size: 15px; padding: 10px 16px; }
 :host([narrow]) .grid2 { gap: 10px; }
-:host([narrow]) .pills { gap: 8px; } :host([narrow]) .pills.doors { gap: 6px; }
+:host([narrow]) .pills { gap: 8px; } :host([narrow]) .pills.p4 { gap: 6px; }
 :host([narrow]) .pill2 { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px 12px; border-radius: 20px; }
 :host([narrow]) .pill2 .c { width: 32px; height: 32px; }
 :host([narrow]) .pill2 .c ha-icon { --mdc-icon-size: 19px !important; }
 :host([narrow]) .pill2 b { font-size: 13px; } :host([narrow]) .pill2 i { font-size: 10px; letter-spacing: -.1px; }
-:host([narrow]) .pills.doors .pill2 { padding: 9px 8px 10px; gap: 5px; border-radius: 16px; }
-:host([narrow]) .pills.doors .pill2 .c { width: 28px; height: 28px; }
-:host([narrow]) .pills.doors .pill2 b { font-size: 11.5px; letter-spacing: -.2px; } :host([narrow]) .pills.doors .pill2 i { font-size: 9.5px; }
+:host([narrow]) .pills.p4 .pill2 { padding: 9px 8px 10px; gap: 5px; border-radius: 16px; }
+:host([narrow]) .pills.p4 .pill2 .c { width: 28px; height: 28px; }
+:host([narrow]) .pills.p4 .pill2 b { font-size: 11.5px; letter-spacing: -.2px; } :host([narrow]) .pills.p4 .pill2 i { font-size: 9.5px; }
 :host([narrow]) .grid2.fill { flex: none; grid-auto-rows: 132px; }
 :host([narrow]) .grid2:not(.fill) { grid-template-columns: 1fr; }
 :host([narrow]) .big { padding: 14px; border-radius: 20px; min-height: 0; }

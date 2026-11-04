@@ -563,5 +563,38 @@
       "entity": "input_select.dishwasher_status",
       "icon": "mdi:dishwasher"
     }
+  ],
+  "kitchen": [
+    {
+      "name": "Fridge",
+      "icon": "mdi:fridge-outline",
+      "on_icon": "mdi:fridge",
+      "tone": "open",
+      "off_text": "Closed",
+      "both_text": "Both open",
+      "parts": [
+        {
+          "entity": "binary_sensor.kitchen_cottonwood_fridge_fridge_door",
+          "label": "Open"
+        },
+        {
+          "entity": "binary_sensor.kitchen_cottonwood_fridge_freezer_door",
+          "label": "Freezer open"
+        }
+      ]
+    },
+    {
+      "name": "Oven",
+      "icon": "mdi:stove",
+      "tone": "hot",
+      "off_text": "Off",
+      "on_text": "On",
+      "parts": [
+        {
+          "entity": "binary_sensor.kitchen_cottonwood_range_operating_state",
+          "label": "On"
+        }
+      ]
+    }
   ]
 }
