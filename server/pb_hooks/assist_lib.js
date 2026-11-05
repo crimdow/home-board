@@ -64,7 +64,7 @@ function groceryContext(app, household) {
   const items = app.findRecordsByFilter("grocery_items", "household = {:h} && done = false", "", 2000, 0, { h: household });
   const onList = {};
   items.forEach((r) => { onList[r.getString("name").trim().toLowerCase()] = true; });
-  return { stores: stores, onList: onList, u: u, usuals: u.top(app, household, 400) };
+  return { stores: stores, onList: onList, u: u, usuals: u.top(app, household, 5000) };
 }
 
 // The usual items that share a word with what was said (so the prompt stays short and fast): "red bag chicken"
