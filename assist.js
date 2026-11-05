@@ -87,6 +87,16 @@
     "#asst .acts .undo-all { color: var(--ash); }",
     "#asst .acts .again { margin-left: auto; background: " + VIOLET + "; color: #fff; display: inline-flex; align-items: center; gap: 6px; }",
     "#asst .acts .again svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }",
+    "#asstUndo {",
+    "  position: fixed; left: max(16px, calc(50% - 234px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 34;",
+    "  transform: translate(0, 16px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; translate: 0 var(--pin, 0px);",
+    "  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 112px);",
+    "  background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 10px 10px 16px;",
+    "  font-size: 14px; font-weight: 600; box-shadow: 0 6px 24px rgba(0,0,0,.2);",
+    "}",
+    "#asstUndo.show { opacity: 1; transform: translate(0, 0); pointer-events: auto; }",
+    "#asstUndo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+    "#asstUndo button { border: 0; border-radius: 14px; background: var(--ben); color: #fff; font: inherit; font-size: 14px; font-weight: 800; padding: 6px 14px; cursor: pointer; flex: none; }",
     "#asst .err { color: var(--ash); font-size: 15px; font-weight: 700; margin: 0 4px; }",
     "#asst .busy { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 15px; font-weight: 700; margin: 0 4px; }",
     "#asst .busy i { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid var(--hair); border-top-color: var(--ink); animation: asstSpin .8s linear infinite; }",
@@ -122,6 +132,9 @@
     '</div>' +
     '<div class="out" aria-live="polite"></div>';
   document.body.appendChild(bg); document.body.appendChild(sh);
+  var ubar = document.createElement("div"); ubar.id = "asstUndo"; ubar.setAttribute("role", "status");
+  ubar.innerHTML = '<span></span><button type="button">Undo</button>';
+  document.body.appendChild(ubar);
 
   var ta = sh.querySelector("textarea"), go = sh.querySelector(".go"), big = sh.querySelector(".bigmic");
   var say = sh.querySelector(".vsay"), sub = sh.querySelector(".vsub"), out = sh.querySelector(".out"), head = sh.querySelector("h2");
@@ -160,6 +173,7 @@
     else setMode("type");
   }
   function close() {
+    stopAuto();
     stopListening(true);
     sh.classList.remove("show"); bg.classList.remove("show"); ta.blur();
   }
@@ -199,9 +213,9 @@
       if (actx) { try { actx.close(); } catch (e) {} actx = null; }
     });
   }
-  // Watch the loudness. Pauses are fine (looking in the fridge): it only sends after 6 s of quiet, counting down
-  // the last 3 so you can keep talking. Tap to send sooner. Nothing heard in 15 s gives up; 2 minutes at most.
-  var QUIET_MS = 6000, WARN_MS = 3000, NOTHING_MS = 15000, MAX_MS = 120000;
+  // Watch the loudness. Pauses are fine (looking in the fridge): it only sends after 6 s of quiet.
+  // Tap to send sooner. Nothing heard in 15 s gives up; 2 minutes at most.
+  var QUIET_MS = 6000, NOTHING_MS = 15000, MAX_MS = 120000;
   var LISTEN_SUB = "Pauses are fine. Tap when you\u2019re done, or go quiet for a few seconds.";
   function watch(s) {
     var started = Date.now(), heard = false, lastLoud = 0, an = null, buf = null;
@@ -223,8 +237,6 @@
         if (rms > 0.035) { heard = true; lastLoud = now; }
         var quiet = heard ? now - lastLoud : 0;
         if (heard && quiet > QUIET_MS) { stopListening(false); return; }
-        if (heard && quiet > WARN_MS) sub.textContent = "Sending in " + Math.ceil((QUIET_MS - quiet) / 1000) + "\u2026 keep talking to add more";
-        else if (sub.textContent !== LISTEN_SUB) sub.textContent = LISTEN_SUB;
         if (!heard && now - started > NOTHING_MS) { cancel = true; stopListening(true); idleLook("Didn’t hear anything", "Tap to try again, or type instead."); return; }
       }
       if (now - started > MAX_MS) { stopListening(false); return; }
@@ -278,6 +290,26 @@
     });
   }
 
+  // After a voice add the sheet closes by itself; an Undo bar stays for a few seconds. Touching the sheet keeps it open.
+  var autoT = null, ubarT = null, lastAdded = [];
+  function stopAuto() { clearTimeout(autoT); autoT = null; }
+  sh.addEventListener("pointerdown", stopAuto);
+  function undoAdded(list) {
+    return Promise.all(list.map(function (d) { return db.from(d.table).delete().eq("id", d.id); })).then(function () {
+      if (HB.refreshPage) HB.refreshPage(page());
+    });
+  }
+  function showUndoBar(list) {
+    lastAdded = list;
+    ubar.querySelector("span").textContent = "Added " + (list.length === 1 ? "\u201c" + list[0].name + "\u201d" : list.length + " items");
+    ubar.classList.add("show");
+    clearTimeout(ubarT); ubarT = setTimeout(function () { ubar.classList.remove("show"); }, 6000);
+  }
+  ubar.querySelector("button").addEventListener("click", function () {
+    clearTimeout(ubarT); ubar.classList.remove("show");
+    undoAdded(lastAdded).then(function () { HB.toast("Undone"); }, function () { HB.toast("Couldn't undo. Try again."); });
+  });
+
   function show(res, spoken) {
     var done = res.done || [], added = done.filter(function (d) { return !d.skipped && d.id; });
     var h = "";
@@ -300,6 +332,8 @@
         if (HB.refreshPage) HB.refreshPage(page());
       }, function () { u.disabled = false; HB.toast("Couldn't undo. Try again."); });
     };
+    stopAuto();
+    if (spoken && added.length) autoT = setTimeout(function () { autoT = null; close(); showUndoBar(added); }, 4000);
   }
 
   HB.assist = {
