@@ -64,19 +64,6 @@ function groceryContext(app, household) {
   return { stores: stores, onList: onList };
 }
 
-function schema() {
-  const itemProps = { type: { type: "string", enum: Object.keys(ACTIONS) } };
-  Object.keys(ACTIONS).forEach((k) => Object.assign(itemProps, ACTIONS[k].fields));
-  return {
-    type: "object",
-    properties: {
-      reply: { type: "string" },
-      actions: { type: "array", items: { type: "object", properties: itemProps, required: ["type"] } },
-    },
-    required: ["reply", "actions"],
-  };
-}
-
 function systemPrompt(ctx, page) {
   const d = new Date(Date.now() - 5 * 3600000);   // close enough to New York time for the day
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -92,7 +79,8 @@ function systemPrompt(ctx, page) {
     "Keep an amount only if they said one, in the name (Eggs, 2 dozen). Never invent a store.",
     "If the message isn't something these actions can do, return no actions and say briefly that you can only add groceries for now.",
     "reply: one short, friendly sentence about what you did.",
-    "Answer only with JSON in the required shape.",
+    "Answer only with JSON exactly like this, nothing else:",
+    '{"reply": "Added 2 groceries.", "actions": [{"type": "add_grocery", "name": "Milk", "store": ""}, {"type": "add_grocery", "name": "Bread", "store": "Aldi"}]}',
   ].join("\n");
 }
 
@@ -134,7 +122,10 @@ function run(app, me, text, page) {
       url: c.ollama + "/api/chat", method: "POST", timeout: 120,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: c.model, stream: false, format: schema(), options: { temperature: 0 },
+        // "json" mode, not the full schema: forcing an exact shape is very slow on a CPU. The shape is
+        // spelled out in the prompt instead, and every action is still checked below before anything is saved.
+        model: c.model, stream: false, format: "json", keep_alive: "24h",
+        options: { temperature: 0, num_predict: 400, num_ctx: 2048 },
         messages: [{ role: "system", content: systemPrompt(ctx, page) }, { role: "user", content: text }],
       }),
     });
