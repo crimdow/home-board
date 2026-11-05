@@ -1,4 +1,4 @@
-/* Home Board assistant: the violet sparkle button stacked above the blue +, and its sheet.
+/* Home Board assistant: the violet sparkle button in the same spot on every page (the blue + sits above it), and its sheet.
    One tap and it's listening: say "going to Costco, need eggs, milk and strawberries" and stop
    talking. It sends by itself after a short pause (or tap to send now). "Type instead" switches to
    a text box for pasting. The server (server/pb_hooks/assist.pb.js) asks the model on bkllm and saves
@@ -18,6 +18,8 @@
     "  translate: 0 var(--pin, 0px); transition: transform .15s;",
     "}",
     "body.asst-on #asstBtn { display: grid; }",
+    "/* the sparkle keeps the +'s usual spot on every page; the + moves up above it */",
+    "body.asst-on:not(.viewonly):not(.locked) .fab { margin-bottom: 68px; }",
     "#asstBtn:active { transform: scale(.92); }",
     "#asstBtn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }",
     "body.locked #asstBtn, body.checking #asstBtn, body.homeless #asstBtn, body.viewonly #asstBtn, :root.panel #asstBtn { display: none !important; }",
@@ -134,13 +136,13 @@
     return db.pb.send("/api/hb/assist", { method: "GET" }).then(function (s) { status = s; return s; }, function () { return null; });
   }
 
-  // ---- placement: stacked right above the blue +, or in its spot on pages without one ----
+  // ---- placement: the +'s usual spot on every page (the + itself moves up above it, see the CSS) ----
   // Reads the +'s own left/bottom (not its on-screen box), so both share the same --pin nudge.
   function place() {
     var fab = document.getElementById("fab"); if (!fab) return;
-    var cs = getComputedStyle(fab), above = fab.classList.contains("show");
+    var cs = getComputedStyle(fab);
     btn.style.left = cs.left;
-    btn.style.bottom = above ? "calc(" + cs.bottom + " + 68px)" : cs.bottom;
+    btn.style.bottom = cs.bottom;
   }
   window.addEventListener("resize", place);
 
