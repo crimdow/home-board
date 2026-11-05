@@ -10,6 +10,7 @@
 //   HB_ASSIST_OLLAMA   e.g. http://192.168.197.50:11434   (required)
 //   HB_ASSIST_WHISPER  e.g. http://192.168.197.50:8080    (for the mic button)
 //   HB_ASSIST_MODEL    default qwen2.5:7b
+//   HB_ASSIST_FASTPATH set to "off" to send everything to the model (see quickList below)
 //
 // Adding an action later (to-dos, plans, meals, Binder...): add an entry to ACTIONS with a line for the
 // model (`describe`), the fields it fills (`fields`) and `run`, which saves it and returns what was done.
@@ -22,6 +23,7 @@ function cfg() {
     ollama: String($os.getenv("HB_ASSIST_OLLAMA") || "").replace(/\/+$/, ""),
     whisper: String($os.getenv("HB_ASSIST_WHISPER") || "").replace(/\/+$/, ""),
     model: String($os.getenv("HB_ASSIST_MODEL") || "qwen2.5:7b"),
+    fast: String($os.getenv("HB_ASSIST_FASTPATH") || "").toLowerCase() !== "off",
   };
 }
 
@@ -149,6 +151,43 @@ function transcribe(file, hint) {
   return text;
 }
 
+// ---- the fast path: a plain list of usual items needs no model ----
+// "We need red bag chicken, milk and eggs from Aldi" -> pieces "red bag chicken" / "milk" / "eggs" (Aldi).
+// Every piece must be one of the household's usual items, or the whole thing goes to the model instead,
+// so this can only ever be quicker, never worse. Turn it off with HB_ASSIST_FASTPATH=off.
+const FILLER = /^(?:(?:and|also|then|plus|oh|um+|uh+|so|okay|ok|alright|yeah|let'?s see)[\s,]+)*(?:(?:we|i)(?:'re|\u2019re| are)?\s+(?:need|needs|want|out of|running low on|low on|also need)\s+|(?:we|i)\s+(?:need|want)\s+|we'?re out of\s+|(?:out of|running low on|low on|need|needs|get|grab|pick up|picking up|buy|add|put|some|more|another|a couple of|couple of|a few)\s+)*(?:some\s+|a\s+|an\s+|the\s+)?/i;
+function quickList(ctx, text) {
+  const storeNames = ctx.stores.map((s) => s.getString("name")).filter(Boolean);
+  if (!ctx.usuals.length) return null;
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const storeRe = storeNames.length ? "(" + storeNames.map(esc).join("|") + ")" : null;
+  let t = " " + String(text || "").replace(/[\u2018\u2019]/g, "'") + " ";
+  // "going to Costco, ..." / "at Aldi we need ..." / "for Costco": a store for the whole list
+  let all = "";
+  if (storeRe) {
+    const g = t.match(new RegExp("\\b(?:going to|heading to|headed to|shopping at|at|for)\\s+" + storeRe + "\\b", "i"));
+    if (g) { all = g[1]; t = t.replace(g[0], " "); }
+  }
+  const pieces = t.split(/[,.;!?]|\band\b|\balso\b|\bplus\b/i);
+  const out = [];
+  for (let i = 0; i < pieces.length; i++) {
+    let p = pieces[i].replace(/\s+/g, " ").trim();
+    if (!p) continue;
+    let store = all;
+    if (storeRe) {
+      const f = p.match(new RegExp("\\s+(?:from|at)\\s+" + storeRe + "\\s*$", "i"));
+      if (f) { store = f[1]; p = p.slice(0, f.index).trim(); }
+    }
+    p = p.replace(FILLER, "").replace(/\s+(?:please|too|as well|again)$/i, "").trim();
+    if (!p || /^(?:um+|uh+|okay|ok|so|yeah|that'?s it|that'?s all|done)$/i.test(p)) continue;
+    const key = ctx.u.keyOf(p);
+    const hit = ctx.usualByKey[key] || ctx.usualByKey[key.replace(/s$/, "")] || ctx.usualByKey[key + "s"] || ctx.usualByKey[key.replace(/ies$/, "y")] || ctx.usualByKey[key.replace(/y$/, "ies")] || ctx.usualByKey[key + "es"] || ctx.usualByKey[key.replace(/es$/, "")];
+    if (!hit) return null;                                // something it doesn't know: let the model handle it all
+    out.push({ type: "add_grocery", name: hit.name, store: store });
+  }
+  return out.length ? out : null;
+}
+
 // The main entry: words in, saved actions out.
 function run(app, me, text, page) {
   const c = cfg();
@@ -157,6 +196,14 @@ function run(app, me, text, page) {
   if (!text) throw new BadRequestError("Type or say what to add.");
   const household = me.getString("household");
   const ctx = groceryContext(app, household);
+  ctx.usualByKey = {}; ctx.usuals.forEach((x) => { ctx.usualByKey[ctx.u.keyOf(x.name)] = x; });
+
+  const quick = c.fast ? quickList(ctx, text) : null;
+  if (quick) {
+    const done = quick.slice(0, MAX_ACTIONS).map((a) => ACTIONS.add_grocery.run(app, me, a, ctx)).filter(Boolean);
+    const n = done.filter((d) => !d.skipped).length;
+    return { heard: text, reply: n ? "Added " + n + (n === 1 ? " item." : " items.") : "Those are already on the list.", done: done, quick: true };
+  }
 
   let res;
   try {
@@ -189,4 +236,4 @@ function run(app, me, text, page) {
   return { heard: text, reply: clean(answer.reply, 300), done: done };
 }
 
-module.exports = { cfg, run, transcribe, hintFor, ACTIONS };
+module.exports = { cfg, run, transcribe, hintFor, quickList, ACTIONS };
