@@ -847,7 +847,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-04b";
+  var VERSION = "2026-11-05a";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -2380,6 +2380,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var last = document.querySelector("#tabs a:last-child"); if (!last) return;
     var r = last.getBoundingClientRect();
     fab.style.left = Math.round(r.left + r.width / 2 - 28) + "px";
+    if (HB.assist) HB.assist.place();
   }
   function paintFab() {
     var box = current && boxes[current], b = box && box.querySelector("#addBtn, .addBtn");
@@ -2629,6 +2630,9 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     window.scrollTo(0, scrolls[p.id] || 0);
   }
   function go(id) { history.replaceState(null, "", "#" + id); show(id); }
+  // for the assistant (assist.js): which page is showing, and catching a page up after it added things
+  HB.page = function () { return current; };
+  HB.refreshPage = function (id) { var m = id && mods[id]; if (m && m.refresh) m.refresh(); };
   // load a page in the background without showing it (the panel keeps Home Assistant loaded, for the screensaver's now playing)
   HB.premount = function (id) {
     var p = page(id); if (!p || !p.src || boxes[p.id]) return;
@@ -2672,7 +2676,15 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var noHouse = !(session && session.user && session.user.household);
     document.body.classList.toggle("homeless", noHouse);
     if (noHouse) { document.body.classList.add("locked"); return; }
-    if (!started) { started = true; paintTabs(); show(location.hash.slice(1)); }
+    if (!started) { started = true; paintTabs(); show(location.hash.slice(1)); loadAssist(); }
+  }
+  // the assistant button (assist.js): loaded once the app is open; editors only, never on the wall panel
+  function loadAssist() {
+    if (PANEL || HB.assist || document.getElementById("asstJs")) return;
+    var s = document.createElement("script");
+    s.id = "asstJs"; s.src = "assist.js?v=" + VERSION;
+    s.onload = function () { if (HB.assist) HB.assist.on(true); };
+    document.head.appendChild(s);
   }
   function lock() { document.body.classList.remove("checking", "homeless"); document.body.classList.add("locked"); }
   document.getElementById("noHouseOut").addEventListener("click", function () { db.auth.signOut(); });
