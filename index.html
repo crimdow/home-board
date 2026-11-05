@@ -218,6 +218,9 @@ body::before {
   transition: transform .22s cubic-bezier(.3,1.4,.5,1), opacity .15s, background-color .35s;
 }
 .fab.show { transform: scale(1); opacity: 1; pointer-events: auto; }
+/* the assistant's sparkle (assist.js) keeps the +'s usual spot; the + sits above it. Set here, not in assist.js,
+   so the + is already in place when the page first draws and doesn't jump once assist.js loads */
+body.asst-on:not(.viewonly):not(.locked) .fab { margin-bottom: 68px; }
 .fab:active { transform: scale(.92); }
 .fab svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; }
 /* the + lives here now, not in each page header */
@@ -847,7 +850,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-05e";
+  var VERSION = "2026-11-05f";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -2676,14 +2679,16 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     var noHouse = !(session && session.user && session.user.household);
     document.body.classList.toggle("homeless", noHouse);
     if (noHouse) { document.body.classList.add("locked"); return; }
-    if (!started) { started = true; paintTabs(); show(location.hash.slice(1)); loadAssist(); }
+    if (!started) { started = true; loadAssist(); paintTabs(); show(location.hash.slice(1)); }
   }
   // the assistant button (assist.js): loaded once the app is open; editors only, never on the wall panel
   function loadAssist() {
     if (PANEL || HB.assist || document.getElementById("asstJs")) return;
+    document.body.classList.add("asst-on");   // the + moves up straight away (the sparkle fills its spot once loaded)
     var s = document.createElement("script");
     s.id = "asstJs"; s.src = "assist.js?v=" + VERSION;
     s.onload = function () { if (HB.assist) HB.assist.on(true); };
+    s.onerror = function () { document.body.classList.remove("asst-on"); s.remove(); };
     document.head.appendChild(s);
   }
   function lock() { document.body.classList.remove("checking", "homeless"); document.body.classList.add("locked"); }
