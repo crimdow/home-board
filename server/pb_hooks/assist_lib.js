@@ -2,7 +2,7 @@
 // Loaded with require from assist.pb.js; not a hook file itself.
 //
 // How it works: the text (or the words Whisper heard) goes to the language model on bkllm together with
-// the household's store names. The model may only answer with actions from ACTIONS below, as JSON in a
+// the household's store names and the usual items that sound like what was said (grocery_usuals). The model may only answer with actions from ACTIONS below, as JSON in a
 // fixed shape. This file checks every action and saves it itself, for the signed-in editor's household.
 // The model never touches the database.
 //
@@ -35,36 +35,59 @@ const ACTIONS = {
     describe: "add_grocery: put one thing to buy on the grocery list. name = a short shopping-list name; store = one of the store names, only when the message names that store.",
     fields: { name: { type: "string" }, store: { type: "string" } },
     run(app, me, a, ctx) {
-      const name = cap(clean(a.name, 120));
+      let name = cap(clean(a.name, 120));
       if (!name) return null;
-      const lower = name.toLowerCase();
-      if (ctx.onList[lower]) return { type: "add_grocery", skipped: true, name: name, label: name + " (already on the list)" };
+      const usual = ctx.u.find(app, me.getString("household"), name);
+      if (usual) name = usual.getString("name");        // the family's own spelling of a usual item
+      if (ctx.onList[name.toLowerCase()]) return { type: "add_grocery", skipped: true, name: name, label: name + " (already on the list)" };
       const storeName = clean(a.store, 80).toLowerCase();
       const store = storeName ? ctx.stores.find((s) => s.getString("name").toLowerCase() === storeName) : null;
       const r = new Record(app.findCollectionByNameOrId("grocery_items"));
       r.set("name", name);
-      r.set("store_id", store ? store.id : "");
+      r.set("store_id", store ? store.id : "");          // no store named: usuals.pb.js fills in the usual one
       r.set("done", false);
       r.set("household", me.getString("household"));
       r.set("created_at", nowIso()); r.set("updated_at", nowIso());
       app.save(r);
-      ctx.onList[lower] = true;
-      return { type: "add_grocery", table: "grocery_items", id: r.id, name: name, store: store ? store.getString("name") : "",
-               label: name + (store ? " (" + store.getString("name") + ")" : "") };
+      ctx.onList[name.toLowerCase()] = true;
+      const st = ctx.stores.find((s) => s.id === r.getString("store_id"));
+      return { type: "add_grocery", table: "grocery_items", id: r.id, name: name, store: st ? st.getString("name") : "",
+               label: name + (st ? " (" + st.getString("name") + ")" : "") };
     },
   },
 };
 
-// the household's grocery stores and the names already waiting on the list
+// the household's grocery stores, the names already waiting on the list, and its usual items
 function groceryContext(app, household) {
+  const u = require(`${__hooks}/usuals_lib.js`);
   const stores = app.findRecordsByFilter("grocery_stores", "household = {:h}", "position", 100, 0, { h: household });
   const items = app.findRecordsByFilter("grocery_items", "household = {:h} && done = false", "", 2000, 0, { h: household });
   const onList = {};
   items.forEach((r) => { onList[r.getString("name").trim().toLowerCase()] = true; });
-  return { stores: stores, onList: onList };
+  return { stores: stores, onList: onList, u: u, usuals: u.top(app, household, 400) };
 }
 
-function systemPrompt(ctx, page) {
+// The usual items that share a word with what was said (so the prompt stays short and fast): "red bag chicken"
+// brings in "Red bag chicken", "Chicken bouillon"... Sorted by name, so the same request gives the same prompt.
+function wordsOf(s) {
+  return String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/)
+    .filter((w) => w.length >= 3).map((w) => w.replace(/(ies)$/, "y").replace(/([^s])s$/, "$1"));
+}
+function usualsFor(ctx, text) {
+  const said = {}; wordsOf(text).forEach((w) => { said[w] = true; });
+  return ctx.usuals.filter((x) => wordsOf(x.name).some((w) => said[w])).slice(0, 40)
+    .sort((a, b) => (a.name < b.name ? -1 : 1));
+}
+
+// A hint for Whisper: the household's store names and most-bought items, so it spells them right.
+function hintFor(app, household) {
+  const u = require(`${__hooks}/usuals_lib.js`);
+  const stores = app.findRecordsByFilter("grocery_stores", "household = {:h}", "position", 50, 0, { h: household }).map((s) => s.getString("name"));
+  const names = u.top(app, household, 40).map((x) => x.name);
+  return clean("Grocery list. Stores: " + stores.join(", ") + ". Items: " + names.join(", ") + ".", 600);
+}
+
+function systemPrompt(ctx, page, text) {
   const d = new Date(Date.now() - 5 * 3600000);   // close enough to New York time for the day
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const stores = ctx.stores.map((s) => s.getString("name")).filter(Boolean);
@@ -74,6 +97,11 @@ function systemPrompt(ctx, page) {
     "Allowed actions:",
     Object.keys(ACTIONS).map((k) => "- " + ACTIONS[k].describe).join("\n"),
     "Grocery stores: " + (stores.length ? stores.join(", ") : "(none set up)") + ".",
+    (function () {
+      const us = usualsFor(ctx, text);
+      return us.length ? "Their usual items that may match (use the exact name when what they said means one of these; leave store empty unless they named one, the usual store is filled in for you): " +
+        us.map((x) => x.name + (x.store ? " [" + x.store + "]" : "")).join(", ") + "." : "";
+    })(),
     "Rules for groceries: one action per thing to buy. Include EVERY item they mention, even in a long list; never drop one.",
     "Short names like a shopping list (Milk, Ground beef, Taco shells, Chicken bouillon).",
     "If they say where they are going or shopping (\"going to Costco\", \"at Aldi\"), use that store for every item that doesn't name a different one.",
@@ -89,7 +117,7 @@ function systemPrompt(ctx, page) {
 }
 
 // Whisper: an uploaded recording -> the words in it
-function transcribe(file) {
+function transcribe(file, hint) {
   const c = cfg();
   if (!c.whisper) throw new BadRequestError("Voice isn't set up yet. Type it instead.");
   const ext = (String(file.originalName || file.name || "").match(/\.(webm|mp4|m4a|ogg|wav|mp3|aac|caf)$/i) || [".webm"])[0];
@@ -98,7 +126,10 @@ function transcribe(file) {
   try { $os.writeFile(tmp, toBytes(rd, 8 * 1048576), 0o600); } finally { rd.close(); }
   let out = "";
   try {
-    out = toString($os.cmd("curl", "-s", "--max-time", "90", "-F", "file=@" + tmp, "-F", "response_format=json", c.whisper + "/inference").output());
+    const args = ["-s", "--max-time", "90", "-F", "file=@" + tmp, "-F", "response_format=json"];
+    if (hint) args.push("--form-string", "prompt=" + hint);   // --form-string: the words are sent as-is, never read as a file
+    args.push(c.whisper + "/inference");
+    out = toString($os.cmd("curl", ...args).output());
   } catch (err) {
     throw new BadRequestError("Couldn't reach the voice helper. Type it instead.");
   } finally {
@@ -129,8 +160,8 @@ function run(app, me, text, page) {
         // "json" mode, not the full schema: forcing an exact shape is very slow on a CPU. The shape is
         // spelled out in the prompt instead, and every action is still checked below before anything is saved.
         model: c.model, stream: false, format: "json", keep_alive: "24h",
-        options: { temperature: 0, num_predict: 400, num_ctx: 2048 },
-        messages: [{ role: "system", content: systemPrompt(ctx, page) }, { role: "user", content: text }],
+        options: { temperature: 0, num_predict: 400, num_ctx: 3072 },
+        messages: [{ role: "system", content: systemPrompt(ctx, page, text) }, { role: "user", content: text }],
       }),
     });
   } catch (err) {
@@ -151,4 +182,4 @@ function run(app, me, text, page) {
   return { heard: text, reply: clean(answer.reply, 300), done: done };
 }
 
-module.exports = { cfg, run, transcribe, ACTIONS };
+module.exports = { cfg, run, transcribe, hintFor, ACTIONS };

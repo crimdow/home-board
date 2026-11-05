@@ -15,7 +15,9 @@ routerAdd("POST", "/api/hb/assist", (e) => {
   try { files = e.findUploadedFiles("audio") || []; } catch (err) {}
   if (files.length) {
     if ((files[0].size || 0) > 8 * 1048576) throw new BadRequestError("That recording is too long. Keep it under two minutes.");
-    text = assist.transcribe(files[0]);
+    let hint = "";
+    try { hint = assist.hintFor($app, me.getString("household")); } catch (err) {}
+    text = assist.transcribe(files[0], hint);
   }
   return e.json(200, assist.run($app, me, text, page));
 }, $apis.requireAuth(), $apis.bodyLimit(10 * 1048576));
