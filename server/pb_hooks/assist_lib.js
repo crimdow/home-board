@@ -87,21 +87,16 @@ function hintFor(app, household) {
   return clean("Grocery list. Stores: " + stores.join(", ") + ". Items: " + names.join(", ") + ".", 600);
 }
 
-function systemPrompt(ctx, page, text) {
-  const d = new Date(Date.now() - 5 * 3600000);   // close enough to New York time for the day
-  const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+// The instructions stay word-for-word the same from one request to the next (only the store names can
+// change), so Ollama keeps them read and only has to read the short part that changes: the message.
+function systemPrompt(ctx) {
   const stores = ctx.stores.map((s) => s.getString("name")).filter(Boolean);
   return [
     "You turn a family's short messages into actions for their Home Board app.",
-    "Today is " + DAYS[d.getUTCDay()] + ", " + d.toISOString().slice(0, 10) + ". They are on the " + (page || "home") + " page.",
     "Allowed actions:",
     Object.keys(ACTIONS).map((k) => "- " + ACTIONS[k].describe).join("\n"),
     "Grocery stores: " + (stores.length ? stores.join(", ") : "(none set up)") + ".",
-    (function () {
-      const us = usualsFor(ctx, text);
-      return us.length ? "Their usual items that may match (use the exact name when what they said means one of these; leave store empty unless they named one, the usual store is filled in for you): " +
-        us.map((x) => x.name + (x.store ? " [" + x.store + "]" : "")).join(", ") + "." : "";
-    })(),
+    "The message may come with their usual items that sound like it. When what they said means one of these, use that exact name, and leave store empty unless they named a store (the usual store is filled in for you).",
     "Rules for groceries: one action per thing to buy. Include EVERY item they mention, even in a long list; never drop one.",
     "Short names like a shopping list (Milk, Ground beef, Taco shells, Chicken bouillon).",
     "If they say where they are going or shopping (\"going to Costco\", \"at Aldi\"), use that store for every item that doesn't name a different one.",
@@ -114,6 +109,18 @@ function systemPrompt(ctx, page, text) {
     "Answer only with JSON exactly like this, nothing else:",
     '{"reply": "Added 2 groceries.", "actions": [{"type": "add_grocery", "name": "Milk", "store": ""}, {"type": "add_grocery", "name": "Bread", "store": "Aldi"}]}',
   ].join("\n");
+}
+
+// The part that changes every time: the day, the page, the usual items that sound like it, and the words.
+function userMessage(ctx, page, text) {
+  const d = new Date(Date.now() - 5 * 3600000);   // close enough to New York time for the day
+  const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const us = usualsFor(ctx, text);
+  return [
+    "Today is " + DAYS[d.getUTCDay()] + ", " + d.toISOString().slice(0, 10) + ". They are on the " + (page || "home") + " page.",
+    us.length ? "Usual items that may match: " + us.map((x) => x.name + (x.store ? " [" + x.store + "]" : "")).join(", ") + "." : "",
+    "Message: " + text,
+  ].filter(Boolean).join("\n");
 }
 
 // Whisper: an uploaded recording -> the words in it
@@ -161,7 +168,7 @@ function run(app, me, text, page) {
         // spelled out in the prompt instead, and every action is still checked below before anything is saved.
         model: c.model, stream: false, format: "json", keep_alive: "24h",
         options: { temperature: 0, num_predict: 400, num_ctx: 3072 },
-        messages: [{ role: "system", content: systemPrompt(ctx, page, text) }, { role: "user", content: text }],
+        messages: [{ role: "system", content: systemPrompt(ctx) }, { role: "user", content: userMessage(ctx, page, text) }],
       }),
     });
   } catch (err) {
