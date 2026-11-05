@@ -1,4 +1,4 @@
-/* Home Board assistant: the small round button above the first tab, and its sheet.
+/* Home Board assistant: the round sparkle button stacked above the blue +, and its sheet.
    Type or paste ("milk, eggs and stuff for tacos"), or hold the mic and say it. The server
    (server/pb_hooks/assist.pb.js) asks the model on bkllm and saves what it found; this shows
    what was done, with Undo. Editors only; not on the wall panel (yet).
@@ -9,17 +9,19 @@
 
   var css = [
     "#asstBtn {",
-    "  position: fixed; z-index: 6; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); left: 16px;",
-    "  width: 44px; height: 44px; border-radius: 22px; border: 0; padding: 0; cursor: pointer;",
+    "  position: fixed; z-index: 6; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); left: calc(100% - 72px);",
+    "  width: 56px; height: 56px; border-radius: 28px; border: 0; padding: 0; cursor: pointer;",
     "  background: var(--chip); color: var(--ink); display: none; place-items: center;",
-    "  box-shadow: 0 3px 10px rgba(0,0,0,.10); translate: 0 var(--pin, 0px);",
+    "  box-shadow: 0 4px 14px rgba(0,0,0,.14); translate: 0 var(--pin, 0px);",
     "  transition: transform .15s, background-color .35s;",
     "}",
     "body.asst-on #asstBtn { display: grid; }",
     "#asstBtn:active { transform: scale(.92); }",
-    "#asstBtn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }",
+    "#asstBtn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }",
     "body.locked #asstBtn, body.checking #asstBtn, body.homeless #asstBtn, body.viewonly #asstBtn, :root.panel #asstBtn { display: none !important; }",
-    "@media (min-width: 1000px) and (orientation: landscape) { #asstBtn { left: auto; right: 100px; bottom: calc(38px + env(safe-area-inset-bottom, 0px)); } }",
+    "/* room at the end of the list so the last row scrolls clear of the button(s) */",
+    "body.asst-on .wrap { padding-bottom: calc(156px + env(safe-area-inset-bottom, 0px)); }",
+    "body.asst-on.has-fab .wrap { padding-bottom: calc(224px + env(safe-area-inset-bottom, 0px)); }",
 
     "#asstBg { position: fixed; inset: 0; z-index: 32; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .22s; }",
     "#asstBg.show { opacity: 1; pointer-events: auto; }",
@@ -103,12 +105,13 @@
   function esc(s) { return HB.esc ? HB.esc(s) : String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function page() { return (HB.page && HB.page()) || ""; }
 
-  // ---- placement: right above the first tab, like the + sits above the last ----
+  // ---- placement: stacked right above the blue +, or in its spot on pages without one ----
+  // Reads the +'s own left/bottom (not its on-screen box), so both share the same --pin nudge.
   function place() {
-    if (HB.wide) { btn.style.left = ""; return; }
-    var first = document.querySelector("#tabs a:first-child"); if (!first) return;
-    var r = first.getBoundingClientRect();
-    btn.style.left = Math.round(r.left + r.width / 2 - 22) + "px";
+    var fab = document.getElementById("fab"); if (!fab) return;
+    var cs = getComputedStyle(fab), above = fab.classList.contains("show");
+    btn.style.left = cs.left;
+    btn.style.bottom = above ? "calc(" + cs.bottom + " + 68px)" : cs.bottom;
   }
   window.addEventListener("resize", place);
 
