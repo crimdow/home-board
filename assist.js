@@ -1,4 +1,4 @@
-/* Home Board assistant: the violet mic button stacked above the blue +, and its sheet.
+/* Home Board assistant: the violet sparkle button stacked above the blue +, and its sheet.
    One tap and it's listening: say "going to Costco, need eggs, milk and strawberries" and stop
    talking. It sends by itself after a short pause (or tap to send now). "Type instead" switches to
    a text box for pasting. The server (server/pb_hooks/assist.pb.js) asks the model on bkllm and saves
@@ -93,6 +93,7 @@
   ].join("\n");
   var st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
 
+  var SPARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>';
   var MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg>';
   var STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4 4 9-9.5"/></svg>';
   var CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4 4 9-9.5"/></svg>';
@@ -100,7 +101,7 @@
 
   var btn = document.createElement("button");
   btn.id = "asstBtn"; btn.type = "button"; btn.setAttribute("aria-label", "Say it to add"); btn.title = "Say it to add";
-  btn.innerHTML = MIC;
+  btn.innerHTML = SPARK;
   document.body.appendChild(btn);
 
   var bg = document.createElement("div"); bg.id = "asstBg";
