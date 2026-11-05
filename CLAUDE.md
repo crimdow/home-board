@@ -34,7 +34,7 @@ The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also
   - `meals.pb.js`: a day-only meal gets the next date for that weekday.
   - `binder.pb.js`: clipper form, photo saving, Google Maps place lookup.
   - `assist.pb.js` + `assist_lib.js`: the assistant (`POST /api/hb/assist`, text or an `audio` recording). It sends words to Ollama on bkllm (audio goes to Whisper first), accepts only actions listed in `ACTIONS` in `assist_lib.js`, and saves them for the editor's household. Configured on bkweb with `HB_ASSIST_OLLAMA`, `HB_ASSIST_WHISPER`, `HB_ASSIST_MODEL` (`systemctl edit pocketbase`). New actions go in `ACTIONS`; the planned chat page reuses `run()`.
-- `assist.js`: the violet sparkle button (always in the +'s usual spot; the + moves up above it on pages that have one) and its sheet. One tap starts listening and it sends after a 1.6 s pause (or a tap); "Type instead" for pasting; results with Undo and Add more. Loaded by `index.html` after sign-in; hidden for viewers and on the wall panel.
+- `assist.js`: the violet sparkle button (always in the +'s usual spot; the + moves up above it on pages that have one) and its sheet. One tap starts listening; pauses are fine, it sends after 6 s of quiet (counting down the last 3) or a tap; "Type instead" for pasting; results with Undo and Add more. Loaded by `index.html` after sign-in; hidden for viewers and on the wall panel.
 - `server/pb_migrations/`: one file per schema change, numbered by timestamp. Add new ones and never edit old ones.
 - Old root copies of `hb_lib.js`, `main.pb.js`, `house.js`, `notes.js` and `recipes.js` are leftovers and are no longer used.
 

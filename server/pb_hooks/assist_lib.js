@@ -78,6 +78,7 @@ function systemPrompt(ctx, page) {
     "Short names like a shopping list (Milk, Ground beef, Taco shells, Chicken bouillon).",
     "If they say where they are going or shopping (\"going to Costco\", \"at Aldi\"), use that store for every item that doesn't name a different one.",
     "Speech-to-text may split one item with a period or comma (\"chicken. Bullion\" means Chicken bouillon); join it back and fix the spelling.",
+    "Speech-to-text also mishears food words. When a name isn't a real grocery item, use the item it most likely was (\"fissory chicken\" means Rotisserie chicken, \"key no a\" means Quinoa).",
     "Turn vague requests into the usual items (\"taco stuff\" means Taco shells, Ground beef, Shredded cheese, Salsa).",
     "Keep an amount only if they said one, in the name (Eggs, 2 dozen). Never invent a store.",
     "If the message isn't something these actions can do, return no actions and say briefly that you can only add groceries for now.",
@@ -97,7 +98,7 @@ function transcribe(file) {
   try { $os.writeFile(tmp, toBytes(rd, 8 * 1048576), 0o600); } finally { rd.close(); }
   let out = "";
   try {
-    out = toString($os.cmd("curl", "-s", "--max-time", "60", "-F", "file=@" + tmp, "-F", "response_format=json", c.whisper + "/inference").output());
+    out = toString($os.cmd("curl", "-s", "--max-time", "90", "-F", "file=@" + tmp, "-F", "response_format=json", c.whisper + "/inference").output());
   } catch (err) {
     throw new BadRequestError("Couldn't reach the voice helper. Type it instead.");
   } finally {

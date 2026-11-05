@@ -113,7 +113,7 @@
     '<div class="voice">' +
       '<button type="button" class="bigmic idle" aria-label="Start or send">' + MIC + '</button>' +
       '<div class="vsay">Tap to talk</div>' +
-      '<div class="vsub">Groceries for now. It sends when you stop talking.</div>' +
+      '<div class="vsub">Groceries for now. Take your time; it sends after a long pause.</div>' +
       '<button type="button" class="swap to-type">Type instead</button>' +
     '</div>' +
     '<div class="typing">' +
@@ -184,7 +184,7 @@
     cancel = false; sh.classList.remove("results");
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }   // made inside the tap, so iPhone allows it
     big.classList.remove("idle"); big.innerHTML = STOP;
-    say.textContent = "Listening…"; sub.textContent = "Stop talking to send, or tap the button.";
+    say.textContent = "Listening…"; sub.textContent = LISTEN_SUB;
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
       if (cancel) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
       stream = s; chunks = [];
@@ -199,7 +199,10 @@
       if (actx) { try { actx.close(); } catch (e) {} actx = null; }
     });
   }
-  // Watch the loudness: once you've said something, a 1.6 s pause sends it. Nothing heard in 8 s gives up.
+  // Watch the loudness. Pauses are fine (looking in the fridge): it only sends after 6 s of quiet, counting down
+  // the last 3 so you can keep talking. Tap to send sooner. Nothing heard in 15 s gives up; 2 minutes at most.
+  var QUIET_MS = 6000, WARN_MS = 3000, NOTHING_MS = 15000, MAX_MS = 120000;
+  var LISTEN_SUB = "Pauses are fine. Tap when you\u2019re done, or go quiet for a few seconds.";
   function watch(s) {
     var started = Date.now(), heard = false, lastLoud = 0, an = null, buf = null;
     if (actx) {
@@ -218,10 +221,13 @@
         var rms = Math.sqrt(sum / buf.length);
         big.style.setProperty("--lvl", Math.min(1, rms * 8).toFixed(2));
         if (rms > 0.035) { heard = true; lastLoud = now; }
-        if (heard && now - lastLoud > 1600) { stopListening(false); return; }
-        if (!heard && now - started > 8000) { cancel = true; stopListening(true); idleLook("Didn’t hear anything", "Tap to try again, or type instead."); return; }
+        var quiet = heard ? now - lastLoud : 0;
+        if (heard && quiet > QUIET_MS) { stopListening(false); return; }
+        if (heard && quiet > WARN_MS) sub.textContent = "Sending in " + Math.ceil((QUIET_MS - quiet) / 1000) + "\u2026 keep talking to add more";
+        else if (sub.textContent !== LISTEN_SUB) sub.textContent = LISTEN_SUB;
+        if (!heard && now - started > NOTHING_MS) { cancel = true; stopListening(true); idleLook("Didn’t hear anything", "Tap to try again, or type instead."); return; }
       }
-      if (now - started > 45000) { stopListening(false); return; }   // a minute is plenty for a list
+      if (now - started > MAX_MS) { stopListening(false); return; }
       raf = requestAnimationFrame(tick);
     }
     raf = requestAnimationFrame(tick);
