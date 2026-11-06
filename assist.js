@@ -41,10 +41,6 @@
     "#asst .sh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }",
     "#asst .sh-head h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }",
     "#asst .x { width: 36px; height: 36px; border-radius: 18px; border: 0; background: var(--chip); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; }",
-    "#asst .sh-head .btns { display: flex; gap: 8px; }",
-    "#asst .spk { width: 36px; height: 36px; border-radius: 18px; border: 0; background: var(--chip); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; }",
-    "#asst .spk svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }",
-    "#asst .spk.off { color: var(--muted); }",
     "#asst .x svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }",
 
     /* voice: one big mic in the middle */
@@ -112,8 +108,6 @@
   var MIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg>';
   var STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4 4 9-9.5"/></svg>';
   var CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4 4 9-9.5"/></svg>';
-  var SPK_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
-  var SPK_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
   var DASH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12h10"/></svg>';
 
   var btn = document.createElement("button");
@@ -125,7 +119,7 @@
   var sh = document.createElement("div"); sh.id = "asst"; sh.setAttribute("role", "dialog"); sh.setAttribute("aria-label", "Assistant");
   sh.innerHTML =
     '<div class="grab"></div>' +
-    '<div class="sh-head"><h2>Add by voice</h2><div class="btns"><button type="button" class="spk"></button><button type="button" class="x" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>' +
+    '<div class="sh-head"><h2>Add by voice</h2><button type="button" class="x" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
     '<div class="voice">' +
       '<button type="button" class="bigmic idle" aria-label="Start or send">' + MIC + '</button>' +
       '<div class="vsay">Tap to talk</div>' +
@@ -146,50 +140,6 @@
   var say = sh.querySelector(".vsay"), sub = sh.querySelector(".vsub"), out = sh.querySelector(".out"), head = sh.querySelector("h2");
   var SUB = sub.textContent, busy = false, status = null;
 
-  // ---- Spoken answer after a voice add ("Added milk and eggs."), in the phone's own voice.
-  // On by default; the speaker button in the sheet's header turns it off (remembered on this device).
-  var spk = sh.querySelector(".spk"), canSpeak = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
-  function speakOn() { try { return localStorage.getItem("hb-assist-speak") !== "off"; } catch (e) { return true; } }
-  function drawSpk() {
-    var on = speakOn();
-    spk.innerHTML = on ? SPK_ON : SPK_OFF; spk.classList.toggle("off", !on);
-    spk.setAttribute("aria-label", on ? "Spoken answers on" : "Spoken answers off"); spk.title = spk.getAttribute("aria-label");
-  }
-  if (canSpeak) {
-    drawSpk();
-    spk.addEventListener("click", function () {
-      var on = !speakOn();
-      try { localStorage.setItem("hb-assist-speak", on ? "on" : "off"); } catch (e) {}
-      drawSpk(); if (!on) speechSynthesis.cancel(); else unlockSpeech();
-      HB.toast(on ? "Spoken answers on" : "Spoken answers off");
-    });
-  } else spk.style.display = "none";
-  // iPhone only lets a page speak after it has spoken inside a tap, so a silent word is said at the tap that
-  // starts listening. (It ignores a blank one, and speak() straight after cancel() can be dropped, so neither.)
-  var unlocked = false;
-  function unlockSpeech() {
-    if (!canSpeak || !speakOn() || unlocked) return;
-    try { var u = new SpeechSynthesisUtterance("ok"); u.volume = 0; u.rate = 2; speechSynthesis.speak(u); unlocked = true; } catch (e) {}
-  }
-  function listWords(a) { return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
-  function speakResult(res, added, skipped) {
-    if (!canSpeak || !speakOn()) return;
-    var line;
-    if (!added.length && !skipped.length) line = res.reply || "Nothing to add from that.";
-    else {
-      var bits = [];
-      if (added.length) bits.push(added.length > 5 ? "Added " + added.length + " items." : "Added " + listWords(added.map(function (d) { return d.name; })) + ".");
-      if (skipped.length) bits.push(skipped.length > 3 ? skipped.length + " were already on the list." : listWords(skipped.map(function (d) { return d.name; })) + (skipped.length === 1 ? " was" : " were") + " already on the list.");
-      line = bits.join(" ");
-    }
-    try {
-      if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
-      speechSynthesis.resume();
-      var u = new SpeechSynthesisUtterance(line), lang = document.documentElement.lang || navigator.language || "en-US";
-      u.lang = /^en/i.test(lang) ? lang : "en-US"; u.rate = 1;
-      speechSynthesis.speak(u);
-    } catch (e) {}
-  }
 
   function esc(s) { return HB.esc ? HB.esc(s) : String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function page() { return (HB.page && HB.page()) || ""; }
@@ -247,7 +197,6 @@
   function listen() {
     if (busy || rec) return;
     cancel = false; sh.classList.remove("results");
-    unlockSpeech();
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }   // made inside the tap, so iPhone allows it
     big.classList.remove("idle"); big.innerHTML = STOP;
     say.textContent = "Listening…"; sub.textContent = LISTEN_SUB;
@@ -374,7 +323,6 @@
       '<button type="button" class="ok">Done</button>' +
       (canVoice() ? '<button type="button" class="again">' + MIC + "Add more</button>" : "") + "</div>";
     out.innerHTML = h; sh.classList.add("results");
-    if (spoken) speakResult(res, added, done.filter(function (d) { return d.skipped; }));
     var u = out.querySelector(".undo-all"), ok = out.querySelector(".ok"), again = out.querySelector(".again");
     ok.onclick = close;
     if (again) again.onclick = function () { out.innerHTML = ""; setMode("voice"); listen(); };
