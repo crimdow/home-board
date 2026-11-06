@@ -100,10 +100,11 @@ function systemPrompt(ctx) {
     "Grocery stores: " + (stores.length ? stores.join(", ") : "(none set up)") + ".",
     "The message may come with their usual items that sound like it. When what they said means one of these, use that exact name, and leave store empty unless they named a store (the usual store is filled in for you).",
     "Rules for groceries: one action per thing to buy. Include EVERY item they mention, even in a long list; never drop one.",
+    "Anything they want to buy goes on the list, not only food: household things like light bulbs, paper towels, batteries or dog food count too.",
     "Short names like a shopping list (Milk, Ground beef, Taco shells, Chicken bouillon).",
     "If they say where they are going or shopping (\"going to Costco\", \"at Aldi\"), use that store for every item that doesn't name a different one.",
     "Speech-to-text may split one item with a period or comma (\"chicken. Bullion\" means Chicken bouillon); join it back and fix the spelling.",
-    "Speech-to-text also mishears food words. When a name isn't a real grocery item, use the item it most likely was (\"fissory chicken\" means Rotisserie chicken, \"key no a\" means Quinoa).",
+    "Speech-to-text also mishears food words. When words make no sense as something to buy, use the item they most likely were (\"fissory chicken\" means Rotisserie chicken, \"key no a\" means Quinoa).",
     "Turn vague requests into the usual items (\"taco stuff\" means Taco shells, Ground beef, Shredded cheese, Salsa).",
     "Keep an amount only if they said one, in the name (Eggs, 2 dozen). Never invent a store.",
     "If the message isn't something these actions can do, return no actions and say briefly that you can only add groceries for now.",
@@ -156,9 +157,9 @@ function transcribe(file, hint) {
 // Every piece must be one of the household's usual items, or the whole thing goes to the model instead,
 // so this can only ever be quicker, never worse. Turn it off with HB_ASSIST_FASTPATH=off.
 const FILLER = /^(?:(?:and|also|then|plus|oh|um+|uh+|so|okay|ok|alright|yeah|let'?s see)[\s,]+)*(?:(?:we|i)(?:'re|\u2019re| are)?\s+(?:need|needs|want|out of|running low on|low on|also need)\s+|(?:we|i)\s+(?:need|want)\s+|we'?re out of\s+|(?:out of|running low on|low on|need|needs|get|grab|pick up|picking up|buy|add|put|some|more|another|a couple of|couple of|a few)\s+)*(?:some\s+|a\s+|an\s+|the\s+)?/i;
-function quickList(ctx, text) {
+// "Going to Aldi: red bag chicken, milk and eggs from Costco" -> [{p:"red bag chicken", store:"Aldi"}, ...]
+function listPieces(ctx, text) {
   const storeNames = ctx.stores.map((s) => s.getString("name")).filter(Boolean);
-  if (!ctx.usuals.length) return null;
   const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const storeRe = storeNames.length ? "(" + storeNames.map(esc).join("|") + ")" : null;
   let t = " " + String(text || "").replace(/[\u2018\u2019]/g, "'") + " ";
@@ -180,12 +181,58 @@ function quickList(ctx, text) {
     }
     p = p.replace(FILLER, "").replace(/\s+(?:please|too|as well|again)$/i, "").trim();
     if (!p || /^(?:um+|uh+|okay|ok|so|yeah|that'?s it|that'?s all|done)$/i.test(p)) continue;
+    out.push({ p: p, store: store });
+  }
+  return out;
+}
+
+function quickList(ctx, text) {
+  if (!ctx.usuals.length) return null;
+  const pieces = listPieces(ctx, text), out = [];
+  for (let i = 0; i < pieces.length; i++) {
+    const p = pieces[i].p, store = pieces[i].store;
     const key = ctx.u.keyOf(p);
     const hit = ctx.usualByKey[key] || ctx.usualByKey[key.replace(/s$/, "")] || ctx.usualByKey[key + "s"] || ctx.usualByKey[key.replace(/ies$/, "y")] || ctx.usualByKey[key.replace(/y$/, "ies")] || ctx.usualByKey[key + "es"] || ctx.usualByKey[key.replace(/es$/, "")];
     if (!hit) return null;                                // something it doesn't know: let the model handle it all
     out.push({ type: "add_grocery", name: hit.name, store: store });
   }
   return out.length ? out : null;
+}
+
+// ---- safety net: the model sometimes leaves a thing out of a list ("kombucha, light bulbs and tomatoes"
+// came back without the light bulbs). Any piece of the list that no saved item resembles is added as said.
+// "Resembles": a word of 3+ letters close to a word of an item's name, so "chicken. Bullion" is covered by
+// "Chicken bouillon" and "fissory chicken" by "Rotisserie chicken".
+function wordsIn(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length >= 3); }
+function near(a, b) {
+  if (a === b || a.replace(/(es|s)$/, "") === b.replace(/(es|s)$/, "")) return true;
+  if (a.length >= 5 && b.length >= 5 && a.slice(0, 4) === b.slice(0, 4)) return true;
+  if (Math.abs(a.length - b.length) > 2) return false;
+  const d = []; for (let i = 0; i <= a.length; i++) { d.push([i]); }
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length] <= 2;
+}
+// a rough "sounds like" key: "bullion" and "bouillon" -> "bln", "key no a" and "quinoa" -> "kn"
+function sound(s) {
+  s = String(s || "").toLowerCase().replace(/[^a-z]+/g, "").replace(/ph/g, "f").replace(/[cq]/g, "k").replace(/z/g, "s");
+  if (!s) return "";
+  return (s[0] + s.slice(1).replace(/[aeiouyhw]+/g, "")).replace(/(.)\1+/g, "$1");
+}
+function missedPieces(ctx, text, names) {
+  const got = [], sounds = {};
+  names.forEach((n) => {
+    wordsIn(n).forEach((w) => { got.push(w); const k = sound(w); if (k.length >= 3) sounds[k] = true; });
+    const whole = sound(n); if (whole.length >= 2) sounds[whole] = true;
+  });
+  const storeWords = {}; ctx.stores.forEach((s) => wordsIn(s.getString("name")).forEach((w) => { storeWords[w] = true; }));
+  return listPieces(ctx, text).filter((x) => {
+    const ws = wordsIn(x.p).filter((w) => !storeWords[w]);
+    if (!ws.length || x.p.split(/\s+/).length > 5) return false;      // a store on its own, or a whole sentence: leave it to the model
+    if (sounds[sound(x.p)]) return false;                               // "key no a" -> Quinoa
+    return !ws.some((w) => got.some((g) => near(w, g)) || (sound(w).length >= 3 && sounds[sound(w)]));
+  });
 }
 
 // The main entry: words in, saved actions out.
@@ -233,7 +280,19 @@ function run(app, me, text, page) {
     const r = def.run(app, me, a, ctx);
     if (r) done.push(r);
   });
-  return { heard: text, reply: clean(answer.reply, 300), done: done };
+  // only when the model did add groceries: a message that wasn't a list ("what's the weather") stays untouched
+  let missed = [];
+  const groceries = answer.actions.filter((a) => a && a.type === "add_grocery" && a.name);
+  if (groceries.length) {
+    missed = missedPieces(ctx, text, groceries.map((a) => String(a.name)));
+    missed.slice(0, Math.max(0, MAX_ACTIONS - done.length)).forEach((x) => {
+      const r = ACTIONS.add_grocery.run(app, me, { type: "add_grocery", name: x.p.charAt(0).toUpperCase() + x.p.slice(1), store: x.store }, ctx);
+      if (r) done.push(r);
+    });
+  }
+  const n = done.filter((d) => !d.skipped).length;
+  const reply = missed.length ? (n ? "Added " + n + (n === 1 ? " item." : " items.") : "Those are already on the list.") : clean(answer.reply, 300);
+  return { heard: text, reply: reply, done: done };
 }
 
-module.exports = { cfg, run, transcribe, hintFor, quickList, ACTIONS };
+module.exports = { cfg, run, transcribe, hintFor, quickList, listPieces, missedPieces, ACTIONS };

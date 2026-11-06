@@ -164,10 +164,12 @@
       HB.toast(on ? "Spoken answers on" : "Spoken answers off");
     });
   } else spk.style.display = "none";
-  // iPhone only lets a page speak after it has spoken inside a tap, so say nothing once at the tap that starts listening
+  // iPhone only lets a page speak after it has spoken inside a tap, so a silent word is said at the tap that
+  // starts listening. (It ignores a blank one, and speak() straight after cancel() can be dropped, so neither.)
+  var unlocked = false;
   function unlockSpeech() {
-    if (!canSpeak || !speakOn()) return;
-    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
+    if (!canSpeak || !speakOn() || unlocked) return;
+    try { var u = new SpeechSynthesisUtterance("ok"); u.volume = 0; u.rate = 2; speechSynthesis.speak(u); unlocked = true; } catch (e) {}
   }
   function listWords(a) { return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
   function speakResult(res, added, skipped) {
@@ -181,7 +183,8 @@
       line = bits.join(" ");
     }
     try {
-      speechSynthesis.cancel();
+      if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+      speechSynthesis.resume();
       var u = new SpeechSynthesisUtterance(line), lang = document.documentElement.lang || navigator.language || "en-US";
       u.lang = /^en/i.test(lang) ? lang : "en-US"; u.rate = 1;
       speechSynthesis.speak(u);
