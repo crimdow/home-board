@@ -140,7 +140,6 @@
   var say = sh.querySelector(".vsay"), sub = sh.querySelector(".vsub"), out = sh.querySelector(".out"), head = sh.querySelector("h2");
   var SUB = sub.textContent, busy = false, status = null;
 
-
   function esc(s) { return HB.esc ? HB.esc(s) : String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function page() { return (HB.page && HB.page()) || ""; }
   function canVoice() { return !!(navigator.mediaDevices && window.MediaRecorder) && !(status && !status.voice); }
