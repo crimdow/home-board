@@ -24,6 +24,9 @@ function cfg() {
     whisper: String($os.getenv("HB_ASSIST_WHISPER") || "").replace(/\/+$/, ""),
     model: String($os.getenv("HB_ASSIST_MODEL") || "qwen2.5:7b"),
     fast: String($os.getenv("HB_ASSIST_FASTPATH") || "").toLowerCase() !== "off",
+    // the language model is optional: with HB_ASSIST_LLM=off (or no HB_ASSIST_OLLAMA) every message is
+    // handled as a plain list (listOnly below): usual items, sound-alike fixes, anything new as said
+    llm: !!$os.getenv("HB_ASSIST_OLLAMA") && String($os.getenv("HB_ASSIST_LLM") || "").toLowerCase() !== "off",
   };
 }
 
@@ -186,13 +189,18 @@ function listPieces(ctx, text) {
   return out;
 }
 
+// the usual item with this name, allowing for singular and plural
+function usualHit(ctx, p) {
+  const key = ctx.u.keyOf(p), u = ctx.usualByKey;
+  return u[key] || u[key.replace(/s$/, "")] || u[key + "s"] || u[key.replace(/ies$/, "y")] || u[key.replace(/y$/, "ies")] || u[key + "es"] || u[key.replace(/es$/, "")] || null;
+}
+
 function quickList(ctx, text) {
   if (!ctx.usuals.length) return null;
   const pieces = listPieces(ctx, text), out = [];
   for (let i = 0; i < pieces.length; i++) {
     const p = pieces[i].p, store = pieces[i].store;
-    const key = ctx.u.keyOf(p);
-    const hit = ctx.usualByKey[key] || ctx.usualByKey[key.replace(/s$/, "")] || ctx.usualByKey[key + "s"] || ctx.usualByKey[key.replace(/ies$/, "y")] || ctx.usualByKey[key.replace(/y$/, "ies")] || ctx.usualByKey[key + "es"] || ctx.usualByKey[key.replace(/es$/, "")];
+    const hit = usualHit(ctx, p);
     if (!hit) return null;                                // something it doesn't know: let the model handle it all
     out.push({ type: "add_grocery", name: hit.name, store: store });
   }
@@ -235,15 +243,47 @@ function missedPieces(ctx, text, names) {
   });
 }
 
+// ---- no-model mode: a usual item that sounds like what was heard ("red back chicken" -> Red bag chicken).
+// Every word heard must be close to a word of the item and every word of the item heard, so "chicken"
+// never turns into "Rotisserie chicken".
+function snapToUsual(ctx, p) {
+  const ws = wordsIn(p);
+  if (!ws.length) return null;
+  const whole = sound(p);
+  const close = (a, b) => near(a, b) || (sound(a).length >= 3 && sound(a) === sound(b));
+  for (let i = 0; i < ctx.usuals.length; i++) {          // most-bought first
+    const name = ctx.usuals[i].name, nw = wordsIn(name);
+    if (!nw.length) continue;
+    if (whole.length >= 3 && whole === sound(name)) return ctx.usuals[i];
+    if (nw.length === ws.length && ws.every((w) => nw.some((n) => close(w, n))) && nw.every((n) => ws.some((w) => close(w, n)))) return ctx.usuals[i];
+  }
+  return null;
+}
+function listOnly(app, me, ctx, text) {
+  const done = [], skipped = [];
+  listPieces(ctx, text).forEach((x) => {
+    if (done.length >= MAX_ACTIONS) return;
+    if (x.p.split(/\s+/).length > 6) { skipped.push(x.p); return; }   // a whole sentence, not an item
+    const hit = usualHit(ctx, x.p) || snapToUsual(ctx, x.p);
+    const r = ACTIONS.add_grocery.run(app, me, { type: "add_grocery", name: hit ? hit.name : cap(x.p), store: x.store }, ctx);
+    if (r) done.push(r);
+  });
+  const n = done.filter((d) => !d.skipped).length;
+  let reply = n ? "Added " + n + (n === 1 ? " item." : " items.") : done.length ? "Those are already on the list." : "I didn't catch any items. Try a list like \u201cmilk, eggs and bread\u201d.";
+  if (skipped.length) reply = done.length ? reply + " Skipped \u201c" + clean(skipped[0], 40) + "\u2026\u201d: say items as a list." : "That sounded like a sentence. Say items as a list, like \u201cmilk, eggs and bread\u201d.";
+  return { heard: text, reply: reply, done: done, quick: true };
+}
+
 // The main entry: words in, saved actions out.
 function run(app, me, text, page) {
   const c = cfg();
-  if (!c.ollama) throw new BadRequestError("The assistant isn't set up yet.");
   text = String(text || "").trim().slice(0, MAX_TEXT);
   if (!text) throw new BadRequestError("Type or say what to add.");
   const household = me.getString("household");
   const ctx = groceryContext(app, household);
   ctx.usualByKey = {}; ctx.usuals.forEach((x) => { ctx.usualByKey[ctx.u.keyOf(x.name)] = x; });
+
+  if (!c.llm) return listOnly(app, me, ctx, text);
 
   const quick = c.fast ? quickList(ctx, text) : null;
   if (quick) {
@@ -295,4 +335,4 @@ function run(app, me, text, page) {
   return { heard: text, reply: reply, done: done };
 }
 
-module.exports = { cfg, run, transcribe, hintFor, quickList, listPieces, missedPieces, ACTIONS };
+module.exports = { cfg, run, transcribe, hintFor, quickList, listPieces, missedPieces, snapToUsual, ACTIONS };

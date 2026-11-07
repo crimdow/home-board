@@ -28,5 +28,5 @@ routerAdd("GET", "/api/hb/assist", (e) => {
   const assist = require(`${__hooks}/assist_lib.js`);
   hb.editorOf(e);
   const c = assist.cfg();
-  return e.json(200, { ready: !!c.ollama, voice: !!c.whisper });
+  return e.json(200, { ready: true, voice: !!c.whisper, model: c.llm });      // with no model it still works as a list
 }, $apis.requireAuth());
