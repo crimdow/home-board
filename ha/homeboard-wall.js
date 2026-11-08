@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.33.0";
+  var VERSION = "1.34.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -234,6 +234,11 @@
       var out = (r.pairs || []).slice();
       (r.lights || []).forEach(function (l) { if (Array.isArray(l)) l.forEach(function (x) { out.push(typeof x === "string" ? { entity: x } : x); }); else if (l && l.simple) out.push(l); });
       return out;
+    }
+    _offAlso(r) {   // turning a whole room off also turns off its other lights (e.g. task lamps); on is only the main ones
+      var main = this._roomMain(r), skip = main.concat(this._members(main));
+      var list = r.off_also || (r.toggles || r.inline || r.quick ? [] : this._roomIds(r));   // Outside keeps its floods separate
+      return list.filter(function (id) { return id.indexOf("light.") === 0 && skip.indexOf(id) < 0; });
     }
     _roomMain(r) {   // what the room's own slider moves
       if (r.group) return [r.group];
@@ -680,7 +685,7 @@
             '<span class="more">' + icon("mdi:chevron-right", 30) + "</span></button>";
         }
         var h = '<div class="room' + (on ? " lit" : "") + (r.inline ? " inline" : "") + (r.quick ? " quick" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
-          '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '"' + (r.quick ? ' data-full="1"' : "") + ' aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
+          '<div class="row"><button class="ic sm" data-toggle="' + esc(main.join(",")) + '" data-offalso="' + esc(this._offAlso(r).join(",")) + '"' + (r.quick ? ' data-full="1"' : "") + ' aria-label="Turn ' + esc(r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 34) + "</button>" +
           '<button class="words"' + (r.inline ? ' data-toggle="' + esc(main.join(",")) + '"' : nav) + "><b>" + esc(r.inline && r.whole_name ? r.whole_name : r.name) + "</b><i>" + esc(state) + "</i></button>" +
           (r.inline ? this._roomLights(r).map((l) => {   // extra lights (Flood lights) as on/off pills
             var lon = this._on(l.entity);
@@ -766,6 +771,7 @@
         return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
       }
       if (lights.length > 1 || r.group || r.main) { var wc = this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls, !!r.quick);
+        var oa = this._offAlso(r); if (oa.length) wc = wc.split('data-toggle="' + esc(whole.join(",")) + '"').join('data-toggle="' + esc(whole.join(",")) + '" data-offalso="' + esc(oa.join(",")) + '"');
         out.push(r.compact ? wc.replace('class="card light', 'class="card light compact') : wc); }
       // pairs: two half-width cards (e.g. task lights): on/off, 25% / 100%, tap the name for everything.
       // r.pairs sit right under the whole room; a [a, b] entry in r.lights sits in its own place in the list.
@@ -1089,8 +1095,9 @@
       if (ds.applianceclear) { this._call("input_select", "select_option", { entity_id: ds.applianceclear, option: "Idle" }); return; }
       if (ds.hcolor) { this._setHatch(ds.ids, HATCH_COLORS[+ds.hcolor].rgb); return; }
       if (ds.toggle) {
-        var ids = ds.toggle.split(","), anyOn = this._onCount(this._members(ids).concat(ids)) > 0;
-        if (anyOn) this._call("light", "turn_off", { entity_id: ids });
+        var ids = ds.toggle.split(","), also = ds.offalso ? ds.offalso.split(",") : [];
+        var anyOn = this._onCount(this._members(ids).concat(ids, also)) > 0;
+        if (anyOn) this._call("light", "turn_off", { entity_id: ids.concat(also) });
         else if (ids.some((id) => { var s = this._s(id); return s && ((s.attributes.supported_color_modes || []).join() !== "onoff" || s.attributes.entity_id); })) this._warm(ids, ds.full ? { brightness_pct: 100 } : null);
         else this._call("light", "turn_on", { entity_id: ids });
         return;

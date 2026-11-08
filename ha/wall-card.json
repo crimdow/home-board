@@ -37,7 +37,8 @@
         ],
         {
           "entity": "light.family_room_tourtiere",
-          "name": "Tourtiere"
+          "name": "Tourtiere",
+          "simple": true
         },
         [
           {
