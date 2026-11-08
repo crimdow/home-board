@@ -53,16 +53,16 @@
       "group": "light.primary_bedroom_lights",
       "lights": [
         {
+          "entity": "light.primary_chest_lamp",
+          "name": "Chest lamp"
+        },
+        {
           "entity": "light.primary_bed_left",
           "name": "Bed left"
         },
         {
           "entity": "light.primary_bed_right",
           "name": "Bed right"
-        },
-        {
-          "entity": "light.primary_chest_lamp",
-          "name": "Chest lamp"
         }
       ]
     },
