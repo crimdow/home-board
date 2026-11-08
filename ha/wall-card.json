@@ -306,18 +306,11 @@
           ]
         },
         {
-          "name": "Lamp post",
+          "name": "Front Door & Lamp Post",
           "icon": "mdi:post-lamp",
           "ids": [
+            "light.front_yard_front_door_over_head",
             "light.lamp_post"
-          ],
-          "color": true
-        },
-        {
-          "name": "Front door",
-          "icon": "mdi:ceiling-light",
-          "ids": [
-            "light.front_yard_front_door_over_head"
           ],
           "color": true
         }
