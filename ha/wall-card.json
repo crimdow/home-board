@@ -15,7 +15,8 @@
           "entity": "light.living_room_living_room_east",
           "name": "East"
         }
-      ]
+      ],
+      "compact": true
     },
     {
       "name": "Family Room",
@@ -64,7 +65,8 @@
           "entity": "light.primary_bed_right",
           "name": "Bed right"
         }
-      ]
+      ],
+      "compact": true
     },
     {
       "name": "Kitchen",
@@ -74,7 +76,8 @@
           "entity": "light.kitchen_lamp",
           "name": "Kitchen Lamp"
         }
-      ]
+      ],
+      "compact": true
     },
     {
       "name": "Stella’s Room",
@@ -91,7 +94,8 @@
         }
       ],
       "guard": true,
-      "noise": "Stella"
+      "noise": "Stella",
+      "compact": true
     },
     {
       "name": "Evie’s Room",
@@ -108,7 +112,8 @@
         }
       ],
       "guard": true,
-      "noise": "Evie"
+      "noise": "Evie",
+      "compact": true
     },
     {
       "name": "Outside",
@@ -297,7 +302,8 @@
       "levels": [
         50,
         100
-      ]
+      ],
+      "compact": true
     }
   ],
   "thermostat": "climate.honeywell_t9",
