@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.31.0";
+  var VERSION = "1.31.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -232,7 +232,7 @@
     }
     _pairBulbs(r) {   // the lights shown as half-width cards: r.pairs, then each [a, b] row in r.lights
       var out = (r.pairs || []).slice();
-      (r.lights || []).forEach(function (l) { if (Array.isArray(l)) l.forEach(function (x) { out.push(typeof x === "string" ? { entity: x } : x); }); });
+      (r.lights || []).forEach(function (l) { if (Array.isArray(l)) l.forEach(function (x) { out.push(typeof x === "string" ? { entity: x } : x); }); else if (l && l.simple) out.push(l); });
       return out;
     }
     _roomMain(r) {   // what the room's own slider moves
@@ -766,7 +766,7 @@
       // pairs: two half-width cards (e.g. task lights): on/off, 25% / 100%, tap the name for everything.
       // r.pairs sit right under the whole room; a [a, b] entry in r.lights sits in its own place in the list.
       var ri = this._rooms().indexOf(r), bulbs = this._pairBulbs(r);
-      var pairRow = (pair) => '<div class="pairs">' + pair.map((l) => {
+      var pairRow = (pair) => '<div class="pairs' + (pair.length === 1 ? " one" : "") + '">' + pair.map((l) => {
           l = typeof l === "string" ? { entity: l } : l;
           var k = bulbs.findIndex(function (b) { return b.entity === l.entity; });
           var on = this._on(l.entity), bri = this._bri([l.entity]), glow = this._glow([l.entity]), key = esc(l.entity);
@@ -789,7 +789,7 @@
           return '<button class="each' + (lon ? " on" : "") + '" data-toggle="' + esc(l.entity) + '" data-full="1">' + (l.icon ? icon(l.icon, 30) : "") + "<span><b>" + esc(l.name) + "</b><i>" + (lon ? "On" : "Off") + "</i></span></button>";
         }).join("") + "</div></div>");
       } else
-      (r.lights || []).forEach((l) => { if (Array.isArray(l)) { out.push(pairRow(l)); return; } if (typeof l === "string") l = { entity: l }; var s = this._s(l.entity), card = this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls);
+      (r.lights || []).forEach((l) => { if (Array.isArray(l)) { out.push(pairRow(l)); return; } if (l && l.simple) { out.push(pairRow([l])); return; } if (typeof l === "string") l = { entity: l }; var s = this._s(l.entity), card = this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls);
         out.push(r.compact ? card.replace('class="card light', 'class="card light compact') : card); });
 
       if (scenesHtml && !r.quick) out.push(scenesHtml);
@@ -1261,6 +1261,7 @@ ha-icon { display: flex; }
 .lgrid .room { grid-column: span 2; padding: 14px 20px; gap: 14px; border-radius: 26px; }
 .lgrid .room.guard { grid-column: span 2; flex-direction: row; align-items: center; gap: 14px; text-align: left; }
 .pairs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.pairs.one { grid-template-columns: minmax(0, 1fr); }
 .card.light.compact { padding-top: 14px; padding-bottom: 14px; gap: 10px; }
 .card.light.compact .label { display: none; }   /* rooms with many lights: just the row, the slider and the colours */
 .card.light.compact .ic { width: 64px; height: 64px; }

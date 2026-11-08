@@ -59,7 +59,8 @@
       "lights": [
         {
           "entity": "light.primary_chest_lamp",
-          "name": "Chest lamp"
+          "name": "Chest lamp",
+          "simple": true
         },
         [
           {
