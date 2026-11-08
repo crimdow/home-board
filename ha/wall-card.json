@@ -24,11 +24,11 @@
       "lights": [
         {
           "entity": "light.family_room_east",
-          "name": "1"
+          "name": "Family Room East"
         },
         {
           "entity": "light.family_room_west",
-          "name": "2"
+          "name": "Family Room West"
         },
         {
           "entity": "light.family_room_tourtiere",
