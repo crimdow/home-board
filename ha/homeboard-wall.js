@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.30.1";
+  var VERSION = "1.31.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -225,7 +225,16 @@
     _s(id) { return this._hass && this._hass.states[id]; }
     _on(id) { var s = this._s(id); return !!s && s.state === "on"; }
     _rooms() { return this._config.rooms || []; }
-    _roomLights(r) { return (r.lights || []).map(function (l) { return typeof l === "string" ? { entity: l } : l; }); }
+    _roomLights(r) {   // every light card in a room, with side-by-side rows ([a, b]) opened up
+      var out = [], one = function (l) { return typeof l === "string" ? { entity: l } : l; };
+      (r.lights || []).forEach(function (l) { if (Array.isArray(l)) l.forEach(function (x) { out.push(one(x)); }); else out.push(one(l)); });
+      return out;
+    }
+    _pairBulbs(r) {   // the lights shown as half-width cards: r.pairs, then each [a, b] row in r.lights
+      var out = (r.pairs || []).slice();
+      (r.lights || []).forEach(function (l) { if (Array.isArray(l)) l.forEach(function (x) { out.push(typeof x === "string" ? { entity: x } : x); }); });
+      return out;
+    }
     _roomMain(r) {   // what the room's own slider moves
       if (r.group) return [r.group];
       if (r.main) return r.main;
@@ -291,7 +300,7 @@
       this._speakers().forEach(function (sp) { ids.push(sp.entity); });
       var sp = this._spotify(); if (sp) ids.push(sp);
       (c.appliances || []).forEach(function (x) { ids.push(x.entity); if (x.started) ids.push(x.started); });
-      (c.rooms || []).forEach(function (r) { (r.pairs || []).forEach(function (x) { ids.push(x.entity); }); });
+      this._rooms().forEach((r) => { this._pairBulbs(r).forEach(function (x) { ids.push(x.entity); }); });
       (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); });
       if (c.armed) ids.push(c.armed);
       (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); ["setpoint", "temperature", "job"].forEach(function (f) { if (k[f]) ids.push(k[f]); }); });
@@ -754,18 +763,20 @@
       }
       if (lights.length > 1 || r.group || r.main) { var wc = this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls, !!r.quick);
         out.push(r.compact ? wc.replace('class="card light', 'class="card light compact') : wc); }
-      // pairs: two half-width cards under the whole room (e.g. task lights): on/off, 25% / 100%, tap the name for everything
-      if ((r.pairs || []).length) {
-        var ri = this._rooms().indexOf(r);
-        out.push('<div class="pairs">' + r.pairs.map((l, k) => {
+      // pairs: two half-width cards (e.g. task lights): on/off, 25% / 100%, tap the name for everything.
+      // r.pairs sit right under the whole room; a [a, b] entry in r.lights sits in its own place in the list.
+      var ri = this._rooms().indexOf(r), bulbs = this._pairBulbs(r);
+      var pairRow = (pair) => '<div class="pairs">' + pair.map((l) => {
+          l = typeof l === "string" ? { entity: l } : l;
+          var k = bulbs.findIndex(function (b) { return b.entity === l.entity; });
           var on = this._on(l.entity), bri = this._bri([l.entity]), glow = this._glow([l.entity]), key = esc(l.entity);
           return '<div class="card light compact' + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
             '<div class="row"><button class="ic" data-toggle="' + key + '" aria-label="Turn ' + esc(l.name) + ' on or off">' + icon(l.icon || "mdi:lightbulb", 40) + "</button>" +
             '<button class="words" data-go="bulb/' + (ri * 10 + k) + '"><b>' + esc(l.name) + "</b><i>" + (on ? "On" : "Off") + "</i></button>" +
             '<button class="more" data-go="bulb/' + (ri * 10 + k) + '" aria-label="Open ' + esc(l.name) + '">' + icon("mdi:chevron-right", 34) + "</button></div>" +
             this._levels([l.entity], on, bri) + "</div>";
-        }).join("") + "</div>");
-      }
+        }).join("") + "</div>";
+      if ((r.pairs || []).length) out.push(pairRow(r.pairs));
       // scenes: bright colour tiles (each button can carry its own colours)
       var scenesHtml = (r.buttons || []).length ? ('<div class="card"><div class="label">' + esc(r.buttons_label || "Scenes") + '</div><div class="scenes">' + r.buttons.map(function (b, i) {
         var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
@@ -778,7 +789,7 @@
           return '<button class="each' + (lon ? " on" : "") + '" data-toggle="' + esc(l.entity) + '" data-full="1">' + (l.icon ? icon(l.icon, 30) : "") + "<span><b>" + esc(l.name) + "</b><i>" + (lon ? "On" : "Off") + "</i></span></button>";
         }).join("") + "</div></div>");
       } else
-      lights.forEach((l) => { var s = this._s(l.entity), card = this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls);
+      (r.lights || []).forEach((l) => { if (Array.isArray(l)) { out.push(pairRow(l)); return; } if (typeof l === "string") l = { entity: l }; var s = this._s(l.entity), card = this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls);
         out.push(r.compact ? card.replace('class="card light', 'class="card light compact') : card); });
 
       if (scenesHtml && !r.quick) out.push(scenesHtml);
@@ -788,8 +799,8 @@
     }
     // one bulb from a room's pair, with everything a light card has
     _bulbPage(r, k) {
-      var l = r && (r.pairs || [])[k]; if (!l) { this._route = ["lights"]; return this._lightsPage(); }
-      return '<div class="page">' + this._head(l.name, "lights") + '<div class="scroll"><div class="stack">' +
+      var l = r && this._pairBulbs(r)[k]; if (!l) { this._route = ["lights"]; return this._lightsPage(); }
+      return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' +
         this._lightCard(l.name, l.icon || "mdi:lightbulb", [l.entity], false, l.controls) + "</div></div></div>";
     }
     _lightCard(name, ic, ids, whole, controls, full) {   // controls: which of "bri", "ct", "color" to show (all by default)

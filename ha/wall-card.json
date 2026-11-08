@@ -7,14 +7,16 @@
       "icon": "mdi:sofa",
       "group": "light.living_room_lights",
       "lights": [
-        {
-          "entity": "light.living_room_west",
-          "name": "West"
-        },
-        {
-          "entity": "light.living_room_living_room_east",
-          "name": "East"
-        }
+        [
+          {
+            "entity": "light.living_room_living_room_east",
+            "name": "East"
+          },
+          {
+            "entity": "light.living_room_west",
+            "name": "West"
+          }
+        ]
       ],
       "compact": true
     },
@@ -23,30 +25,32 @@
       "icon": "mdi:television",
       "group": "light.family_room_lights",
       "lights": [
+        [
+          {
+            "entity": "light.family_room_task_1",
+            "name": "Task 1"
+          },
+          {
+            "entity": "light.family_room_task_2",
+            "name": "Task 2"
+          }
+        ],
         {
           "entity": "light.family_room_tourtiere",
           "name": "Tourtiere"
         },
-        {
-          "entity": "light.family_room_east",
-          "name": "Family Room East"
-        },
-        {
-          "entity": "light.family_room_west",
-          "name": "Family Room West"
-        }
+        [
+          {
+            "entity": "light.family_room_east",
+            "name": "East"
+          },
+          {
+            "entity": "light.family_room_west",
+            "name": "West"
+          }
+        ]
       ],
-      "compact": true,
-      "pairs": [
-        {
-          "entity": "light.family_room_task_1",
-          "name": "Task 1"
-        },
-        {
-          "entity": "light.family_room_task_2",
-          "name": "Task 2"
-        }
-      ]
+      "compact": true
     },
     {
       "name": "Primary Bedroom",
@@ -57,14 +61,16 @@
           "entity": "light.primary_chest_lamp",
           "name": "Chest lamp"
         },
-        {
-          "entity": "light.primary_bed_left",
-          "name": "Bed left"
-        },
-        {
-          "entity": "light.primary_bed_right",
-          "name": "Bed right"
-        }
+        [
+          {
+            "entity": "light.primary_bed_left",
+            "name": "Left"
+          },
+          {
+            "entity": "light.primary_bed_right",
+            "name": "Right"
+          }
+        ]
       ],
       "compact": true
     },
