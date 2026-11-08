@@ -23,16 +23,16 @@
       "group": "light.family_room_lights",
       "lights": [
         {
+          "entity": "light.family_room_tourtiere",
+          "name": "Tourtiere"
+        },
+        {
           "entity": "light.family_room_east",
           "name": "Family Room East"
         },
         {
           "entity": "light.family_room_west",
           "name": "Family Room West"
-        },
-        {
-          "entity": "light.family_room_tourtiere",
-          "name": "Tourtiere"
         }
       ],
       "compact": true,
