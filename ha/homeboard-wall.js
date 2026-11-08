@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.32.0";
+  var VERSION = "1.33.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -757,7 +757,11 @@
           var ton = this._onCount(this._members(t.ids).concat(t.ids)) > 0, tk = esc(t.ids.join(","));
           out.push('<div class="card light' + (ton ? " lit" : "") + '"><div class="row">' +
             '<button class="ic" data-toggle="' + tk + '" data-full="1" aria-label="Turn ' + esc(t.name) + ' on or off">' + icon(t.icon || "mdi:lightbulb", 40) + "</button>" +
-            '<button class="words" data-toggle="' + tk + '" data-full="1"><b>' + esc(t.name) + "</b><i>" + (ton ? "On" : "Off") + "</i></button></div></div>");
+            '<button class="words" data-toggle="' + tk + '" data-full="1"><b>' + esc(t.name) + "</b><i>" + (ton ? "On" : "Off") + "</i></button></div>" +
+            // color: true adds the colour swatches (no brightness)
+            (t.color && this._supportsColor(t.ids) ? '<div class="swatches">' + SWATCHES.map(function (c, i) {
+              return '<button class="sw" data-swatch="' + i + '" data-ids="' + tk + '" aria-label="' + c.name + '" style="--c1:' + c.c[0] + ";--c2:" + c.c[1] + '"></button>';
+            }).join("") + "</div>" : "") + "</div>");
         });
         return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
       }

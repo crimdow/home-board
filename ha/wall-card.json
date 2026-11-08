@@ -310,14 +310,16 @@
           "icon": "mdi:post-lamp",
           "ids": [
             "light.lamp_post"
-          ]
+          ],
+          "color": true
         },
         {
           "name": "Front door",
           "icon": "mdi:ceiling-light",
           "ids": [
             "light.front_yard_front_door_over_head"
-          ]
+          ],
+          "color": true
         }
       ],
       "levels": [
