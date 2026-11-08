@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.30.0";
+  var VERSION = "1.30.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -1142,15 +1142,15 @@
   }
 
   var CSS = `
-:host { display: block; touch-action: pan-y; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
+:host { --hb-avail: calc(100dvh - var(--header-height, 56px) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 8px); display: block; touch-action: pan-y; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
 :host([full]) { position: fixed; inset: 0; z-index: 10; background: var(--bg); }
-:host(:not([full])) { position: relative; background: var(--bg); min-height: calc(100dvh - var(--header-height, 56px)); }
+:host(:not([full])) { position: relative; background: var(--bg); min-height: var(--hb-avail); }
 :host(:not([full])) .shade { position: fixed; }
 * { box-sizing: border-box; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; text-align: left; touch-action: manipulation; }
 ha-icon { display: flex; }
 .page { height: 100%; display: flex; flex-direction: column; padding: 20px 22px 22px; gap: 16px; }
-:host(:not([full])) .page { min-height: calc(100dvh - var(--header-height, 56px)); }
+:host(:not([full])) .page { min-height: var(--hb-avail); }
 .head { display: flex; align-items: center; gap: 16px; min-height: 72px; flex: none; }
 .head h1 { margin: 0; flex: 1; font-size: 42px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
 .homebtn { margin-left: auto; color: var(--accent); }
@@ -1517,7 +1517,7 @@ ha-icon { display: flex; }
 :host([narrow]) .nsl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 :host([narrow]) .sl.mvol .knob { margin-left: -12px; }
 :host([narrow]) .sl[data-label] .val { left: auto; right: 12px; }
-:host(:not([full])[narrow]) .page.noise { min-height: calc(100dvh - var(--header-height, 56px)); }
+:host(:not([full])[narrow]) .page.noise { min-height: var(--hb-avail); }
 :host([narrow]) .eachgrid { grid-template-columns: 1fr 1fr; gap: 8px; }
 :host([narrow]) .each { min-height: 52px; padding: 8px 10px; gap: 8px; border-radius: 14px; }
 :host([narrow]) .each b { font-size: 14px; }
@@ -1566,7 +1566,7 @@ ha-icon { display: flex; }
 :host([narrow]) .lgrid .room.quick .levels { width: 132px; }
 :host([narrow]) .lgrid .room.quick .lvl { width: 100%; font-size: 15px; }
 :host([narrow]) .lgrid .room.quick .lvl { font-size: 13px; }
-:host(:not([full])[narrow]) .page.lights { min-height: calc(100dvh - var(--header-height, 56px)); }
+:host(:not([full])[narrow]) .page.lights { min-height: var(--hb-avail); }
 :host([narrow]) .lgrid .room.guard { grid-column: span 3; padding: 10px; gap: 8px; }
 :host([narrow]) .lgrid .ic.sm { width: 40px; height: 40px; }
 :host([narrow]) .lgrid .words b { font-size: 16px; }
@@ -1616,7 +1616,7 @@ ha-icon { display: flex; }
 :host([narrow]) .doors .card.door { padding: 10px; gap: 8px; }
 :host([narrow]) .campane { min-height: 110px; border-radius: 14px; }
 :host([narrow]) .doorrow .pill { min-width: 90px; }
-:host(:not([full])[narrow]) .page.garage { height: calc(100dvh - var(--header-height, 56px)); min-height: 0; }
+:host(:not([full])[narrow]) .page.garage { height: var(--hb-avail); min-height: 0; }
 :host([narrow]) .ic.dooric { display: none; }
 :host([narrow]) .door .doorstate { font-size: 16px; }
 :host([narrow]) .cam { border-radius: 14px; }
