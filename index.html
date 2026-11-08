@@ -850,7 +850,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-07e";
+  var VERSION = "2026-11-07f";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -2403,7 +2403,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     if (id === "more") { e.preventDefault(); openMore(); return; }
     if (!page(id).src) return;                    // older stand-alone page: let the link load it
     e.preventDefault();
-    if (id === current) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    if (id === current) { if (id === "ha" && HB.haGo) HB.haGo("home"); else window.scrollTo({ top: 0, behavior: "smooth" }); return; }   // a second tap on Home Assistant goes back to its home page
     go(id);
   });
 
@@ -2466,7 +2466,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     document.getElementById("pbar").addEventListener("click", function (e) {
       var a = e.target.closest("a"); if (!a) return;
       e.preventDefault();
-      if (a.dataset.id === current) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+      if (a.dataset.id === current) { if (current === "ha" && HB.haGo) HB.haGo("home"); else window.scrollTo({ top: 0, behavior: "smooth" }); return; }   // second tap on Home Assistant: back to its home page
       go(a.dataset.id);
     });
     // swipe left or right anywhere on the page to flip to the next panel page
