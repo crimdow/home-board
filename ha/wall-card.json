@@ -24,11 +24,26 @@
       "lights": [
         {
           "entity": "light.family_room_east",
-          "name": "East"
+          "name": "1"
         },
         {
           "entity": "light.family_room_west",
-          "name": "West"
+          "name": "2"
+        },
+        {
+          "entity": "light.family_room_tourtiere",
+          "name": "Tourtiere"
+        }
+      ],
+      "compact": true,
+      "pairs": [
+        {
+          "entity": "light.family_room_task_1",
+          "name": "Task 1"
+        },
+        {
+          "entity": "light.family_room_task_2",
+          "name": "Task 2"
         }
       ]
     },
@@ -48,6 +63,16 @@
         {
           "entity": "light.primary_chest_lamp",
           "name": "Chest lamp"
+        }
+      ]
+    },
+    {
+      "name": "Kitchen",
+      "icon": "mdi:lamp",
+      "lights": [
+        {
+          "entity": "light.kitchen_lamp",
+          "name": "Kitchen Lamp"
         }
       ]
     },

@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.29.1";
+  var VERSION = "1.30.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -234,6 +234,7 @@
     _roomIds(r) {   // every light in a room: its main lights plus the listed ones
       var out = (r.main || []).slice();
       this._roomLights(r).forEach(function (l) { if (out.indexOf(l.entity) < 0) out.push(l.entity); });
+      (r.pairs || []).forEach(function (l) { if (out.indexOf(l.entity) < 0) out.push(l.entity); });
       return out;
     }
     _allLights() {
@@ -290,6 +291,7 @@
       this._speakers().forEach(function (sp) { ids.push(sp.entity); });
       var sp = this._spotify(); if (sp) ids.push(sp);
       (c.appliances || []).forEach(function (x) { ids.push(x.entity); if (x.started) ids.push(x.started); });
+      (c.rooms || []).forEach(function (r) { (r.pairs || []).forEach(function (x) { ids.push(x.entity); }); });
       (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); });
       if (c.armed) ids.push(c.armed);
       (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); ["setpoint", "temperature", "job"].forEach(function (f) { if (k[f]) ids.push(k[f]); }); });
@@ -486,6 +488,7 @@
       var r = this._route, body;
       if (r[0] === "lights") body = this._lightsPage();
       else if (r[0] === "room") body = this._roomPage(this._rooms()[r[1]]);
+      else if (r[0] === "bulb") body = this._bulbPage(this._rooms()[Math.floor(r[1] / 10)], r[1] % 10);
       else if (r[0] === "thermostat") body = this._thermoPage();
       else if (r[0] === "garage") {
         if (this._lastRoute !== "garage") this._camSrc = {};   // a fresh picture each time the garage is opened, then it holds
@@ -749,7 +752,20 @@
         });
         return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
       }
-      if (lights.length > 1 || r.group || r.main) out.push(this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls, !!r.quick));
+      if (lights.length > 1 || r.group || r.main) { var wc = this._lightCard(r.whole_name || "Whole room", r.icon || "mdi:lightbulb-group", whole, true, r.controls, !!r.quick);
+        out.push(r.compact ? wc.replace('class="card light', 'class="card light compact') : wc); }
+      // pairs: two half-width cards under the whole room (e.g. task lights): on/off, 25% / 100%, tap the name for everything
+      if ((r.pairs || []).length) {
+        var ri = this._rooms().indexOf(r);
+        out.push('<div class="pairs">' + r.pairs.map((l, k) => {
+          var on = this._on(l.entity), bri = this._bri([l.entity]), glow = this._glow([l.entity]), key = esc(l.entity);
+          return '<div class="card light compact' + (on ? " lit" : "") + '"' + (glow ? ' style="--glow:' + glow + '"' : "") + ">" +
+            '<div class="row"><button class="ic" data-toggle="' + key + '" aria-label="Turn ' + esc(l.name) + ' on or off">' + icon(l.icon || "mdi:lightbulb", 40) + "</button>" +
+            '<button class="words" data-go="bulb/' + (ri * 10 + k) + '"><b>' + esc(l.name) + "</b><i>" + (on ? "On" : "Off") + "</i></button>" +
+            '<button class="more" data-go="bulb/' + (ri * 10 + k) + '" aria-label="Open ' + esc(l.name) + '">' + icon("mdi:chevron-right", 34) + "</button></div>" +
+            this._levels([l.entity], on, bri) + "</div>";
+        }).join("") + "</div>");
+      }
       // scenes: bright colour tiles (each button can carry its own colours)
       var scenesHtml = (r.buttons || []).length ? ('<div class="card"><div class="label">' + esc(r.buttons_label || "Scenes") + '</div><div class="scenes">' + r.buttons.map(function (b, i) {
         var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
@@ -762,12 +778,19 @@
           return '<button class="each' + (lon ? " on" : "") + '" data-toggle="' + esc(l.entity) + '" data-full="1">' + (l.icon ? icon(l.icon, 30) : "") + "<span><b>" + esc(l.name) + "</b><i>" + (lon ? "On" : "Off") + "</i></span></button>";
         }).join("") + "</div></div>");
       } else
-      lights.forEach((l) => { var s = this._s(l.entity); out.push(this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls)); });
+      lights.forEach((l) => { var s = this._s(l.entity), card = this._lightCard(l.name || (s ? s.attributes.friendly_name : l.entity), l.icon || (s && s.attributes.icon) || "mdi:lightbulb", [l.entity], false, l.controls);
+        out.push(r.compact ? card.replace('class="card light', 'class="card light compact') : card); });
 
       if (scenesHtml && !r.quick) out.push(scenesHtml);
       var ni = (this._config.noise || []).findIndex(function (n) { return n.name === r.noise; });
       if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
+    }
+    // one bulb from a room's pair, with everything a light card has
+    _bulbPage(r, k) {
+      var l = r && (r.pairs || [])[k]; if (!l) { this._route = ["lights"]; return this._lightsPage(); }
+      return '<div class="page">' + this._head(l.name, "lights") + '<div class="scroll"><div class="stack">' +
+        this._lightCard(l.name, l.icon || "mdi:lightbulb", [l.entity], false, l.controls) + "</div></div></div>";
     }
     _lightCard(name, ic, ids, whole, controls, full) {   // controls: which of "bri", "ct", "color" to show (all by default)
       var on = this._onCount(ids), bri = this._bri(ids), glow = this._glow(ids), key = esc(ids.join(","));
@@ -1224,8 +1247,15 @@ ha-icon { display: flex; }
 
 /* Lights page: three rooms a row, the kids' rooms two a row, Outside across */
 .lgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
-.lgrid .room { grid-column: span 2; padding: 20px; gap: 18px; border-radius: 26px; }
-.lgrid .room.guard { grid-column: span 3; flex-direction: row; align-items: center; gap: 14px; text-align: left; }
+.lgrid .room { grid-column: span 2; padding: 14px 20px; gap: 14px; border-radius: 26px; }
+.lgrid .room.guard { grid-column: span 2; flex-direction: row; align-items: center; gap: 14px; text-align: left; }
+.pairs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.card.light.compact { padding-top: 14px; padding-bottom: 14px; gap: 10px; }
+.card.light.compact .label { display: none; }   /* rooms with many lights: just the row, the slider and the colours */
+.card.light.compact .ic { width: 64px; height: 64px; }
+.pairs .card .row { gap: 12px; }
+.pairs .card .words { min-width: 0; flex: 1; }
+.pairs .more { flex: none; width: 34px; height: 56px; color: var(--muted); }
 .lgrid .room.inline { grid-column: 1 / -1; }
 .lgrid .room.quick { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 18px; }
 .lgrid .room.quick .row { flex: 1; min-width: 0; flex-direction: row !important; align-items: center !important; gap: 16px !important; }
@@ -1525,7 +1555,11 @@ ha-icon { display: flex; }
 :host([narrow]) .lpill ha-icon { --mdc-icon-size: 20px !important; }
 :host([narrow]) .levels { gap: 6px; }
 :host([narrow]) .lgrid { gap: 8px; }
-:host([narrow]) .lgrid .room { grid-column: 1 / -1; padding: 10px 12px; gap: 10px; border-radius: 18px; }
+:host([narrow]) .lgrid .room { grid-column: 1 / -1; padding: 7px 12px; gap: 8px; border-radius: 18px; }
+:host([narrow]) .pairs { gap: 10px; }
+:host([narrow]) .card.light.compact { padding-top: 8px; padding-bottom: 8px; gap: 6px; }
+:host([narrow]) .card.light.compact .ic { width: 44px; height: 44px; }
+:host([narrow]) .pairs .more { width: 22px; height: 40px; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) { flex-direction: row; align-items: center; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) .row { flex: 1; min-width: 0; flex-direction: row; align-items: center; gap: 10px; }
 :host([narrow]) .lgrid .room:not(.guard):not(.inline) .levels { flex: none; width: 132px; }
