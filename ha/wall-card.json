@@ -304,6 +304,20 @@
             "light.deck_slider_door",
             "light.laundry_room_door"
           ]
+        },
+        {
+          "name": "Lamp post",
+          "icon": "mdi:post-lamp",
+          "ids": [
+            "light.lamp_post"
+          ]
+        },
+        {
+          "name": "Front door",
+          "icon": "mdi:ceiling-light",
+          "ids": [
+            "light.front_yard_front_door_over_head"
+          ]
         }
       ],
       "levels": [
