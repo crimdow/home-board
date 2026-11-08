@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.31.1";
+  var VERSION = "1.32.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -911,7 +911,8 @@
         if (cam && cam.attributes.entity_picture) h += '<img class="cam" data-cam="' + esc(d.camera) + '" src="' + esc(this._camSrc[d.camera] || cam.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(d.name || "Garage") + ' camera">';
         h += "</div>";
         if (!s) line = "Not installed yet";   // a bay whose opener isn't in yet: its camera and a place ready for it
-        h += '<div class="row doorrow"><span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span>" + (d.light && this._s(d.light) ? '<button class="bulb' + (this._on(d.light) ? " on" : "") + '" data-toggle="' + esc(d.light) + '" aria-label="Garage light">' + icon(this._on(d.light) ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 32) + "</button>" : "") +
+        h += '<div class="row doorrow"><span class="words"><b>' + esc(d.name || "Garage door") + "</b><i class=\"doorstate\">" + esc(line) + "</i></span>" +
+          (cam && cam.attributes.entity_picture ? '<button class="bulb camreload" data-camreload="' + esc(d.camera) + '" aria-label="Reload the camera picture">' + icon("mdi:refresh", 32) + "</button>" : "") + (d.light && this._s(d.light) ? '<button class="bulb' + (this._on(d.light) ? " on" : "") + '" data-toggle="' + esc(d.light) + '" aria-label="Garage light">' + icon(this._on(d.light) ? "mdi:lightbulb-on" : "mdi:lightbulb-outline", 32) + "</button>" : "") +
           (s ? '<button class="pill accent" data-door="' + i + '" data-doorgo="' + action + '">' + action + "</button>" : '<span class="pill ghost">Coming soon</span>') + "</div>";
         doors.push(h + "</div>");
       });
@@ -1071,6 +1072,15 @@
       if (!b.classList.contains("shade")) this._haptic("light");
       var ds = b.dataset, c = this._config;
       if (ds.go) { var p = ds.go.split("/"); this._from = this._route.slice(); this._route = p.length > 1 ? [p[0], +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
+      if (ds.camreload) {   // a fresh garage picture: load it out of sight, then swap it in (no blank while it loads)
+        var cs = this._s(ds.camreload), im = this.shadowRoot.querySelector('img.cam[data-cam="' + ds.camreload + '"]');
+        if (!cs || !cs.attributes.entity_picture || !im) return;
+        var url = cs.attributes.entity_picture + "&t=" + Date.now(), pre = new Image();
+        b.classList.add("spin");
+        pre.onload = () => { im.src = url; this._camSrc[ds.camreload] = url; b.classList.remove("spin"); };
+        pre.onerror = () => b.classList.remove("spin");
+        pre.src = url; return;
+      }
       if (ds.armtoggle) { this._call("input_boolean", "toggle", { entity_id: ds.armtoggle }); return; }
       if (ds.applianceclear) { this._call("input_select", "select_option", { entity_id: ds.applianceclear, option: "Idle" }); return; }
       if (ds.hcolor) { this._setHatch(ds.ids, HATCH_COLORS[+ds.hcolor].rgb); return; }
@@ -1449,6 +1459,8 @@ ha-icon { display: flex; }
 .cam { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 20px; background: var(--chip); display: block; }
 .warn { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 18px; background: ${C.amber}; color: #fff; font-size: 22px; font-weight: 800; }
 .bulb { width: 64px; height: 64px; border-radius: 32px; background: var(--chip); color: var(--ink); display: flex; align-items: center; justify-content: center; flex: none; }
+.camreload.spin ha-icon { animation: hbspin .8s linear infinite; }
+@keyframes hbspin { to { transform: rotate(360deg); } }
 .bulb.on { background: #f2b25c; color: #3a2410; box-shadow: 0 6px 18px -6px #f2b25c; }
 .quiet { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 8px; color: var(--muted); font-size: 18px; font-weight: 700; }
 .quiet span { display: flex; align-items: center; gap: 10px; }
