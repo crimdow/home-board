@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.34.1";
+  var VERSION = "1.34.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -749,7 +749,8 @@
       var whole = r.group ? [r.group] : r.main ? r.main : lights.map(function (l) { return l.entity; });
       if (r.toggles) {   // Outside: one lamp-style card for all the outdoor lights, then simple on/off cards
         var on = this._onCount(this._members(main).concat(main)) > 0, bri = this._bri(this._members(main)), key = esc(main.join(","));
-        var h = '<div class="card light' + (on ? " lit" : "") + '"><div class="row">' +
+        var og = on ? this._glow(this._members(main).concat(main)) : "";   // the lights' own colour on the icon and buttons, like other rooms
+        var h = '<div class="card light' + (on ? " lit" : "") + '"' + (og ? ' style="--glow:' + og + '"' : "") + '><div class="row">' +
           '<button class="ic" data-toggle="' + key + '" data-full="1" aria-label="Turn ' + esc(r.whole_name || r.name) + ' on or off">' + icon(r.icon || "mdi:lightbulb", 40) + "</button>" +
           '<button class="words" data-toggle="' + key + '" data-full="1"><b>' + esc(r.whole_name || r.name) + "</b><i>" + (on ? "On" : "Off") + "</i></button></div>" +
           '<div class="label">Brightness</div>' + this._levels(main, on, bri, r.levels);
@@ -760,7 +761,8 @@
         out.push(h + "</div>");
         r.toggles.forEach((t) => {
           var ton = this._onCount(this._members(t.ids).concat(t.ids)) > 0, tk = esc(t.ids.join(","));
-          out.push('<div class="card light' + (ton ? " lit" : "") + '"><div class="row">' +
+          var tg = ton ? this._glow(this._members(t.ids).concat(t.ids)) : "";
+          out.push('<div class="card light' + (ton ? " lit" : "") + '"' + (tg ? ' style="--glow:' + tg + '"' : "") + '><div class="row">' +
             '<button class="ic" data-toggle="' + tk + '" data-full="1" aria-label="Turn ' + esc(t.name) + ' on or off">' + icon(t.icon || "mdi:lightbulb", 40) + "</button>" +
             '<button class="words" data-toggle="' + tk + '" data-full="1"><b>' + esc(t.name) + "</b><i>" + (ton ? "On" : "Off") + "</i></button></div>" +
             // color: true adds the colour swatches (no brightness)
