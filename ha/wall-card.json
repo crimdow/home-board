@@ -80,16 +80,22 @@
       "name": "Kitchen",
       "icon": "mdi:lamp",
       "lights": [
-        {
-          "entity": "light.kitchen_lamp",
-          "name": "Kitchen Lamp"
-        },
-        {
-          "entity": "light.kitchen_sink",
-          "name": "Kitchen Sink"
-        }
+        [
+          {
+            "entity": "light.kitchen_lamp",
+            "name": "Lamp"
+          },
+          {
+            "entity": "light.kitchen_sink",
+            "name": "Sink"
+          }
+        ]
       ],
-      "compact": true
+      "compact": true,
+      "controls": [
+        "levels",
+        "color"
+      ]
     },
     {
       "name": "Stella’s Room",

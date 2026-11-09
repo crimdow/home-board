@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.34.0";
+  var VERSION = "1.34.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -701,7 +701,7 @@
             var c = b.colors || [b.color || "#8a6bb8", b.color || "#5b3f99"];
             return '<button class="dot" data-rbtn="' + k + '" data-room="' + i + '" aria-label="' + esc(b.name) + '"><span class="sw" style="--c1:' + c[0] + ";--c2:" + c[1] + '"></span></button>';
           }).join("") + "</div>";
-        } else if (this._dimmable(main) && this._has(r.controls, "bri") && !r.quick) {   // quick levels, always in warm white
+        } else if (this._dimmable(main) && (this._has(r.controls, "bri") || this._has(r.controls, "levels")) && !r.quick) {   // quick levels, always in warm white
           var key = esc(main.join(","));
           h += '<div class="levels">' + [25, 100].map(function (lv) {
             var cur = on && (lv === 25 ? bri < 63 : bri >= 63);
