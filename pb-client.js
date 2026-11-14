@@ -166,6 +166,27 @@
       var rec = pb.authStore.record;
       return pb.authStore.isValid && rec ? { user: { id: rec.id, email: rec.email, role: rec.role, household: rec.household || "", site_admin: !!rec.site_admin } } : null;
     }
+    // ---------- the wall panel signs itself back in ----------
+    // While the panel (?panel) is signed in it keeps a key from the server; if it ever finds itself
+    // signed out it trades the key for a fresh login, so nobody has to type at the wall.
+    var PANEL = /[?&]panel(?:[=&]|$)/.test(location.search), PKEY = "hb-panel-key";
+    function panelKey() { try { return localStorage.getItem(PKEY) || ""; } catch (e) { return ""; } }
+    function setPanelKey(k) { try { if (k) localStorage.setItem(PKEY, k); else localStorage.removeItem(PKEY); } catch (e) {} }
+    function ensurePanelKey() {
+      if (!PANEL || panelKey() || !pb.authStore.isValid) return;
+      pb.send("/api/hb/panel-key", { method: "POST" }).then(function (r) { if (r && r.key) setPanelKey(r.key); }, function () {});
+    }
+    function panelLogin() {
+      var k = PANEL && panelKey();
+      if (!k) return Promise.reject(new Error("no panel key"));
+      return pb.send("/api/hb/panel-login", { method: "POST", body: { key: k } }).then(function (r) {
+        pb.authStore.save(r.token, r.record);
+      }, function (e) {
+        if (e && (e.status === 401 || e.status === 400)) setPanelKey("");   // the key was taken back: sign in by hand once
+        throw e;
+      });
+    }
+
     var listeners = [];
     pb.authStore.onChange(function (token) {
       if (!token) { dropCache(); listeners.forEach(function (cb) { cb("SIGNED_OUT", null); }); }
@@ -183,7 +204,10 @@
       },
       auth: {
         getSession: function () {
-          if (!pb.authStore.isValid) return Promise.resolve({ data: { session: null } });   // also when the saved login has run out
+          if (!pb.authStore.isValid) {   // also when the saved login has run out
+            if (PANEL && panelKey()) return panelLogin().then(function () { return { data: { session: session() } }; }, function () { return { data: { session: null } }; });
+            return Promise.resolve({ data: { session: null } });
+          }
           // Open straight away with the saved login and refresh it in the background, so a slow
           // connection doesn't hold the app on a blank screen. A refused login signs out (back to
           // the sign-in page); a changed role or household reloads the app so it shows the right things.
@@ -191,17 +215,23 @@
           pb.collection("users").authRefresh().then(function () {
             var after = session(), a = before && before.user, b = after && after.user;
             if (a && b && (a.role !== b.role || a.household !== b.household || a.site_admin !== b.site_admin)) location.reload();
+            ensurePanelKey();
           }, function (e) {
-            if (e && (e.status === 401 || e.status === 403 || e.status === 404)) pb.authStore.clear();
+            if (e && (e.status === 401 || e.status === 403 || e.status === 404)) {
+              // the wall panel tries its key first; anyone else goes back to the sign-in page
+              if (PANEL && panelKey()) panelLogin().catch(function () { pb.authStore.clear(); });
+              else pb.authStore.clear();
+            }
           });
           return Promise.resolve({ data: { session: before } });
         },
         signInWithPassword: function (c) {
           return pb.collection("users").authWithPassword(c.email, c.password).then(function () {
+            ensurePanelKey();
             return { data: { session: session() }, error: null };
           }, function (e) { return { data: null, error: errOf(e) }; });
         },
-        signOut: function () { pb.authStore.clear(); return Promise.resolve({ error: null }); },
+        signOut: function () { setPanelKey(""); pb.authStore.clear(); return Promise.resolve({ error: null }); },   // on purpose: the panel forgets its key too
         onAuthStateChange: function (cb) { listeners.push(cb); return { data: { subscription: { unsubscribe: function () {} } } }; }
       },
       // The Plans calendar used to be a file in Supabase Storage. On PocketBase the server builds it

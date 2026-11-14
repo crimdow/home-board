@@ -759,7 +759,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 </style>
 <!-- the database: PocketBase on our own server (pb-client.js gives the pages the same db.from(...) calls as before) -->
 <script src="pocketbase.umd.js"></script>
-<script src="pb-client.js?v=2026-10-19"></script>
+<script src="pb-client.js?v=2026-11-14"></script>
 </head>
 <body class="checking editing">
 <div id="turnUp" aria-live="polite"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>Turn your phone upright</div>
@@ -850,7 +850,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-08d";
+  var VERSION = "2026-11-14a";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
