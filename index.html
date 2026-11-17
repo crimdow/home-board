@@ -703,12 +703,6 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 /* Christmas countdown, November 1 to Christmas Day */
 .saver .ss-xmas { padding: 1.1vh 3.4vw 1.1vh 1.1vh; border-radius: 999px; display: flex; align-items: center; gap: 2vw; }
 .saver .ss-xmas[hidden] { display: none; }
-/* a candy-cane border: red and white stripes in a ring around the pill */
-.saver .ss-xmas { border: 0; }
-.saver .ss-xmas::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: .6vh; pointer-events: none;
-  background: repeating-linear-gradient(-45deg, #e3263b 0 1vh, #fff 1vh 2vh);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
-.saver .ss-xmas { padding: 1.7vh 3.8vw 1.7vh 1.7vh; }
 /* birthdays: today's in gold, the next few below */
 .saver .ss-bday { align-self: stretch; padding: 2.2vh 4vw; display: flex; flex-direction: column; gap: 1.4vh; }
 .saver .ss-bday[hidden] { display: none; }
@@ -877,7 +871,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-16b";
+  var VERSION = "2026-11-16c";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
