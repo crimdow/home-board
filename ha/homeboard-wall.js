@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.35.0";
+  var VERSION = "1.35.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -807,9 +807,9 @@
       if (scenesHtml && !r.quick) out.push(scenesHtml);
       var ni = (this._config.noise || []).findIndex(function (n) { return n.name === r.noise; });
       if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
-      // camera: a still at the top of the room (e.g. the Nanit in the girls' rooms), with a reload button like the garage
+      // camera: a still under the room's controls (e.g. the Nanit in the girls' rooms), with a reload button like the garage
       var rc = r.camera && this._s(r.camera);
-      if (rc && rc.attributes.entity_picture) out.unshift('<div class="card roomcam"><img class="cam" data-cam="' + esc(r.camera) + '" src="' + esc(this._camSrc[r.camera] || rc.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(r.name) + ' camera">' +
+      if (rc && rc.attributes.entity_picture) out.push('<div class="card roomcam"><img class="cam" data-cam="' + esc(r.camera) + '" src="' + esc(this._camSrc[r.camera] || rc.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(r.name) + ' camera">' +
         '<button class="bulb camreload" data-camreload="' + esc(r.camera) + '" aria-label="Reload the camera picture">' + icon("mdi:refresh", 32) + "</button></div>");
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
