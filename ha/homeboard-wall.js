@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.40.0";
+  var VERSION = "1.41.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -103,6 +103,8 @@
       }
       requestAnimationFrame(() => this._paintLook());   // the theme's colours are only readable once on the page
       this._askLook();   // Home Board answers with its colours right away
+      this._warmCameras();
+      if (!this._onVis) { this._onVis = () => { if (document.visibilityState === "visible") this._warmCameras(); }; document.addEventListener("visibilitychange", this._onVis); }
       // a wall panel left on a sub-page drifts home after a few minutes
       this._idle = setInterval(() => {
         this._tellAlerts();   // "open for N minutes" grows without any state change
@@ -126,6 +128,7 @@
     _onMsg(e) {
       var ok = (this._config && this._config.homeboard_origin) || "https://home.jermins.com";
       if (e.origin !== ok || !e.data) return;
+      if (e.data.hb === "warm") { this._warmCameras(); return; }   // Home Board: the wall panel just woke up
       if (e.data.hb === "go" && typeof e.data.route === "string") {   // Home Board opening a page here (a screensaver alert was tapped)
         var p = e.data.route.split("/"); this._route = p.length > 1 ? [p[0], +p[1]] : [p[0]]; this._sheet = null;
         this._touched = Date.now(); this._sig = ""; this._render(); return;
@@ -585,12 +588,20 @@
     }
     // ask Home Assistant to start the room cameras' streams while the Lights page is open (once a minute at most),
     // so tapping into a room finds the video nearly ready
+    // Warm the cameras: ask Home Assistant to start their streams before anyone opens them (a cold Nanit stream
+    // takes ~9 s; a warm one shows a picture in under half a second). Done when the wall is woken or touched, when
+    // the dashboard comes into view, and on the Lights page. Home Assistant stops an unwatched stream after
+    // 5 minutes, so it's asked again at most every 4 minutes, and only while someone is using the wall.
     _warmCameras() {
-      var now = Date.now(); this._warmed = this._warmed || {};
-      this._rooms().forEach((r) => {
-        if (!r.camera || !this._s(r.camera) || now - (this._warmed[r.camera] || 0) < 60000) return;
-        this._warmed[r.camera] = now;
-        this._hass.callWS({ type: "camera/stream", entity_id: r.camera, format: "hls" }).catch(function () {});
+      if (!this._hass || !this._config) return;
+      var now = Date.now(), ids = [];
+      this._warmed = this._warmed || {};
+      this._rooms().forEach(function (r) { if (r.camera) ids.push(r.camera); });
+      (this._config.cameras || []).forEach(function (c) { if (c.entity) ids.push(c.entity); });
+      ids.forEach((id) => {
+        if (!this._s(id) || now - (this._warmed[id] || 0) < 4 * 60000) return;
+        this._warmed[id] = now;
+        this._hass.callWS({ type: "camera/stream", entity_id: id, format: "hls" }).catch(function () {});
       });
     }
     _liveMoving(box) {
@@ -1100,7 +1111,7 @@
       var root = this.shadowRoot;
       root.addEventListener("click", (e) => this._click(e));
       root.addEventListener("pointerdown", (e) => {
-        this._touched = Date.now();
+        this._touched = Date.now(); this._warmCameras();
         var wh = e.target.closest && e.target.closest(".wheel");
         if (wh) {
           e.preventDefault(); wh.setPointerCapture(e.pointerId); this._sw = null;

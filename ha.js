@@ -28,10 +28,16 @@ HB.register("ha", {
   shown: function () {
     var f = document.querySelector("#pg-ha .ha-frame");
     if (f && Date.now() - (f._loaded || 0) > 30 * 60000) { f._loaded = Date.now(); f.src = f.src; }
+    if (HB.haPing) HB.haPing();
   },
 
   mount: function (root) {
     var shown = "";
+    // tell the wall card the panel is in use, so it starts the camera streams early (they take ~9 s from cold)
+    HB.haPing = function () {
+      var f = root.querySelector("iframe"); if (!f || !f.contentWindow) return;
+      try { f.contentWindow.postMessage({ hb: "warm" }, new URL(f.src).origin); } catch (e) {}
+    };
     function render() {
       // the wall panel uses its own home-network address when one is set (so HA's trusted networks let it in without a login)
       var p = HB.family().panel || {}, url = (HB.panel && p.haPanel) || p.ha || "";

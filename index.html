@@ -867,7 +867,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-17f";
+  var VERSION = "2026-11-17g";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1946,6 +1946,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       document.documentElement.classList.remove("saving");
       if (!on) return;
       on = false; clearTimeout(flipT); clearInterval(clockT); screenPower(true);
+      if (PANEL && HB.haPing) HB.haPing();   // someone's at the wall: let Home Assistant start the cameras early
       el.classList.remove("show");
       setTimeout(function () { if (!on) layers.forEach(function (l) { l.classList.remove("on"); l.querySelector("img").removeAttribute("src"); }); }, 600);
       idle();
