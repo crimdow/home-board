@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.38.0";
+  var VERSION = "1.39.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -535,7 +535,7 @@
       var want = {};
       this.shadowRoot.querySelectorAll("slot[name^='live-']").forEach((sl) => { want[sl.name] = true; });
       Object.keys(this._live).forEach((id) => { if (!want[this._liveSlot(id)]) { this._live[id].remove(); delete this._live[id]; } });
-      if (!customElements.get("ha-camera-stream")) return;
+      if (!customElements.get("ha-camera-stream") && !customElements.get("ha-hls-player")) return;
       Object.keys(want).forEach((name) => {
         var id = Object.keys(this._hass.states).find((k) => k.indexOf("camera.") === 0 && this._liveSlot(k) === name);
         if (!id || this._live[id]) return;
@@ -546,10 +546,18 @@
         var tries = this._liveRetry || 0;
         // Start the stream first and wait until Home Assistant has video ready (~9 s from cold, at once when warm),
         // then open the player, which then shows a picture straight away. Opening it earlier tends to stall.
-        this._streamReady(id).then(() => {
+        this._streamReady(id).then((url) => {
           if (this._live[id] !== box) return;   // left the page or restarted meanwhile
-          var cs = document.createElement("ha-camera-stream");
-          cs.hass = this._hass; cs.stateObj = this._s(id); cs.muted = true; cs.controls = false;
+          // HLS only: Home Assistant's WebRTC helper (go2rtc) crashes on these cameras, and the full camera player
+          // tries that first. So play the HLS stream straight away with Home Assistant's own HLS player.
+          var cs;
+          if (url && customElements.get("ha-hls-player")) {
+            cs = document.createElement("ha-hls-player");
+            cs.hass = this._hass; cs.url = url; cs.muted = true; cs.autoPlay = true; cs.playsInline = true; cs.controls = false; cs.entityid = id;
+          } else {
+            cs = document.createElement("ha-camera-stream");
+            cs.hass = this._hass; cs.stateObj = this._s(id); cs.muted = true; cs.controls = false;
+          }
           cs.style.cssText = "display:block;width:100%;height:100%;position:relative";
           box.appendChild(cs);
           this._watchLive(id, box, tries);
@@ -559,13 +567,13 @@
     _streamReady(id) {
       var hass = this._hass;
       return hass.callWS({ type: "camera/stream", entity_id: id, format: "hls" }).then(function (r) {
-        var url = String(r && r.url || "").replace(/master_playlist\.m3u8.*$/, "playlist.m3u8"), until = Date.now() + 25000;
-        if (!url) return;
+        var master = String(r && r.url || ""), url = master.replace(/master_playlist\.m3u8.*$/, "playlist.m3u8"), until = Date.now() + 25000;
+        if (!master) return;
         return (function poll() {
           return fetch(url, { cache: "no-store" }).then(function (res) { return res.text(); }).then(function (t) {
-            if (/#EXTINF/.test(t) || Date.now() > until) return;
+            if (/#EXTINF/.test(t) || Date.now() > until) return master;
             return new Promise(function (ok) { setTimeout(ok, 500); }).then(poll);
-          }, function () { if (Date.now() < until) return new Promise(function (ok) { setTimeout(ok, 1000); }).then(poll); });
+          }, function () { if (Date.now() < until) return new Promise(function (ok) { setTimeout(ok, 1000); }).then(poll); return master; });
         })();
       }).catch(function () {});   // if anything here fails, just open the player and let it try
     }
@@ -885,7 +893,7 @@
       if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
       // camera: live video under the room's controls (the Nanit in the girls' rooms can't take stills), muted,
       // with a reload button that restarts it. Home Assistant's own player does the streaming (see _placeLive).
-      if (r.camera && this._s(r.camera)) out.push('<div class="card roomcam' + (customElements.get("ha-camera-stream") ? "" : " nocam") + '"><slot name="' + this._liveSlot(r.camera) + '"></slot>' +
+      if (r.camera && this._s(r.camera)) out.push('<div class="card roomcam' + (customElements.get("ha-camera-stream") || customElements.get("ha-hls-player") ? "" : " nocam") + '"><slot name="' + this._liveSlot(r.camera) + '"></slot>' +
         '<button class="bulb camreload" data-livereload="' + esc(r.camera) + '" aria-label="Restart the camera">' + icon("mdi:refresh", 32) + "</button></div>");
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
