@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.36.2";
+  var VERSION = "1.36.3";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -547,8 +547,9 @@
         if (!this._liveRetry) this._watchLive(id, box, 0);
       });
     }
-    // A cold stream takes about 9 s to show a picture (Home Assistant opens the camera, then video arrives), so only
-    // if nothing is moving after 20 s is the player started again (a few times, a little longer each time).
+    // The first player usually asks before Home Assistant has the camera's stream ready and then gives up; starting it
+    // again a few seconds later finds the stream running (what two taps on reload did by hand). So: restart at 3 s and
+    // 6 s unless the picture is already moving, then only if nothing moves for 20 s (a few times, longer each time).
     _liveMoving(box) {
       var found = false;
       (function walk(root) {
@@ -563,11 +564,11 @@
       setTimeout(() => {
         if (!this._live || this._live[id] !== box || !box.isConnected) return;   // left the page, or restarted by hand
         if (this._liveMoving(box)) return;
-        if (tries >= 5) return;
+        if (tries >= 6) return;
         box.remove(); delete this._live[id];
         this._liveRetry = true; this._placeLive(); this._liveRetry = false;
         if (this._live[id]) this._watchLive(id, this._live[id], tries + 1);
-      }, 20000 + tries * 5000);
+      }, tries < 2 ? 3000 : 20000 + (tries - 2) * 5000);
     }
     _head(title, back, right) {
       // no back arrow: the Home Assistant button (and a swipe) goes back to the wall's home page
