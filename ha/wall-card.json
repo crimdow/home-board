@@ -662,5 +662,15 @@
       "job": "sensor.kitchen_cottonwood_range_job_state"
     }
   ],
-  "armed": "input_boolean.house_armed"
+  "armed": "input_boolean.house_armed",
+  "cameras": [
+    {
+      "name": "Stella",
+      "entity": "camera.stella_s_room_nanit_stella_camera"
+    },
+    {
+      "name": "Evie",
+      "entity": "camera.evalyn_s_room_nanit_evie_camera"
+    }
+  ]
 }

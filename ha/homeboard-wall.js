@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.37.0";
+  var VERSION = "1.38.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -113,7 +113,7 @@
       var m = /[?&]page=([a-z]+)(?:\/(\d+))?/.exec(location.search); if (!m) return;
       var key = m[0] + location.pathname; if (key === this._urlRoute && Date.now() - (this._urlAt || 0) < 3000) return;
       this._urlRoute = key; this._urlAt = Date.now();
-      if (["home", "lights", "thermostat", "garage", "noise", "music"].indexOf(m[1]) < 0 && !m[2]) return;
+      if (["home", "lights", "thermostat", "garage", "noise", "music", "cams"].indexOf(m[1]) < 0 && !m[2]) return;
       this._route = m[2] ? [m[1], +m[2]] : [m[1]]; this._sheet = null; this._touched = Date.now(); this._sig = "";
       if (this._hass && this._config) this._render();
     }
@@ -510,6 +510,7 @@
         body = this._garagePage();
       }
       else if (r[0] === "noise") body = this._noisePage();
+      else if (r[0] === "cams") body = this._camsPage();
       else if (r[0] === "music") body = this._musicPage();
       else if (r[0] === "hatchlight") body = this._hatchLightPage(+r[1]);
       else if (r[0] === "sounds") body = this._soundsPage(+r[1]);
@@ -722,7 +723,7 @@
     // then fridge and oven with the next door beside them (and any more doors after). Each row gets an equal share
     // of the height; the big tiles get the rest.
     _statusGrid() {
-      var doors = this._doorRow(), cells = doors.slice(0, 3).concat(this._applianceRow(), this._kitchenRow(), doors.slice(3));
+      var doors = this._doorRow(), cells = doors.slice(0, 3).concat(this._applianceRow(), this._kitchenRow(), this._camsPill(), doors.slice(3));
       if (!cells.length) return "";
       var rows = Math.ceil(cells.length / 3);
       return '<div class="rows" style="flex-grow:' + (rows * 0.4).toFixed(2) + '"><div class="pills p3 grid">' + cells.join("") + "</div></div>";
@@ -1020,6 +1021,35 @@
     _dur(m) { return m < 60 ? m + (m === 1 ? " minute" : " minutes") : Math.floor(m / 60) + " hr" + (m % 60 ? " " + (m % 60) + " min" : ""); }
 
     /* White noise */
+    // The girls' cameras: a pill on the home page opens a page with both streaming, and a Wake up button.
+    // config: cameras: [{ name, entity }], wake: { color: [r, g, b] } (the Hatch lights' morning colour, green by default)
+    _cams() { return (this._config.cameras || []).filter((c) => this._s(c.entity)); }
+    _camsPill() {
+      var list = this._cams(); if (!list.length) return [];
+      return ['<button class="pill2 cams" data-go="cams"><span class="c">' + icon("mdi:cctv", 30) + '</span><span class="w"><b>Cameras</b><i>' +
+        esc(list.map(function (c) { return c.name; }).join(" & ")) + "</i></span></button>"];
+    }
+    _camsPage() {
+      var list = this._cams(), out = [];
+      list.forEach((c) => {
+        out.push('<div class="card roomcam"><span class="camname">' + esc(c.name) + '</span><slot name="' + this._liveSlot(c.entity) + '"></slot>' +
+          '<button class="bulb camreload" data-livereload="' + esc(c.entity) + '" aria-label="Restart ' + esc(c.name) + '’s camera">' + icon("mdi:refresh", 32) + "</button></div>");
+      });
+      var woke = this._woke && Date.now() - this._woke < 4000;
+      out.push('<button class="card wakebtn' + (woke ? " done" : "") + '" data-wake="1"><span class="ic">' + icon(woke ? "mdi:check" : "mdi:weather-sunny", 40) + '</span>' +
+        '<span class="words"><b>' + (woke ? "Good morning!" : "Wake up") + '</b><i>Hatch lights green · white noise off</i></span></button>');
+      return '<div class="page cams">' + this._head("Cameras", "home") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
+    }
+    _wake() {   // the girls' Hatches: light to the morning colour (keeping its brightness), sound off
+      var w = this._config.wake || {}, rgb = w.color || [0, 255, 60];
+      var names = w.noise || this._cams().map(function (c) { return c.name; });   // which Hatches: by name, the cameras' names by default
+      (this._config.noise || []).filter(function (n) { return names.indexOf(n.name) >= 0; }).forEach((n) => {
+        if (n.light && this._s(n.light)) this._setHatch(n.light, rgb);
+        if (n.player && this._s(n.player)) this._call("media_player", "media_stop", { entity_id: n.player });
+      });
+      this._woke = Date.now(); this._sig = ""; this._render();
+      setTimeout(() => { if (this._route[0] === "cams") { this._sig = ""; this._render(); } }, 4100);
+    }
     _noisePage() {   // one screen: each bedroom's Hatch side by side (stacked on a phone)
       var out = (this._config.noise || []).map((n, i) => this._noiseCard(n, i));
       return '<div class="page noise">' + this._head("White noise", "home") + '<div class="scroll"><div class="ngrid">' + out.join("") + "</div></div></div>";
@@ -1177,6 +1207,7 @@
         pre.onerror = () => { b.classList.remove("spin"); if (im.parentNode && im.parentNode.classList.contains("roomcam")) im.parentNode.classList.add("nocam"); };
         pre.src = url; return;
       }
+      if (ds.wake) { this._haptic("medium"); this._wake(); return; }
       if (ds.armtoggle) { this._call("input_boolean", "toggle", { entity_id: ds.armtoggle }); return; }
       if (ds.applianceclear) { this._call("input_select", "select_option", { entity_id: ds.applianceclear, option: "Idle" }); return; }
       if (ds.hcolor) { this._setHatch(ds.ids, HATCH_COLORS[+ds.hcolor].rgb); return; }
@@ -1540,6 +1571,14 @@ ha-icon { display: flex; }
 .gfill { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
 .doors { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
 .doors .card.door { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.roomcam .camname { position: absolute; top: 14px; left: 14px; z-index: 1; padding: 6px 14px; border-radius: 999px; background: rgba(20, 20, 24, .5); color: #fff; font-size: 18px; font-weight: 800; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.pill2.cams .c { background: ${C.violet}; color: #fff; }
+.wakebtn { flex-direction: row !important; align-items: center; gap: 18px; text-align: left; border: 0; font: inherit; color: var(--ink); cursor: pointer; }
+.wakebtn .ic { width: 72px; height: 72px; border-radius: 36px; display: flex; align-items: center; justify-content: center; background: ${C.green}; color: #fff; flex: none; }
+.wakebtn .words { display: flex; flex-direction: column; }
+.wakebtn b { font-size: 28px; font-weight: 800; } .wakebtn i { font-style: normal; font-size: 17px; font-weight: 700; color: var(--muted); }
+.wakebtn:active { transform: scale(.98); }
+.wakebtn.done b { color: ${C.green}; }
 .card.roomcam { position: relative; padding: 0; overflow: hidden; }
 .roomcam .cam { aspect-ratio: 16 / 9; border-radius: 0; }
 .roomcam slot { display: block; }
@@ -1743,6 +1782,8 @@ ha-icon { display: flex; }
 :host([narrow]) .doors { gap: 10px; }
 :host([narrow]) .doors .card.door { padding: 10px; gap: 8px; }
 :host([narrow]) .card.roomcam { padding: 0; }
+:host([narrow]) .roomcam .camname { top: 10px; left: 10px; font-size: 15px; padding: 4px 11px; }
+:host([narrow]) .wakebtn .ic { width: 52px; height: 52px; } :host([narrow]) .wakebtn b { font-size: 22px; } :host([narrow]) .wakebtn i { font-size: 14px; }
 :host([narrow]) .roomcam .camreload { top: 10px; right: 10px; }
 :host([narrow]) .campane { min-height: 110px; border-radius: 14px; }
 :host([narrow]) .doorrow .pill { min-width: 90px; }
