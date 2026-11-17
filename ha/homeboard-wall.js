@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.35.2";
+  var VERSION = "1.36.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -213,6 +213,7 @@
     set hass(hass) {
       var themeChanged = this._hass && hass.themes !== this._hass.themes;
       this._hass = hass;
+      Object.keys(this._live || {}).forEach((id) => { var cs = this._live[id].firstChild; if (cs) { cs.hass = hass; if (hass.states[id] && cs.stateObj !== hass.states[id] && cs.stateObj && cs.stateObj.attributes.access_token !== hass.states[id].attributes.access_token) cs.stateObj = hass.states[id]; } });
       if (this._config && this._config.music) this._tellNowPlaying();
       if (this._config) this._tellAlerts();
       if (!this._themed && this._look) { this._themed = true; this._matchHaTheme(this._look); }
@@ -521,9 +522,30 @@
         '<div class="turn">' + icon("mdi:phone-rotate-portrait", 64) + "<span>Turn your phone upright</span></div>";
       this._lastRoute = r.join("/");
       var sc = this.shadowRoot.querySelector(".scroll"); if (sc) sc.scrollTop = top;
+      this._placeLive();
       this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var old = cams[im.dataset.cam]; if (old) { im.replaceWith(old); if (old.complete && !old.naturalWidth && old.parentNode.classList.contains("roomcam")) old.parentNode.classList.add("nocam"); } else this._camSrc[im.dataset.cam] = im.getAttribute("src"); });
     }
 
+    // Live camera video. The player lives in this card's own (light) DOM and is shown through a <slot> in the page,
+    // so redrawing the page never stops and restarts the stream. Leaving the page removes it (the stream stops).
+    _liveSlot(id) { return "live-" + id.replace(/[^a-z0-9_]/gi, "_"); }
+    _placeLive() {
+      this._live = this._live || {};
+      var want = {};
+      this.shadowRoot.querySelectorAll("slot[name^='live-']").forEach((sl) => { want[sl.name] = true; });
+      Object.keys(this._live).forEach((id) => { if (!want[this._liveSlot(id)]) { this._live[id].remove(); delete this._live[id]; } });
+      if (!customElements.get("ha-camera-stream")) return;
+      Object.keys(want).forEach((name) => {
+        var id = Object.keys(this._hass.states).find((k) => k.indexOf("camera.") === 0 && this._liveSlot(k) === name);
+        if (!id || this._live[id]) return;
+        var box = document.createElement("div"); box.slot = name;
+        box.style.cssText = "display:block;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden";
+        var cs = document.createElement("ha-camera-stream");
+        cs.hass = this._hass; cs.stateObj = this._s(id); cs.muted = true; cs.controls = false;
+        cs.style.cssText = "display:block;width:100%;height:100%";
+        box.appendChild(cs); this.appendChild(box); this._live[id] = box;
+      });
+    }
     _head(title, back, right) {
       // no back arrow: the Home Assistant button (and a swipe) goes back to the wall's home page
       return '<div class="head">' +
@@ -807,10 +829,10 @@
       if (scenesHtml && !r.quick) out.push(scenesHtml);
       var ni = (this._config.noise || []).findIndex(function (n) { return n.name === r.noise; });
       if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
-      // camera: a still under the room's controls (e.g. the Nanit in the girls' rooms), with a reload button like the garage
-      var rc = r.camera && this._s(r.camera);
-      if (rc && rc.attributes.entity_picture) out.push('<div class="card roomcam"><img class="cam" onerror="this.parentNode&&this.parentNode.classList.add(\'nocam\')" onload="this.parentNode&&this.parentNode.classList.remove(\'nocam\')" data-cam="' + esc(r.camera) + '" src="' + esc(this._camSrc[r.camera] || rc.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(r.name) + ' camera">' +
-        '<button class="bulb camreload" data-camreload="' + esc(r.camera) + '" aria-label="Reload the camera picture">' + icon("mdi:refresh", 32) + "</button></div>");
+      // camera: live video under the room's controls (the Nanit in the girls' rooms can't take stills), muted,
+      // with a reload button that restarts it. Home Assistant's own player does the streaming (see _placeLive).
+      if (r.camera && this._s(r.camera)) out.push('<div class="card roomcam' + (customElements.get("ha-camera-stream") ? "" : " nocam") + '"><slot name="' + this._liveSlot(r.camera) + '"></slot>' +
+        '<button class="bulb camreload" data-livereload="' + esc(r.camera) + '" aria-label="Restart the camera">' + icon("mdi:refresh", 32) + "</button></div>");
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
     // one bulb from a room's pair, with everything a light card has
@@ -1088,6 +1110,11 @@
       if (!b.classList.contains("shade")) this._haptic("light");
       var ds = b.dataset, c = this._config;
       if (ds.go) { var p = ds.go.split("/"); this._from = this._route.slice(); this._route = p.length > 1 ? [p[0], +p[1]] : [p[0]]; this._sig = ""; this._render(); return; }
+      if (ds.livereload) {   // restart a live camera: drop its player and draw a new one
+        if (this._live && this._live[ds.livereload]) { this._live[ds.livereload].remove(); delete this._live[ds.livereload]; }
+        b.classList.add("spin"); setTimeout(() => b.classList.remove("spin"), 1500);
+        this._placeLive(); return;
+      }
       if (ds.camreload) {   // a fresh garage picture: load it out of sight, then swap it in (no blank while it loads)
         var cs = this._s(ds.camreload), im = this.shadowRoot.querySelector('img.cam[data-cam="' + ds.camreload + '"]');
         if (!cs || !cs.attributes.entity_picture || !im) return;
@@ -1462,6 +1489,8 @@ ha-icon { display: flex; }
 .doors .card.door { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 .card.roomcam { position: relative; padding: 0; overflow: hidden; }
 .roomcam .cam { aspect-ratio: 16 / 9; border-radius: 0; }
+.roomcam slot { display: block; }
+.roomcam.nocam { min-height: 180px; }
 .roomcam.nocam .cam { visibility: hidden; }
 .roomcam.nocam::after { content: "Camera isn't available right now"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 20px; font-weight: 750; pointer-events: none; }
 .roomcam .camreload { z-index: 1; position: absolute; top: 14px; right: 14px; background: rgba(20, 20, 24, .5); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
