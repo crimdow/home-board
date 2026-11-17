@@ -502,7 +502,7 @@
       this._paintLook();
       var r = this._route, body;
       if (this._lastRoute !== r.join("/")) this._camSrc = {};   // camera pictures: a fresh one each time a page is opened, then it holds
-      if (r[0] === "lights") body = this._lightsPage();
+      if (r[0] === "lights") { body = this._lightsPage(); this._warmCameras(); }
       else if (r[0] === "room") body = this._roomPage(this._rooms()[r[1]]);
       else if (r[0] === "bulb") body = this._bulbPage(this._rooms()[Math.floor(r[1] / 10)], r[1] % 10);
       else if (r[0] === "thermostat") body = this._thermoPage();
@@ -539,17 +539,48 @@
         var id = Object.keys(this._hass.states).find((k) => k.indexOf("camera.") === 0 && this._liveSlot(k) === name);
         if (!id || this._live[id]) return;
         var box = document.createElement("div"); box.slot = name;
-        box.style.cssText = "display:block;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden";
-        var cs = document.createElement("ha-camera-stream");
-        cs.hass = this._hass; cs.stateObj = this._s(id); cs.muted = true; cs.controls = false;
-        cs.style.cssText = "display:block;width:100%;height:100%";
-        box.appendChild(cs); this.appendChild(box); this._live[id] = box;
-        if (!this._liveRetry) this._watchLive(id, box, 0);
+        box.style.cssText = "display:block;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;position:relative";
+        box.innerHTML = '<div style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;opacity:.75;font:700 18px -apple-system,system-ui,sans-serif">Starting camera…</div>';
+        this.appendChild(box); this._live[id] = box;
+        var tries = this._liveRetry || 0;
+        // Start the stream first and wait until Home Assistant has video ready (~9 s from cold, at once when warm),
+        // then open the player, which then shows a picture straight away. Opening it earlier tends to stall.
+        this._streamReady(id).then(() => {
+          if (this._live[id] !== box) return;   // left the page or restarted meanwhile
+          var cs = document.createElement("ha-camera-stream");
+          cs.hass = this._hass; cs.stateObj = this._s(id); cs.muted = true; cs.controls = false;
+          cs.style.cssText = "display:block;width:100%;height:100%;position:relative";
+          box.appendChild(cs);
+          this._watchLive(id, box, tries);
+        });
       });
     }
     // The first player usually asks before Home Assistant has the camera's stream ready and then gives up; starting it
     // again a few seconds later finds the stream running (what two taps on reload did by hand). So: restart at 3 s and
     // 6 s unless the picture is already moving, then only if nothing moves for 20 s (a few times, longer each time).
+    _streamReady(id) {
+      var hass = this._hass;
+      return hass.callWS({ type: "camera/stream", entity_id: id, format: "hls" }).then(function (r) {
+        var url = String(r && r.url || "").replace(/master_playlist\.m3u8.*$/, "playlist.m3u8"), until = Date.now() + 25000;
+        if (!url) return;
+        return (function poll() {
+          return fetch(url, { cache: "no-store" }).then(function (res) { return res.text(); }).then(function (t) {
+            if (/#EXTINF/.test(t) || Date.now() > until) return;
+            return new Promise(function (ok) { setTimeout(ok, 500); }).then(poll);
+          }, function () { if (Date.now() < until) return new Promise(function (ok) { setTimeout(ok, 1000); }).then(poll); });
+        })();
+      }).catch(function () {});   // if anything here fails, just open the player and let it try
+    }
+    // ask Home Assistant to start the room cameras' streams while the Lights page is open (once a minute at most),
+    // so tapping into a room finds the video nearly ready
+    _warmCameras() {
+      var now = Date.now(); this._warmed = this._warmed || {};
+      this._rooms().forEach((r) => {
+        if (!r.camera || !this._s(r.camera) || now - (this._warmed[r.camera] || 0) < 60000) return;
+        this._warmed[r.camera] = now;
+        this._hass.callWS({ type: "camera/stream", entity_id: r.camera, format: "hls" }).catch(function () {});
+      });
+    }
     _liveMoving(box) {
       var found = false;
       (function walk(root) {
@@ -566,8 +597,7 @@
         if (this._liveMoving(box)) return;
         if (tries >= 6) return;
         box.remove(); delete this._live[id];
-        this._liveRetry = true; this._placeLive(); this._liveRetry = false;
-        if (this._live[id]) this._watchLive(id, this._live[id], tries + 1);
+        this._liveRetry = tries + 1; this._placeLive(); this._liveRetry = 0;
       }, tries < 2 ? 3000 : 20000 + (tries - 2) * 5000);
     }
     _head(title, back, right) {
