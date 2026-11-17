@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.42.0";
+  var VERSION = "1.42.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -1414,9 +1414,9 @@ ha-icon { display: flex; }
 /* Home */
 .big { cursor: pointer; background: var(--card); border-radius: 32px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; position: relative; min-height: 260px; transition: transform .12s; }
 .big .ic { width: 112px; height: 112px; border-radius: 56px; display: flex; align-items: center; justify-content: center; }
-.big.split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); align-items: stretch; padding: 0; cursor: default; }
-.big.split .half { position: relative; min-width: 0; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 32px; }
-.big.split .half + .half::before { content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 2px; border-radius: 1px; background: var(--bg); }
+/* two equal pills in one tile's space (Hatch, Nanit) */
+.big.split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 18px; padding: 0; background: none; cursor: default; }
+.big.split .half { position: relative; min-width: 0; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 32px; background: var(--card); border-radius: 32px; transition: transform .12s; }
 .big.split .half:active { transform: scale(.97); }
 .big.split .ic { width: 88px; height: 88px; border-radius: 44px; }
 .page.home .grid2 .big.split { padding: 0; }
@@ -1716,7 +1716,8 @@ ha-icon { display: flex; }
 :host([narrow]) .big .ic ha-icon { --mdc-icon-size: 26px !important; }
 :host([narrow]) .page.home .grid2 .big.split { padding: 0; }
 :host([narrow]) .page.home .grid2 .big.split .half { padding: 14px 12px 16px; gap: 10px; justify-content: flex-start; }
-:host([narrow]) .big.split .half + .half::before { width: 1.5px; }
+:host([narrow]) .big.split { gap: 10px; background: none; }
+:host([narrow]) .big.split .half { border-radius: 20px; }
 :host([narrow]) .big b { font-size: 18px; }
 :host([narrow]) .big i { font-size: 13px; }
 :host([narrow]) .gtile .gdoors { gap: 8px; }
