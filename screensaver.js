@@ -68,6 +68,13 @@ body.viewonly #pg-screensaver .hrs select { pointer-events: none; opacity: .6; }
 #pg-screensaver .qb { margin-top: 3px; font-size: 13.5px; font-weight: 700; color: var(--muted); }
 #pg-screensaver .qitem .x { flex: none; width: 30px; height: 30px; border-radius: 15px; border: 0; background: var(--chip); color: var(--ash); display: grid; place-items: center; cursor: pointer; padding: 0; }
 #pg-screensaver .qitem .x svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 3; stroke-linecap: round; fill: none; }
+#pg-screensaver .qadd select { appearance: none; border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: inherit; font-size: 16px; font-weight: 650; padding: 10px 12px; cursor: pointer; }
+#pg-screensaver .qadd select:focus { outline: 2px solid var(--ben); }
+#pg-screensaver .bdrow { display: flex; gap: 8px; align-items: center; }
+#pg-screensaver .bdrow select { flex: 1 1 0; min-width: 0; }
+#pg-screensaver .bdrow #ssBD { flex: 0 0 76px; }
+#pg-screensaver .bdrow #ssBY { flex: 0 0 96px; width: 96px; }
+#pg-screensaver .bdnote { flex: 1; font-size: 13px; font-weight: 600; color: var(--muted); }
 #pg-screensaver .qnone { color: var(--muted); font-size: 14px; font-weight: 600; padding: 4px 2px; }
 body.viewonly #pg-screensaver .ed-only { display: none !important; }
 body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointer-events: none; opacity: .6; }
@@ -116,6 +123,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
     var X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
     var photos = [], busy = 0;
     var AFTER = [2, 5, 10, 30], EVERY = [5, 10, 15, 30, 60, 300];
+    var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     function hourOpts() { var o = ""; for (var h = 0; h < 24; h++) o += '<option value="' + h + '">' + (h % 12 || 12) + (h < 12 ? " AM" : " PM") + '</option>'; return o; }
 
     root.innerHTML =
@@ -149,6 +157,13 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
         '<div class="grp quotes"><div class="qadd ed-only"><textarea id="ssQText" rows="2" maxlength="240" placeholder="Add a quote or a message for the family"></textarea>' +
           '<div class="qrow"><input id="ssQBy" maxlength="60" placeholder="Who said it (optional)"><button type="button" class="pill" id="ssQAdd">Add</button></div></div>' +
           '<div id="ssQList"></div></div>' +
+        '<h2><span>Birthdays <small id="ssBCount"></small></span></h2>' +
+        '<div class="grp quotes"><div class="qadd ed-only"><input id="ssBName" maxlength="40" placeholder="Name" autocomplete="off">' +
+          '<div class="bdrow"><select id="ssBM" aria-label="Month">' + MONTHS.map(function (m, i) { return '<option value="' + (i + 1) + '">' + m + '</option>'; }).join("") + '</select>' +
+          '<select id="ssBD" aria-label="Day">' + Array.apply(null, Array(31)).map(function (x, i) { return '<option>' + (i + 1) + '</option>'; }).join("") + '</select>' +
+          '<input id="ssBY" inputmode="numeric" maxlength="4" placeholder="Year" aria-label="Year born (optional)"></div>' +
+          '<div class="qrow"><span class="bdnote">Year is optional: add it to show their age.</span><button type="button" class="pill" id="ssBAdd">Add</button></div></div>' +
+          '<div id="ssBList"></div></div>' +
         '<h2>Home Assistant on the panel</h2>' +
         '<div class="grp ha"><input type="url" id="ssHa" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="http://192.168.1.50:8123">' +
           '<p id="ssHaNote">Its address, starting with https://. The panel then gets a Home Assistant button.</p>' +
@@ -174,6 +189,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       if (document.activeElement !== haIn) haIn.value = p.ha || "";
       var hp = root.querySelector("#ssHaPanel"); if (document.activeElement !== hp) hp.value = p.haPanel || "";
       paintQuotes();
+      paintBirthdays();
       paintHaNote();
     }
     root.querySelectorAll(".chips").forEach(function (c) {
@@ -298,6 +314,35 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       if (!confirm("Remove this quote?")) return;
       var list = (HB.family().panel.quotes || []).slice(); list.splice(+b.dataset.i, 1);
       HB.setPanel({ quotes: list }); paintQuotes();
+    });
+
+    // ---- birthdays (shown on the screensaver from 30 days before) ----
+    function paintBirthdays() {
+      var all = HB.family().panel.birthdays || [], box = root.querySelector("#ssBList");
+      root.querySelector("#ssBCount").textContent = all.length ? "· " + all.length : "";
+      // soonest first
+      var order = HB.nextBirthdays(400).map(function (x) { return x; });
+      box.innerHTML = order.length ? order.map(function (x) {
+        var b = x.b, i = all.indexOf(b);
+        var when = MONTHS[b.m - 1].slice(0, 3) + " " + b.d + (b.y ? " · turns " + x.turns : "") + (x.inDays === 0 ? " · today!" : x.inDays === 1 ? " · tomorrow" : " · in " + x.inDays + " days");
+        return '<div class="qitem"><div><div class="qt">' + HB.esc(b.name) + '</div><div class="qb">' + HB.esc(when) + '</div></div>' +
+          '<button type="button" class="x ed-only" data-i="' + i + '" aria-label="Remove ' + HB.esc(b.name) + '">' + X + '</button></div>';
+      }).join("") : '<div class="qnone">No birthdays yet. The screensaver shows each one for the 30 days before.</div>';
+    }
+    root.querySelector("#ssBAdd").addEventListener("click", function () {
+      var n = root.querySelector("#ssBName"), m = +root.querySelector("#ssBM").value, d = +root.querySelector("#ssBD").value, yIn = root.querySelector("#ssBY");
+      var name = n.value.trim(), y = +yIn.value.trim() || 0, thisYear = new Date().getFullYear();
+      if (!name) { n.focus(); return; }
+      if (yIn.value.trim() && !(y >= 1900 && y <= thisYear)) { toast("The year should look like 2019."); yIn.focus(); return; }
+      if (new Date(2024, m - 1, d).getMonth() !== m - 1) { toast(MONTHS[m - 1] + " doesn’t have a " + d + "."); return; }
+      HB.setPanel({ birthdays: (HB.family().panel.birthdays || []).concat([{ name: name, m: m, d: d, y: y }]) });
+      n.value = ""; yIn.value = ""; paintBirthdays(); toast("Added " + name + "’s birthday.");
+    });
+    root.querySelector("#ssBList").addEventListener("click", function (e) {
+      var b = e.target.closest(".x"); if (!b || HB.viewer) return;
+      var list = (HB.family().panel.birthdays || []).slice(), it = list[+b.dataset.i]; if (!it) return;
+      if (!confirm("Remove " + it.name + "’s birthday?")) return;
+      list.splice(+b.dataset.i, 1); HB.setPanel({ birthdays: list }); paintBirthdays();
     });
 
     // ---- photos ----
