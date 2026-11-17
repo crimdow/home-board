@@ -674,7 +674,7 @@
     }
   ],
   "room_modes": {
-    "name": "Girls’ rooms",
+    "name": "Bedtime",
     "entity": "input_select.girls_rooms_mode",
     "script": "script.girls_rooms"
   }
