@@ -316,7 +316,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
       HB.setPanel({ quotes: list }); paintQuotes();
     });
 
-    // ---- birthdays (shown on the screensaver from 30 days before) ----
+    // ---- birthdays (a pill on the screensaver on the day) ----
     function paintBirthdays() {
       var all = HB.family().panel.birthdays || [], box = root.querySelector("#ssBList");
       root.querySelector("#ssBCount").textContent = all.length ? "· " + all.length : "";
@@ -327,7 +327,7 @@ body.viewonly #pg-screensaver .chips, body.viewonly #pg-screensaver .sw { pointe
         var when = MONTHS[b.m - 1].slice(0, 3) + " " + b.d + (b.y ? " · turns " + x.turns : "") + (x.inDays === 0 ? " · today!" : x.inDays === 1 ? " · tomorrow" : " · in " + x.inDays + " days");
         return '<div class="qitem"><div><div class="qt">' + HB.esc(b.name) + '</div><div class="qb">' + HB.esc(when) + '</div></div>' +
           '<button type="button" class="x ed-only" data-i="' + i + '" aria-label="Remove ' + HB.esc(b.name) + '">' + X + '</button></div>';
-      }).join("") : '<div class="qnone">No birthdays yet. The screensaver shows each one for the 30 days before.</div>';
+      }).join("") : '<div class="qnone">No birthdays yet. The screensaver wishes each one a happy birthday on the day.</div>';
     }
     root.querySelector("#ssBAdd").addEventListener("click", function () {
       var n = root.querySelector("#ssBName"), m = +root.querySelector("#ssBM").value, d = +root.querySelector("#ssBD").value, yIn = root.querySelector("#ssBY");

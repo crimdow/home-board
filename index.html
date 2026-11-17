@@ -703,18 +703,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 /* Christmas countdown, November 1 to Christmas Day */
 .saver .ss-xmas { padding: 1.1vh 3.4vw 1.1vh 1.1vh; border-radius: 999px; display: flex; align-items: center; gap: 2vw; }
 .saver .ss-xmas[hidden] { display: none; }
-/* birthdays: today's in gold, the next few below */
-.saver .ss-bday { align-self: stretch; padding: 2.2vh 4vw; display: flex; flex-direction: column; gap: 1.4vh; }
+/* birthdays: a gold pill for each one on the day itself */
+.saver .ss-bday { display: flex; flex-direction: column; align-items: flex-end; gap: 1.2vh; }
 .saver .ss-bday[hidden] { display: none; }
-.saver .ss-bday h3 { margin: 0; font-size: min(2.6vw, 1.8vh); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
-.saver .ss-bday .bd { display: flex; align-items: center; gap: 2.4vw; }
-.saver .ss-bday .bd i { flex: none; width: min(8vw, 5.4vh); height: min(8vw, 5.4vh); border-radius: 50%; display: grid; place-items: center; background: #d45b6c; }
-.saver .ss-bday .bd i svg { width: 60%; height: 60%; fill: #fff; }
-.saver .ss-bday .bd b { font-size: min(3.2vw, 2.2vh); font-weight: 800; }
-.saver .ss-bday .bd span { display: block; font-size: min(2.6vw, 1.8vh); font-weight: 700; opacity: .8; margin-top: .2vh; }
-.saver .ss-bday .bd.today { background: rgba(255, 205, 80, .22); border-radius: 18px; padding: 1vh 1.4vw; margin: 0 -1.4vw; }
-.saver .ss-bday .bd.today i { background: #e2a72e; }
-.saver .ss-bday .bd.today b { font-size: min(4vw, 2.8vh); }
+.saver .ss-bday .ss-glass { padding: 1.1vh 3.4vw 1.1vh 1.1vh; border-radius: 999px; display: flex; align-items: center; gap: 2vw; }
+.saver .ss-bday i { flex: none; width: min(8vw, 5.4vh); height: min(8vw, 5.4vh); border-radius: 50%; display: grid; place-items: center; background: #e2a72e; }
+.saver .ss-bday i svg { width: 60%; height: 60%; fill: #fff; }
+.saver .ss-bday b { font-size: min(4.4vw, 3vh); font-weight: 800; line-height: 1.1; }
+.saver .ss-bday span { font-size: min(3.2vw, 2.2vh); font-weight: 700; opacity: .85; }
 .saver .ss-xmas i { flex: none; width: min(8vw, 5.4vh); height: min(8vw, 5.4vh); border-radius: 50%; display: grid; place-items: center; background: #3f9a66; }
 .saver .ss-xmas i svg { width: 62%; height: 62%; fill: #fff; }
 .saver .ss-xmas b { font-size: min(5.5vw, 3.6vh); font-weight: 800; line-height: 1; }
@@ -834,8 +830,8 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     </div>
     <div class="ss-bottom">
       <div class="ss-alerts" hidden></div>
+      <div class="ss-bday" hidden></div>
       <div class="ss-pills"><div class="ss-glass ss-xmas" hidden></div><div class="ss-glass ss-wx"></div></div>
-      <div class="ss-glass ss-bday" hidden></div>
       <div class="ss-glass ss-day" hidden></div>
     </div>
   </div>
@@ -871,7 +867,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-16c";
+  var VERSION = "2026-11-16d";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1904,20 +1900,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (wx.hidden !== !c) wx.hidden = !c;
     }
     // the day card: who's on drop off / pick up / dinner, and the note. Today until 3 pm, then tomorrow.
-    // birthdays: today's, then any in the next 30 days (up to 4 in all)
+    // birthdays: a pill for each one on the day itself ("Happy birthday, Stella!" · "Turns 7")
     var CAKE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 1.2 1.5 2.1 1.5 2.8a1.5 1.5 0 0 1-3 0c0-.7.5-1.6 1.5-2.8zM11 7.5h2v3h-2zM5 11.5h14a1.5 1.5 0 0 1 1.5 1.5v2.2c-1 .9-2 .9-3 0-1 .9-2 .9-3 0-1 .9-2 .9-3 0-1 .9-2 .9-3 0-1 .9-2 .9-3 0V13A1.5 1.5 0 0 1 5 11.5zM3.5 17.4c1.3.6 2.5.5 3.5-.1 1 .7 2.2.7 3.2 0 .7.5 1.3.6 1.8.6s1.1-.1 1.8-.6c1 .7 2.2.7 3.2 0 1 .6 2.2.7 3.5.1v2.1a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/></svg>';
     function paintBirthdays() {
-      var card = el.querySelector(".ss-bday"), list = HB.nextBirthdays(30).slice(0, 4);
-      setHtml(card, !list.length ? "" : '<h3>Birthdays</h3>' + list.map(function (x) {
-        // today: "Happy birthday, Stella!" / "Turns 7 today"; later: "Grandma" / "Turns 70 · Dec 3 · in 17 days"
-        var title = x.inDays === 0 ? "Happy birthday, " + x.b.name + "!" : x.b.name;
-        var bits = [];
-        if (x.turns) bits.push("Turns " + x.turns + (x.inDays === 0 ? " today" : ""));
-        if (x.inDays === 1) bits.push("Tomorrow");
-        else if (x.inDays > 1) bits.push(MONTHS[x.date.getMonth()].slice(0, 3) + " " + x.date.getDate() + " · in " + x.inDays + " days");
-        return '<div class="bd' + (x.inDays === 0 ? " today" : "") + '"><i>' + CAKE + '</i><div><b>' + esc(title) + '</b>' + (bits.length ? '<span>' + esc(bits.join(" · ")) + '</span>' : '') + '</div></div>';
+      var box = el.querySelector(".ss-bday"), list = HB.nextBirthdays(0);
+      setHtml(box, list.map(function (x) {
+        return '<div class="ss-glass"><i>' + CAKE + '</i><b>Happy birthday, ' + esc(x.b.name) + '!</b>' + (x.turns ? '<span>Turns ' + x.turns + '</span>' : '') + '</div>';
       }).join(""));
-      if (card.hidden !== !list.length) card.hidden = !list.length;
+      if (box.hidden !== !list.length) box.hidden = !list.length;
     }
     function paintDay() {
       paintBirthdays();
