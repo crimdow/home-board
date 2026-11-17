@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.35.1";
+  var VERSION = "1.35.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -521,7 +521,7 @@
         '<div class="turn">' + icon("mdi:phone-rotate-portrait", 64) + "<span>Turn your phone upright</span></div>";
       this._lastRoute = r.join("/");
       var sc = this.shadowRoot.querySelector(".scroll"); if (sc) sc.scrollTop = top;
-      this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var old = cams[im.dataset.cam]; if (old) im.replaceWith(old); else this._camSrc[im.dataset.cam] = im.getAttribute("src"); });
+      this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { var old = cams[im.dataset.cam]; if (old) { im.replaceWith(old); if (old.complete && !old.naturalWidth && old.parentNode.classList.contains("roomcam")) old.parentNode.classList.add("nocam"); } else this._camSrc[im.dataset.cam] = im.getAttribute("src"); });
     }
 
     _head(title, back, right) {
@@ -809,7 +809,7 @@
       if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
       // camera: a still under the room's controls (e.g. the Nanit in the girls' rooms), with a reload button like the garage
       var rc = r.camera && this._s(r.camera);
-      if (rc && rc.attributes.entity_picture) out.push('<div class="card roomcam"><img class="cam" data-cam="' + esc(r.camera) + '" src="' + esc(this._camSrc[r.camera] || rc.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(r.name) + ' camera">' +
+      if (rc && rc.attributes.entity_picture) out.push('<div class="card roomcam"><img class="cam" onerror="this.parentNode&&this.parentNode.classList.add(\'nocam\')" onload="this.parentNode&&this.parentNode.classList.remove(\'nocam\')" data-cam="' + esc(r.camera) + '" src="' + esc(this._camSrc[r.camera] || rc.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(r.name) + ' camera">' +
         '<button class="bulb camreload" data-camreload="' + esc(r.camera) + '" aria-label="Reload the camera picture">' + icon("mdi:refresh", 32) + "</button></div>");
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
@@ -1093,8 +1093,8 @@
         if (!cs || !cs.attributes.entity_picture || !im) return;
         var url = cs.attributes.entity_picture + "&t=" + Date.now(), pre = new Image();
         b.classList.add("spin");
-        pre.onload = () => { im.src = url; this._camSrc[ds.camreload] = url; b.classList.remove("spin"); };
-        pre.onerror = () => b.classList.remove("spin");
+        pre.onload = () => { im.src = url; this._camSrc[ds.camreload] = url; b.classList.remove("spin"); if (im.parentNode) im.parentNode.classList.remove("nocam"); };
+        pre.onerror = () => { b.classList.remove("spin"); if (im.parentNode && im.parentNode.classList.contains("roomcam")) im.parentNode.classList.add("nocam"); };
         pre.src = url; return;
       }
       if (ds.armtoggle) { this._call("input_boolean", "toggle", { entity_id: ds.armtoggle }); return; }
@@ -1462,7 +1462,9 @@ ha-icon { display: flex; }
 .doors .card.door { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 .card.roomcam { position: relative; padding: 0; overflow: hidden; }
 .roomcam .cam { aspect-ratio: 16 / 9; border-radius: 0; }
-.roomcam .camreload { position: absolute; top: 14px; right: 14px; background: rgba(20, 20, 24, .5); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.roomcam.nocam .cam { visibility: hidden; }
+.roomcam.nocam::after { content: "Camera isn't available right now"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 20px; font-weight: 750; pointer-events: none; }
+.roomcam .camreload { z-index: 1; position: absolute; top: 14px; right: 14px; background: rgba(20, 20, 24, .5); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .campane { position: relative; flex: 1; min-height: 140px; border-radius: 20px; overflow: hidden; background: var(--chip); }
 .campane .cam { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
 .campane .warn { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 1; }
