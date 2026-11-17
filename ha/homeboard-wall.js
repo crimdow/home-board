@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.41.0";
+  var VERSION = "1.42.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -650,7 +650,14 @@
       // White noise
       if (c.noise) {
         var playing = c.noise.filter((x) => { var s = this._s(x.player); return s && s.state === "playing"; }).map(function (x) { return x.name; });
-        tiles.push(this._bigTile("noise", "White noise", playing.length ? playing.join(" & ") + " on" : "All off", "mdi:waveform", C.violet, playing.length > 0));
+        var hatch = { go: "noise", name: "Hatch", line: playing.length ? playing.join(" & ") + " on" : "All off", ic: "mdi:waveform", color: C.violet, active: playing.length > 0 };
+        // the girls' rooms, one tile: Hatch (white noise) beside Nanit (their cameras, and Bedtime modes)
+        if (this._cams().length) {
+          var rm = c.room_modes, mode = rm && this._s(rm.entity) ? this._modeShown(rm.entity) : "";
+          var nanit = { go: "cams", name: "Nanit", line: mode === "Sleep" ? "Sleep mode" : mode === "Wake up" ? "Wake up" : "Cameras",
+            ic: "mdi:cctv", color: C.violet, active: mode === "Sleep" || mode === "Wake up" };
+          tiles.push(this._splitTile([hatch, nanit]));
+        } else tiles.push(this._bigTile(hatch.go, "White noise", hatch.line, hatch.ic, hatch.color, hatch.active));
       }
       // Music
       if (c.music && c.music.tile !== false) {
@@ -664,6 +671,12 @@
         icon(armed ? "mdi:shield-check" : "mdi:shield-outline", 30) + "</span>" + (armed ? "Armed" : "Disarmed") + "</button>" : "";
       return '<div class="page home">' + this._head(c.title || "Home", null, shield) + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div>" +
         this._statusGrid() + "</div>";
+    }
+    _splitTile(parts) {   // one home tile with two halves, each opening its own page
+      return '<div class="big split">' + parts.map(function (x) {
+        return '<div role="button" tabindex="0" class="half" data-go="' + x.go + '"><span class="ic" style="background:' + (x.active ? x.color : "var(--chip)") + ";color:" + (x.active ? "#fff" : x.color) + '">' + icon(x.ic, 46) + "</span>" +
+          '<span class="words"><b>' + esc(x.name) + "</b><i>" + esc(x.line) + "</i></span></div>";
+      }).join("") + "</div>";
     }
     _bigTile(go, name, line, ic, color, active, big, warn) {
       return '<div role="button" tabindex="0" class="big' + (warn ? " hot" : "") + '" data-go="' + go + '">' +
@@ -748,7 +761,7 @@
     // then fridge and oven with the next door beside them (and any more doors after). Each row gets an equal share
     // of the height; the big tiles get the rest.
     _statusGrid() {
-      var doors = this._doorRow(), cells = doors.slice(0, 3).concat(this._applianceRow(), this._kitchenRow(), this._camsPill(), doors.slice(3));
+      var doors = this._doorRow(), cells = doors.slice(0, 3).concat(this._applianceRow(), this._kitchenRow(), doors.slice(3));
       if (!cells.length) return "";
       var rows = Math.ceil(cells.length / 3);
       return '<div class="rows" style="flex-grow:' + (rows * 0.4).toFixed(2) + '"><div class="pills p3 grid">' + cells.join("") + "</div></div>";
@@ -1401,6 +1414,13 @@ ha-icon { display: flex; }
 /* Home */
 .big { cursor: pointer; background: var(--card); border-radius: 32px; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; position: relative; min-height: 260px; transition: transform .12s; }
 .big .ic { width: 112px; height: 112px; border-radius: 56px; display: flex; align-items: center; justify-content: center; }
+.big.split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); align-items: stretch; padding: 0; cursor: default; }
+.big.split .half { position: relative; min-width: 0; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 32px; }
+.big.split .half + .half::before { content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 2px; border-radius: 1px; background: var(--bg); }
+.big.split .half:active { transform: scale(.97); }
+.big.split .ic { width: 88px; height: 88px; border-radius: 44px; }
+.page.home .grid2 .big.split { padding: 0; }
+.page.home .grid2 .big.split .half { justify-content: center; gap: 22px; padding: 26px 26px; }
 .big .words { flex: none; display: flex; flex-direction: column; gap: 6px; max-width: 100%; }   /* a long line wraps inside the tile */
 .big .words i { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
 .big b { font-size: 40px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
@@ -1694,6 +1714,9 @@ ha-icon { display: flex; }
 :host([narrow]) .big { padding: 14px; border-radius: 20px; min-height: 0; }
 :host([narrow]) .big .ic { width: 46px; height: 46px; }
 :host([narrow]) .big .ic ha-icon { --mdc-icon-size: 26px !important; }
+:host([narrow]) .page.home .grid2 .big.split { padding: 0; }
+:host([narrow]) .page.home .grid2 .big.split .half { padding: 14px 12px 16px; gap: 10px; justify-content: flex-start; }
+:host([narrow]) .big.split .half + .half::before { width: 1.5px; }
 :host([narrow]) .big b { font-size: 18px; }
 :host([narrow]) .big i { font-size: 13px; }
 :host([narrow]) .gtile .gdoors { gap: 8px; }
