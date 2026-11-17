@@ -672,5 +672,10 @@
       "name": "Evie",
       "entity": "camera.evalyn_s_room_nanit_evie_camera"
     }
-  ]
+  ],
+  "room_modes": {
+    "name": "Girls’ rooms",
+    "entity": "input_select.girls_rooms_mode",
+    "script": "script.girls_rooms"
+  }
 }

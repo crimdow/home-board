@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.39.0";
+  var VERSION = "1.40.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -21,6 +21,11 @@
     { name: "Purple", c: ["#b05cff", "#6a00f4"], rgb: [140, 0, 255] },
     { name: "Blue", c: ["#36a3ff", "#0047ff"], rgb: [0, 80, 255] },
     { name: "Green", c: ["#3cf07a", "#00a83e"], rgb: [0, 255, 0] }
+  ];
+  var MODES = [   // the girls' rooms
+    { v: "Sleep", l: "Sleep", i: "mdi:weather-night", cls: "sleep" },
+    { v: "Wake up", l: "Wake", i: "mdi:weather-sunny", cls: "wake" },
+    { v: "All off", l: "Off", i: "mdi:power", cls: "off" }
   ];
   var HATCH_COLORS = [   // bright, saturated presets for the Hatch light
     { name: "Red", c: ["#ff3b4f", "#c4001d"], rgb: [255, 0, 0] },
@@ -309,6 +314,7 @@
       this._rooms().forEach((r) => { this._pairBulbs(r).forEach(function (x) { ids.push(x.entity); }); });
       (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); });
       if (c.armed) ids.push(c.armed);
+      if (c.room_modes) ids.push(c.room_modes.entity);
       (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); ["setpoint", "temperature", "job"].forEach(function (f) { if (k[f]) ids.push(k[f]); }); });
       return ids;
     }
@@ -1038,25 +1044,23 @@
         esc(list.map(function (c) { return c.name; }).join(" & ")) + "</i></span></button>"];
     }
     _camsPage() {
-      var list = this._cams(), out = [];
+      var list = this._cams(), out = [], m = this._config.room_modes;
+      // Sleep · Wake up · All off for the girls' rooms (Home Assistant's "Girls' rooms" script does the work)
+      if (m && this._s(m.entity)) {
+        var cur = this._modeShown(m.entity);
+        out.push('<div class="camtools"><div class="card modecard"><span class="mlabel">' + esc(m.name || "Girls’ rooms") + '</span><div class="modeseg">' +
+          MODES.map(function (x) { return '<button class="' + x.cls + (cur === x.v ? " on" : "") + '" data-mode="' + esc(x.v) + '">' + icon(x.i, 26) + "<span>" + esc(x.l) + "</span></button>"; }).join("") +
+          "</div></div></div>");
+      }
       list.forEach((c) => {
         out.push('<div class="card roomcam"><span class="camname">' + esc(c.name) + '</span><slot name="' + this._liveSlot(c.entity) + '"></slot>' +
           '<button class="bulb camreload" data-livereload="' + esc(c.entity) + '" aria-label="Restart ' + esc(c.name) + '’s camera">' + icon("mdi:refresh", 32) + "</button></div>");
       });
-      var woke = this._woke && Date.now() - this._woke < 4000;
-      out.push('<button class="card wakebtn' + (woke ? " done" : "") + '" data-wake="1"><span class="ic">' + icon(woke ? "mdi:check" : "mdi:weather-sunny", 40) + '</span>' +
-        '<span class="words"><b>' + (woke ? "Good morning!" : "Wake up") + '</b><i>Hatch lights green · white noise off</i></span></button>');
       return '<div class="page cams">' + this._head("Cameras", "home") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
-    _wake() {   // the girls' Hatches: light to the morning colour (keeping its brightness), sound off
-      var w = this._config.wake || {}, rgb = w.color || [0, 255, 60];
-      var names = w.noise || this._cams().map(function (c) { return c.name; });   // which Hatches: by name, the cameras' names by default
-      (this._config.noise || []).filter(function (n) { return names.indexOf(n.name) >= 0; }).forEach((n) => {
-        if (n.light && this._s(n.light)) this._setHatch(n.light, rgb);
-        if (n.player && this._s(n.player)) this._call("media_player", "media_stop", { entity_id: n.player });
-      });
-      this._woke = Date.now(); this._sig = ""; this._render();
-      setTimeout(() => { if (this._route[0] === "cams") { this._sig = ""; this._render(); } }, 4100);
+    _modeShown(id) {   // a mode just tapped shows straight away, until Home Assistant catches up
+      var o = this._modeOpt; if (o && o.id === id && Date.now() < o.until) return o.v;
+      var st = this._s(id); return st ? st.state : "";
     }
     _noisePage() {   // one screen: each bedroom's Hatch side by side (stacked on a phone)
       var out = (this._config.noise || []).map((n, i) => this._noiseCard(n, i));
@@ -1215,7 +1219,13 @@
         pre.onerror = () => { b.classList.remove("spin"); if (im.parentNode && im.parentNode.classList.contains("roomcam")) im.parentNode.classList.add("nocam"); };
         pre.src = url; return;
       }
-      if (ds.wake) { this._haptic("medium"); this._wake(); return; }
+      if (ds.mode) {
+        var rm = c.room_modes; if (!rm) return;
+        this._haptic("medium");
+        this._modeOpt = { id: rm.entity, v: ds.mode, until: Date.now() + 8000 };
+        this._call("script", "turn_on", { entity_id: rm.script, variables: { mode: ds.mode } });
+        this._sig = ""; this._render(); return;
+      }
       if (ds.armtoggle) { this._call("input_boolean", "toggle", { entity_id: ds.armtoggle }); return; }
       if (ds.applianceclear) { this._call("input_select", "select_option", { entity_id: ds.applianceclear, option: "Idle" }); return; }
       if (ds.hcolor) { this._setHatch(ds.ids, HATCH_COLORS[+ds.hcolor].rgb); return; }
@@ -1581,12 +1591,17 @@ ha-icon { display: flex; }
 .doors .card.door { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 .roomcam .camname { position: absolute; top: 14px; left: 14px; z-index: 1; padding: 6px 14px; border-radius: 999px; background: rgba(20, 20, 24, .5); color: #fff; font-size: 18px; font-weight: 800; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .pill2.cams .c { background: ${C.violet}; color: #fff; }
-.wakebtn { flex-direction: row !important; align-items: center; gap: 18px; text-align: left; border: 0; font: inherit; color: var(--ink); cursor: pointer; }
-.wakebtn .ic { width: 72px; height: 72px; border-radius: 36px; display: flex; align-items: center; justify-content: center; background: ${C.green}; color: #fff; flex: none; }
-.wakebtn .words { display: flex; flex-direction: column; }
-.wakebtn b { font-size: 28px; font-weight: 800; } .wakebtn i { font-style: normal; font-size: 17px; font-weight: 700; color: var(--muted); }
-.wakebtn:active { transform: scale(.98); }
-.wakebtn.done b { color: ${C.green}; }
+.camtools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.modecard { padding: 14px 16px 16px; gap: 10px; }
+.modecard .mlabel { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.modeseg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; background: var(--chip); border-radius: 16px; padding: 4px; }
+.modeseg button { border: 0; background: none; color: var(--muted); font: inherit; border-radius: 12px; padding: 14px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; min-width: 0; }
+.modeseg button span { font-size: 18px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.modeseg button.on { color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.modeseg button.sleep.on { background: ${C.violet}; }
+.modeseg button.wake.on { background: ${C.green}; }
+.modeseg button.off.on { background: var(--ink); color: var(--bg); }
+.modeseg button:active { transform: scale(.96); }
 .card.roomcam { position: relative; padding: 0; overflow: hidden; }
 .roomcam .cam { aspect-ratio: 16 / 9; border-radius: 0; }
 .roomcam slot { display: block; }
@@ -1791,7 +1806,9 @@ ha-icon { display: flex; }
 :host([narrow]) .doors .card.door { padding: 10px; gap: 8px; }
 :host([narrow]) .card.roomcam { padding: 0; }
 :host([narrow]) .roomcam .camname { top: 10px; left: 10px; font-size: 15px; padding: 4px 11px; }
-:host([narrow]) .wakebtn .ic { width: 52px; height: 52px; } :host([narrow]) .wakebtn b { font-size: 22px; } :host([narrow]) .wakebtn i { font-size: 14px; }
+:host([narrow]) .camtools { gap: 10px; }
+:host([narrow]) .modecard { padding: 10px 12px 12px; gap: 8px; } :host([narrow]) .modecard .mlabel { font-size: 12px; }
+:host([narrow]) .modeseg button { padding: 8px 2px 6px; } :host([narrow]) .modeseg button span { font-size: 13px; }
 :host([narrow]) .roomcam .camreload { top: 10px; right: 10px; }
 :host([narrow]) .campane { min-height: 110px; border-radius: 14px; }
 :host([narrow]) .doorrow .pill { min-width: 90px; }
