@@ -699,6 +699,14 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 .saver.np .ss-clock { padding: 1.8vh 3vw; }
 .saver.np .ss-clock b { font-size: min(10vw, 7.2vh); }
 .saver.np .ss-wd { font-size: min(5vw, 3.6vh); }
+.saver .ss-pills { display: flex; align-items: center; justify-content: flex-end; gap: 2vw; }
+/* Christmas countdown, November 1 to Christmas Day */
+.saver .ss-xmas { padding: 1.1vh 3.4vw 1.1vh 1.1vh; border-radius: 999px; display: flex; align-items: center; gap: 2vw; }
+.saver .ss-xmas[hidden] { display: none; }
+.saver .ss-xmas i { flex: none; width: min(8vw, 5.4vh); height: min(8vw, 5.4vh); border-radius: 50%; display: grid; place-items: center; background: #3f9a66; }
+.saver .ss-xmas i svg { width: 62%; height: 62%; fill: #fff; }
+.saver .ss-xmas b { font-size: min(5.5vw, 3.6vh); font-weight: 800; line-height: 1; }
+.saver .ss-xmas span { font-size: min(3.2vw, 2.2vh); font-weight: 700; opacity: .85; margin-left: -.6vw; }
 .saver .ss-wx { padding: 1.4vh 3vw 1.4vh 2.2vw; border-radius: 999px; display: flex; align-items: center; gap: 1vw; }
 .saver .ss-wx[hidden], .saver .ss-day[hidden], .saver .ss-info[hidden] { display: none; }
 .saver .ss-wx svg { width: min(6vw, 4vh); height: min(6vw, 4vh); }
@@ -814,7 +822,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
     </div>
     <div class="ss-bottom">
       <div class="ss-alerts" hidden></div>
-      <div class="ss-glass ss-wx"></div>
+      <div class="ss-pills"><div class="ss-glass ss-xmas" hidden></div><div class="ss-glass ss-wx"></div></div>
       <div class="ss-glass ss-day" hidden></div>
     </div>
   </div>
@@ -850,7 +858,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-14a";
+  var VERSION = "2026-11-16a";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js
@@ -1859,6 +1867,12 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
       if (wd.style.getPropertyValue("--wd") !== WEEKDAY_COLORS[d.getDay()]) wd.style.setProperty("--wd", WEEKDAY_COLORS[d.getDay()]);
       setHtml(el.querySelector(".ss-clock span"), MONTHS[d.getMonth()] + " " + d.getDate());
       fitClock();
+      // Christmas countdown: from November 1, in days ("Merry Christmas!" on the day)
+      var xm = el.querySelector(".ss-xmas"), today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      var left = Math.round((new Date(d.getFullYear(), 11, 25) - today) / 86400000), showX = d.getMonth() >= 10 && left >= 0;
+      setHtml(xm, !showX ? "" : '<i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.6 5.2h-2l4 5.3h-2.2l4.6 6H14v3.5h-4V18.5H3.9l4.6-6H6.3l4-5.3h-2z"/></svg></i>' +
+        (left === 0 ? "<b>Merry Christmas!</b>" : "<b>" + left + (left === 1 ? " day" : " days") + "</b><span>until Christmas</span>"));
+      if (xm.hidden !== !showX) xm.hidden = !showX;
       var wx = el.querySelector(".ss-wx");
       setHtml(wx, c ? HB.wxIcon(c.weather_code, c.is_day) + "<b>" + Math.round(c.temperature_2m) + "°</b>" : "");
       if (wx.hidden !== !c) wx.hidden = !c;
