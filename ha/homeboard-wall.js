@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.36.3";
+  var VERSION = "1.37.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -555,9 +555,6 @@
         });
       });
     }
-    // The first player usually asks before Home Assistant has the camera's stream ready and then gives up; starting it
-    // again a few seconds later finds the stream running (what two taps on reload did by hand). So: restart at 3 s and
-    // 6 s unless the picture is already moving, then only if nothing moves for 20 s (a few times, longer each time).
     _streamReady(id) {
       var hass = this._hass;
       return hass.callWS({ type: "camera/stream", entity_id: id, format: "hls" }).then(function (r) {
@@ -591,6 +588,8 @@
       })(box);
       return found;
     }
+    // Backup, once the player is open: if the picture isn't moving after 3 s, start it again (twice), then only if
+    // nothing moves for 20 s (a few times, longer each time). The player opens only once the stream has video.
     _watchLive(id, box, tries) {
       setTimeout(() => {
         if (!this._live || this._live[id] !== box || !box.isConnected) return;   // left the page, or restarted by hand
