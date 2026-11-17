@@ -113,7 +113,8 @@
       ],
       "guard": true,
       "noise": "Stella",
-      "compact": true
+      "compact": true,
+      "camera": "camera.stella_s_room_nanit_stella_camera"
     },
     {
       "name": "Evie’s Room",
@@ -131,7 +132,8 @@
       ],
       "guard": true,
       "noise": "Evie",
-      "compact": true
+      "compact": true,
+      "camera": "camera.evalyn_s_room_nanit_evie_camera"
     },
     {
       "name": "Outside",

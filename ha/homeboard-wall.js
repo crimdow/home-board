@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.34.2";
+  var VERSION = "1.35.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -500,12 +500,12 @@
       this._sig = this._watched().map((id) => { var s = this._s(id); return s ? id + s.last_updated : id; }).join("|");
       this._paintLook();
       var r = this._route, body;
+      if (this._lastRoute !== r.join("/")) this._camSrc = {};   // camera pictures: a fresh one each time a page is opened, then it holds
       if (r[0] === "lights") body = this._lightsPage();
       else if (r[0] === "room") body = this._roomPage(this._rooms()[r[1]]);
       else if (r[0] === "bulb") body = this._bulbPage(this._rooms()[Math.floor(r[1] / 10)], r[1] % 10);
       else if (r[0] === "thermostat") body = this._thermoPage();
       else if (r[0] === "garage") {
-        if (this._lastRoute !== "garage") this._camSrc = {};   // a fresh picture each time the garage is opened, then it holds
         body = this._garagePage();
       }
       else if (r[0] === "noise") body = this._noisePage();
@@ -516,7 +516,7 @@
       var scroller = this.shadowRoot.querySelector(".scroll"), top = scroller && this._lastRoute === r.join("/") ? scroller.scrollTop : 0;
       // garage pictures already on screen are kept as they are through redraws (no reload, no flicker)
       var cams = {};
-      if (r[0] === "garage" && this._lastRoute === "garage") this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { cams[im.dataset.cam] = im; });
+      if (this._lastRoute === r.join("/")) this.shadowRoot.querySelectorAll("img.cam").forEach((im) => { cams[im.dataset.cam] = im; });
       this.shadowRoot.innerHTML = "<style>" + CSS + "</style>" + body + (this._sheet ? this._sheetHtml() : "") +
         '<div class="turn">' + icon("mdi:phone-rotate-portrait", 64) + "<span>Turn your phone upright</span></div>";
       this._lastRoute = r.join("/");
@@ -807,6 +807,10 @@
       if (scenesHtml && !r.quick) out.push(scenesHtml);
       var ni = (this._config.noise || []).findIndex(function (n) { return n.name === r.noise; });
       if (ni >= 0) out.push(this._noiseCard(this._config.noise[ni], ni, "Hatch").replace('class="card noise', 'class="card noise inroom'));
+      // camera: a still at the top of the room (e.g. the Nanit in the girls' rooms), with a reload button like the garage
+      var rc = r.camera && this._s(r.camera);
+      if (rc && rc.attributes.entity_picture) out.unshift('<div class="card roomcam"><img class="cam" data-cam="' + esc(r.camera) + '" src="' + esc(this._camSrc[r.camera] || rc.attributes.entity_picture + "&t=" + Date.now()) + '" alt="' + esc(r.name) + ' camera">' +
+        '<button class="bulb camreload" data-camreload="' + esc(r.camera) + '" aria-label="Reload the camera picture">' + icon("mdi:refresh", 32) + "</button></div>");
       return '<div class="page">' + this._head(r.name, "lights") + '<div class="scroll"><div class="stack">' + out.join("") + "</div></div></div>";
     }
     // one bulb from a room's pair, with everything a light card has
@@ -1456,6 +1460,9 @@ ha-icon { display: flex; }
 .gfill { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
 .doors { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
 .doors .card.door { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.card.roomcam { position: relative; padding: 0; overflow: hidden; }
+.roomcam .cam { aspect-ratio: 16 / 9; border-radius: 0; }
+.roomcam .camreload { position: absolute; top: 14px; right: 14px; background: rgba(20, 20, 24, .5); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .campane { position: relative; flex: 1; min-height: 140px; border-radius: 20px; overflow: hidden; background: var(--chip); }
 .campane .cam { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
 .campane .warn { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 1; }
@@ -1651,6 +1658,8 @@ ha-icon { display: flex; }
 :host([narrow]) .door .pill { padding: 10px 14px; }
 :host([narrow]) .doors { gap: 10px; }
 :host([narrow]) .doors .card.door { padding: 10px; gap: 8px; }
+:host([narrow]) .card.roomcam { padding: 0; }
+:host([narrow]) .roomcam .camreload { top: 10px; right: 10px; }
 :host([narrow]) .campane { min-height: 110px; border-radius: 14px; }
 :host([narrow]) .doorrow .pill { min-width: 90px; }
 :host(:not([full])[narrow]) .page.garage { height: var(--hb-avail); min-height: 0; }
