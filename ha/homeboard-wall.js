@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.43.0";
+  var VERSION = "1.43.1";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -768,8 +768,8 @@
       var doors = this._doorRow(), cells = this._applianceRow().concat(this._kitchenRow());
       if (!cells.length && !doors.length) return "";
       var rows = Math.ceil(cells.length / 3), drows = Math.ceil(doors.length / 4);
-      return '<div class="rows" style="flex-grow:' + ((rows + drows) * 0.4).toFixed(2) + '">' +
-        (doors.length ? '<div class="pills p4 grid doorrow4" style="--rows:' + drows + '">' + doors.join("") + "</div>" : "") +
+      return '<div class="rows" style="flex-grow:' + ((rows + drows * 0.6) * 0.4).toFixed(2) + '">' +
+        (doors.length ? '<div class="pills p4 grid doorrow4" style="--rows:' + (drows * 0.6) + '">' + doors.join("") + "</div>" : "") +
         (cells.length ? '<div class="pills p3 grid" style="--rows:' + rows + '">' + cells.join("") + "</div>" : "") + "</div>";
     }
     // Keep every pill's words inside the pill: shrink a line that doesn't fit (down to 70%), then trim it with "…".
@@ -1379,7 +1379,8 @@ ha-icon { display: flex; }
 .page.home .grid2.fill { flex: 1.15 1 0; min-height: 0; grid-auto-rows: 1fr; }
 .page.home .grid2 .big { min-height: 0; justify-content: center; gap: 22px; padding: 26px 32px; }
 .page.home .rows { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
-:host(:not([narrow])) .page.home .rows .pills { flex: var(--rows, 1) 1 0; min-height: 0; grid-auto-rows: 1fr; }
+:host(:not([narrow])) .page.home .rows .pills { flex: var(--rows, 1) 1 0; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+:host(:not([narrow])) .page.home .rows .pill2 { overflow: hidden; min-height: 0; }
 :host(:not([narrow])) .page.home .rows .pill2 { height: 100%; }
 .page.home .rows:empty { display: none; }
 :host(:not([narrow])) .page.home .rows .pill2 { border-radius: 28px; padding: 20px 22px; gap: 12px; flex-direction: column; align-items: flex-start; justify-content: center; }   /* text under the icon: the full width for words */
@@ -1387,6 +1388,18 @@ ha-icon { display: flex; }
 :host(:not([narrow])) .page.home .rows .pill2 .c ha-icon { --mdc-icon-size: 38px !important; }
 :host(:not([narrow])) .page.home .rows .pill2 b { font-size: 28px; }
 :host(:not([narrow])) .page.home .rows .pill2 i { font-size: 22px; }
+/* the panel's home page has to fit the doors row too: everything below the big tiles a little smaller */
+:host(:not([narrow])) .page.home .rows .pill2 { padding: 14px 18px; gap: 8px; }
+:host(:not([narrow])) .page.home .rows .pill2 .c { width: 56px; height: 56px; border-radius: 28px; }
+:host(:not([narrow])) .page.home .rows .pill2 .c ha-icon { --mdc-icon-size: 32px !important; }
+:host(:not([narrow])) .page.home .rows .pill2 b { font-size: 24px; }
+:host(:not([narrow])) .page.home .rows .pill2 i { font-size: 19px; }
+/* the doors: icon beside the words, one short row */
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 { flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 14px 10px 10px; gap: 10px; border-radius: 24px; }
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 .c { width: 48px; height: 48px; border-radius: 24px; }
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 .c ha-icon { --mdc-icon-size: 28px !important; }
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 b { font-size: 20px; }
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 i { font-size: 16px; }
 .pill2 { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 10px; border-radius: 999px; background: var(--card); min-width: 0; width: 100%; }
 .pill2 .c { flex: none; width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; background: var(--chip); color: var(--muted); }
 .pill2 .w { display: flex; flex-direction: column; min-width: 0; max-width: 100%; overflow: hidden; }
