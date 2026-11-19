@@ -677,5 +677,24 @@
     "name": "Bedtime modes",
     "entity": "input_select.girls_rooms_mode",
     "script": "script.girls_rooms"
-  }
+  },
+  "door_sensors": [
+    {
+      "name": "Front Door",
+      "entity": "binary_sensor.frontdoor"
+    },
+    {
+      "name": "Back Door",
+      "entity": "binary_sensor.backdoor"
+    },
+    {
+      "name": "Slider",
+      "entity": "binary_sensor.backslider",
+      "icon": "mdi:door-sliding"
+    },
+    {
+      "name": "Garage",
+      "entity": "binary_sensor.garageentry"
+    }
+  ]
 }
