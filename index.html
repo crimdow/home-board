@@ -643,7 +643,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
   appearance: none; border: 0; cursor: pointer; font: inherit; color: var(--ink); background: var(--sheet);
   height: 72px; border-radius: 36px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background-color .35s;
 }
-:root.panel .phead .pwx { padding: 0 24px 0 18px; font-size: 34px; font-weight: 800; }
+:root.panel .phead .pwx { display: none; }   /* no temperature up here: it squeezed the date, and the Weather button below has it */
 :root.panel .phead .pwx svg { width: 44px; height: 44px; }
 :root.panel .phead .plook { width: 72px; padding: 0; }
 /* the wall panel never shows scroll bars, and the page under the screensaver doesn't scroll */
@@ -867,7 +867,7 @@ body.joining #gateForm, body.homeless #gateForm, body:not(.joining) #joinForm, b
 <script>
 (function () {
   // Bump this whenever a page file changes, so phones fetch the new copy instead of an old saved one.
-  var VERSION = "2026-11-19a";
+  var VERSION = "2026-11-19b";
 
   // ---- database connection ----
   var db = window.supabase.createClient();   // PocketBase on this server, see pb-client.js

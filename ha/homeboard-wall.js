@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.43.1";
+  var VERSION = "1.43.2";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -768,8 +768,8 @@
       var doors = this._doorRow(), cells = this._applianceRow().concat(this._kitchenRow());
       if (!cells.length && !doors.length) return "";
       var rows = Math.ceil(cells.length / 3), drows = Math.ceil(doors.length / 4);
-      return '<div class="rows" style="flex-grow:' + ((rows + drows * 0.6) * 0.4).toFixed(2) + '">' +
-        (doors.length ? '<div class="pills p4 grid doorrow4" style="--rows:' + (drows * 0.6) + '">' + doors.join("") + "</div>" : "") +
+      return '<div class="rows" style="flex-grow:' + ((rows + drows * 0.85) * 0.4).toFixed(2) + '">' +
+        (doors.length ? '<div class="pills p4 grid doorrow4" style="--rows:' + (drows * 0.85) + '">' + doors.join("") + "</div>" : "") +
         (cells.length ? '<div class="pills p3 grid" style="--rows:' + rows + '">' + cells.join("") + "</div>" : "") + "</div>";
     }
     // Keep every pill's words inside the pill: shrink a line that doesn't fit (down to 70%), then trim it with "…".
@@ -1394,10 +1394,10 @@ ha-icon { display: flex; }
 :host(:not([narrow])) .page.home .rows .pill2 .c ha-icon { --mdc-icon-size: 32px !important; }
 :host(:not([narrow])) .page.home .rows .pill2 b { font-size: 24px; }
 :host(:not([narrow])) .page.home .rows .pill2 i { font-size: 19px; }
-/* the doors: icon beside the words, one short row */
-:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 { flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 14px 10px 10px; gap: 10px; border-radius: 24px; }
-:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 .c { width: 48px; height: 48px; border-radius: 24px; }
-:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 .c ha-icon { --mdc-icon-size: 28px !important; }
+/* the doors: a small icon over the name, so the whole width is there for the words */
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 { flex-direction: column; align-items: flex-start; justify-content: center; padding: 10px 14px; gap: 6px; border-radius: 24px; }
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 .c { width: 40px; height: 40px; border-radius: 20px; }
+:host(:not([narrow])) .page.home .rows .doorrow4 .pill2 .c ha-icon { --mdc-icon-size: 24px !important; }
 :host(:not([narrow])) .page.home .rows .doorrow4 .pill2 b { font-size: 20px; }
 :host(:not([narrow])) .page.home .rows .doorrow4 .pill2 i { font-size: 16px; }
 .pill2 { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 10px; border-radius: 999px; background: var(--card); min-width: 0; width: 100%; }
