@@ -6,7 +6,7 @@
    Lives at /config/www/homeboard-wall.js and is loaded as the dashboard resource /local/homeboard-wall.js?v=N. */
 (function () {
   "use strict";
-  var VERSION = "1.42.1";
+  var VERSION = "1.43.0";
   var CLASSIC = {
     light: { bg: "#e4e5e8", ink: "#2b2e33", muted: "#7a7f88", chip: "#d5d7db", sheet: "#eeeff1", field: "#d9dbdf", hair: "#d0d2d6", accent: "#4f7bd4", onAccent: "#ffffff" },
     dark: { bg: "#1d1e22", ink: "#e4e4e2", muted: "#8b9098", chip: "#2a2b30", sheet: "#25262b", field: "#26272c", hair: "#2c2d32", accent: "#5f86d6", onAccent: "#ffffff" }
@@ -315,7 +315,7 @@
       var sp = this._spotify(); if (sp) ids.push(sp);
       (c.appliances || []).forEach(function (x) { ids.push(x.entity); if (x.started) ids.push(x.started); });
       this._rooms().forEach((r) => { this._pairBulbs(r).forEach(function (x) { ids.push(x.entity); }); });
-      (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); });
+      (c.door_sensors || []).forEach(function (x) { ids.push(x.entity); if (x.tamper) ids.push(x.tamper); });
       if (c.armed) ids.push(c.armed);
       if (c.room_modes) ids.push(c.room_modes.entity);
       (c.kitchen || []).forEach(function (k) { (k.parts || []).forEach(function (x) { ids.push(x.entity); }); ["setpoint", "temperature", "job"].forEach(function (f) { if (k[f]) ids.push(k[f]); }); });
@@ -667,7 +667,8 @@
       }
       // the Armed button: grey "Disarmed" / green "Armed", one tap to switch (config: armed: input_boolean.…)
       var arm = c.armed && this._s(c.armed), armed = arm && arm.state === "on";
-      var shield = arm ? '<button class="shield' + (armed ? " on" : "") + '" data-armtoggle="' + esc(c.armed) + '" aria-label="' + (armed ? "Armed. Tap to disarm" : "Disarmed. Tap to arm") + '"><span class="c">' +
+      var breach = armed && (c.door_sensors || []).some((d) => this._on(d.entity));   // armed with a door open: the button goes red too
+      var shield = arm ? '<button class="shield' + (armed ? " on" : "") + (breach ? " breach" : "") + '" data-armtoggle="' + esc(c.armed) + '" aria-label="' + (armed ? "Armed. Tap to disarm" : "Disarmed. Tap to arm") + '"><span class="c">' +
         icon(armed ? "mdi:shield-check" : "mdi:shield-outline", 30) + "</span>" + (armed ? "Armed" : "Disarmed") + "</button>" : "";
       return '<div class="page home">' + this._head(c.title || "Home", null, shield) + '<div class="grid2 fill' + (tiles.length % 2 ? " odd" : "") + '">' + tiles.join("") + "</div>" +
         this._statusGrid() + "</div>";
@@ -710,12 +711,14 @@
         '<span class="words"><b>Garage</b><i>' + esc(line) + "</i></span></div>";
     }
     // Doors (contact sensors): grey closed, amber open, the whole pill red when one opens while the house is armed.
-    // config: door_sensors: [{ name, entity, icon }], armed: "input_boolean.house_armed"
+    // config: door_sensors: [{ name, entity, icon, tamper }], armed: "input_boolean.house_armed"
+    // closed: grey; open: amber with how long; open while armed: red; sensor pulled off (tamper): black
     _doorRow() {
       var list = (this._config.door_sensors || []).filter((d) => this._s(d.entity)); if (!list.length) return [];
       var armed = this._config.armed && this._on(this._config.armed);
       return list.map((d) => {
         var s = this._s(d.entity), open = s.state === "on", mins = Math.floor((Date.now() - new Date(s.last_changed)) / 60000);
+        if (d.tamper && this._on(d.tamper)) return this._pill("tamper", "mdi:alert-octagon", d.name, "Sensor off");   // pulled off its frame
         var cls = open ? (armed ? "alarm" : "open") : "";
         var ic = open ? (d.icon_open || (d.icon === "mdi:door-sliding" ? "mdi:door-sliding-open" : "mdi:door-open")) : (d.icon || "mdi:door-closed");
         return this._pill(cls, ic, d.name, open ? "Open" + (mins < 1 ? "" : " " + this._short(mins)) : "Closed");
@@ -761,10 +764,13 @@
     // then fridge and oven with the next door beside them (and any more doors after). Each row gets an equal share
     // of the height; the big tiles get the rest.
     _statusGrid() {
-      var doors = this._doorRow(), cells = doors.slice(0, 3).concat(this._applianceRow(), this._kitchenRow(), doors.slice(3));
-      if (!cells.length) return "";
-      var rows = Math.ceil(cells.length / 3);
-      return '<div class="rows" style="flex-grow:' + (rows * 0.4).toFixed(2) + '"><div class="pills p3 grid">' + cells.join("") + "</div></div>";
+      // the doors get a row of their own (four across), then washer / dryer / dishwasher and fridge / oven three across
+      var doors = this._doorRow(), cells = this._applianceRow().concat(this._kitchenRow());
+      if (!cells.length && !doors.length) return "";
+      var rows = Math.ceil(cells.length / 3), drows = Math.ceil(doors.length / 4);
+      return '<div class="rows" style="flex-grow:' + ((rows + drows) * 0.4).toFixed(2) + '">' +
+        (doors.length ? '<div class="pills p4 grid doorrow4" style="--rows:' + drows + '">' + doors.join("") + "</div>" : "") +
+        (cells.length ? '<div class="pills p3 grid" style="--rows:' + rows + '">' + cells.join("") + "</div>" : "") + "</div>";
     }
     // Keep every pill's words inside the pill: shrink a line that doesn't fit (down to 70%), then trim it with "…".
     // pill times are short and fixed in size: "5m", "45m", "2h", "2h 5m" (a status line stays 12 characters or fewer)
@@ -1363,6 +1369,7 @@ ha-icon { display: flex; }
 .head .shield .c { flex: none; width: 50px; height: 50px; border-radius: 25px; display: flex; align-items: center; justify-content: center; background: var(--chip); }
 .head .shield.on { background: ${C.green}; color: #fff; }
 .head .shield.on .c { background: rgba(255,255,255,.22); }
+.head .shield.breach { background: ${C.red}; }
 /* the slim rows under the home tiles: doors, then washer / dryer / dishwasher */
 .pills { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .pills.p4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -1372,7 +1379,7 @@ ha-icon { display: flex; }
 .page.home .grid2.fill { flex: 1.15 1 0; min-height: 0; grid-auto-rows: 1fr; }
 .page.home .grid2 .big { min-height: 0; justify-content: center; gap: 22px; padding: 26px 32px; }
 .page.home .rows { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
-:host(:not([narrow])) .page.home .rows .pills { flex: 1; min-height: 0; grid-auto-rows: 1fr; }
+:host(:not([narrow])) .page.home .rows .pills { flex: var(--rows, 1) 1 0; min-height: 0; grid-auto-rows: 1fr; }
 :host(:not([narrow])) .page.home .rows .pill2 { height: 100%; }
 .page.home .rows:empty { display: none; }
 :host(:not([narrow])) .page.home .rows .pill2 { border-radius: 28px; padding: 20px 22px; gap: 12px; flex-direction: column; align-items: flex-start; justify-content: center; }   /* text under the icon: the full width for words */
@@ -1393,6 +1400,7 @@ ha-icon { display: flex; }
 .pill2.dry .c { background: ${C.teal}; color: #fff; } .pill2.dry i { color: ${C.teal}; }
 .pill2.open .c { background: ${C.amber}; color: #fff; } .pill2.open i { color: ${C.amber}; }
 .pill2.hot .c { background: ${C.red}; color: #fff; } .pill2.hot i { color: ${C.red}; }
+.pill2.tamper { background: #141416; color: #fff; } .pill2.tamper .c { background: #e4e4e2; color: #141416; } .pill2.tamper i { color: #fff; }
 .pill2.alarm { background: ${C.red}; color: #fff; } .pill2.alarm .c { background: rgba(255,255,255,.25); color: #fff; } .pill2.alarm i { color: #fff; }
 
 /* Music */
