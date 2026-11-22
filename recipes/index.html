@@ -68,9 +68,9 @@ button{cursor:pointer}
 .search svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 .search input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:16px;color:var(--text)}
 .search input::placeholder{color:var(--muted)}
-.book{flex:1;min-height:0;display:flex}
+.book{flex:1;min-height:0;display:flex;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .page{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--page);box-shadow:var(--shadow)}
-.plist{flex:1;min-height:0;padding:0 14px calc(env(safe-area-inset-bottom,0px) + 110px) 16px}
+.plist{flex:1;min-height:0;padding:0 14px 96px 16px}
 .phead{flex:none;display:flex;align-items:baseline;gap:8px;margin:0 14px 0 16px;padding:18px 0 8px;border-bottom:2px solid var(--red)}
 .phead h1{margin:0;font-size:32px;font-weight:600;color:var(--ink);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .phead span{font-size:15px;font-weight:600;color:var(--muted)}
@@ -86,10 +86,10 @@ li.dragging .row{transition:none}
 .delbg{position:absolute;inset:0 0 0 auto;width:88px;border:0;background:var(--red);color:#fff;font-size:15px;font-weight:600}
 .empty{text-align:center;color:var(--muted);padding:56px 18px;font-size:16px;line-height:1.5}
 .empty b{display:block;color:var(--ink);font-size:19px;font-weight:600;margin-bottom:4px}
-.rail{width:28px;flex:none;border:0;background:transparent;padding:16px 0 calc(env(safe-area-inset-bottom,0px) + 20px);overflow:hidden;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.rail{width:28px;flex:none;border:0;background:transparent;padding:16px 0 6px;overflow:hidden;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
 .rail span{display:block;flex:0 1 52px;min-height:12px;width:14px;border-radius:0 6px 6px 0;box-shadow:1px 1px 3px rgba(0,0,0,.3);transition:width .2s}
 .rail span.on{width:22px}
-.fab{position:absolute;right:42px;bottom:calc(env(safe-area-inset-bottom,0px) + 26px);width:58px;height:58px;border:0;border-radius:29px;background:var(--red);display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:5}
+.fab{position:absolute;right:42px;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);width:58px;height:58px;border:0;border-radius:29px;background:var(--red);display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:5}
 .fab svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2.8;stroke-linecap:round}
 
 /* ---------- drawer of tabs (slides out from the right) ---------- */
@@ -121,7 +121,7 @@ li.dragging .row{transition:none}
 .bar .gap{flex:1}
 .back{display:flex;align-items:center;gap:4px;border:0;height:40px;border-radius:20px;padding:0 14px 0 10px;background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.18);color:var(--red);font-size:17px;font-weight:600}
 .back svg{width:10px;height:17px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.sheetpage{flex:1;min-height:0;margin:0 8px;background:var(--page);border-radius:16px 16px 0 0;box-shadow:var(--shadow);padding:22px 18px calc(env(safe-area-inset-bottom,0px) + 50px)}
+.sheetpage{flex:1;min-height:0;margin:0 8px calc(env(safe-area-inset-bottom,0px) + 14px);background:var(--page);border-radius:16px;box-shadow:var(--shadow);padding:22px 18px 50px}
 
 /* reader */
 .rtitle{border-top:1px solid var(--muted);border-bottom:1px solid var(--muted);padding:9px 0 7px}
