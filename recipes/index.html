@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Recipes">
+<meta name="theme-color" content="#f7f1e3">
+<title>Recipes</title>
+<link rel="manifest" href="manifest.webmanifest?v=1">
+<link rel="icon" href="favicon.ico?v=1" sizes="any">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=1">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&display=swap" rel="stylesheet">
+<script>
+// pick light or dark before anything paints (Light / Dark / Auto, like Home Board)
+(function(){
+  var m = ''; try{ m = localStorage.getItem('recipes-theme') || '' }catch(e){}
+  var dark = m === 'dark' || (m !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+})();
+</script>
+<style>
+:root{
+  --font:'Fraunces',Georgia,'Times New Roman',serif;
+  --cloth:#f7f1e3; --check:rgba(198,47,55,.42); --weave:rgba(90,50,30,.045);
+  --page:#fbf8f1; --ink:#1f2b5e; --text:#2a2622; --soft:#3a352f; --muted:#7a7f88; --hair:#e3dccd;
+  --field:#f1ebdd; --chip:#efe6d2; --red:#c62f37; --redsoft:#f5dede; --btn:#1f2b5e; --on-btn:#fbf8f1;
+  --shadow:0 2px 10px rgba(0,0,0,.22); --scrim:rgba(29,30,34,.38);
+  --fs:1;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --cloth:#2b1517; --check:rgba(168,44,52,.5); --weave:rgba(255,255,255,.03);
+  --page:#22263a; --ink:#ece5d3; --text:#e6e0d2; --soft:#d6cfbf; --muted:#9a9fb0; --hair:#343852;
+  --field:#2c3047; --chip:#2e3249; --red:#e5666c; --redsoft:#3d2730; --btn:#ece5d3; --on-btn:#22263a;
+  --shadow:0 2px 12px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%;background:var(--cloth)}
+body{margin:0;position:fixed;inset:0;overflow:hidden;font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.cloth{background-color:var(--cloth);background-image:
+  repeating-linear-gradient(0deg,var(--weave) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(90deg,var(--weave) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(45deg,var(--check) 0 18px,transparent 18px 36px),
+  repeating-linear-gradient(-45deg,var(--check) 0 18px,transparent 18px 36px)}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.round{width:40px;height:40px;flex:none;border:0;border-radius:20px;background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.18);display:grid;place-items:center;color:var(--ink)}
+.round svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pill{border:0;height:38px;border-radius:19px;padding:0 16px;font-size:15px;font-weight:600;background:var(--btn);color:var(--on-btn);display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.pill.red{background:var(--red);color:#fff}
+.pill.ghost{background:var(--page);color:var(--red);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.label{font-size:13px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--red)}
+
+/* ---------- main: page + decorative tab strips ---------- */
+#app{position:absolute;inset:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px}
+.search{flex:1;height:40px;border-radius:12px;background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.18);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--muted)}
+.search svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.search input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:16px;color:var(--text)}
+.search input::placeholder{color:var(--muted)}
+.book{flex:1;min-height:0;display:flex}
+.page{flex:1;min-width:0;background:var(--page);box-shadow:var(--shadow);padding:0 14px calc(env(safe-area-inset-bottom,0px) + 110px) 16px}
+.phead{display:flex;align-items:baseline;gap:8px;padding:18px 0 8px;border-bottom:2px solid var(--red);position:sticky;top:0;background:var(--page);z-index:1}
+.phead h1{margin:0;font-size:32px;font-weight:600;color:var(--ink);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phead span{font-size:15px;font-weight:600;color:var(--muted)}
+#list{list-style:none;margin:0;padding:0}
+#list li{position:relative;overflow:hidden;border-bottom:.5px solid var(--hair)}
+.row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 0;border:0;background:var(--page);text-align:left;transition:transform .2s;position:relative;z-index:1}
+li.dragging .row{transition:none}
+.thumb{flex:none;width:46px;height:46px;border-radius:10px;background:var(--chip) center/cover no-repeat;display:grid;place-items:center;font-size:24px;font-weight:600;color:var(--red);box-shadow:inset 0 0 0 1px var(--hair)}
+.thumb.photo{box-shadow:none;color:transparent}
+.rtext{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rname{font-size:18px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rtags{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.delbg{position:absolute;inset:0 0 0 auto;width:88px;border:0;background:var(--red);color:#fff;font-size:15px;font-weight:600}
+.empty{text-align:center;color:var(--muted);padding:56px 18px;font-size:16px;line-height:1.5}
+.empty b{display:block;color:var(--ink);font-size:19px;font-weight:600;margin-bottom:4px}
+.rail{width:28px;flex:none;border:0;background:transparent;padding:16px 0 calc(env(safe-area-inset-bottom,0px) + 20px);overflow:hidden;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.rail span{display:block;flex:0 1 52px;min-height:12px;width:14px;border-radius:0 6px 6px 0;box-shadow:1px 1px 3px rgba(0,0,0,.3);transition:width .2s}
+.rail span.on{width:22px}
+.fab{position:absolute;right:42px;bottom:calc(env(safe-area-inset-bottom,0px) + 26px);width:58px;height:58px;border:0;border-radius:29px;background:var(--red);display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:5}
+.fab svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2.8;stroke-linecap:round}
+
+/* ---------- drawer of tabs (slides out from the right) ---------- */
+.scrim{position:fixed;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:calc(env(safe-area-inset-top,0px) + 64px);right:0;bottom:0;width:min(300px,82vw);background:var(--page);border-radius:18px 0 0 0;box-shadow:-6px 0 20px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:21}
+.drawer.on{transform:none}
+.dhead{display:flex;align-items:center;gap:8px;padding:16px 14px 6px 18px}
+.dhead h2{flex:1;margin:0;font-size:26px;font-weight:600;color:var(--ink)}
+.dsub{padding:0 18px 8px;font-size:14px;color:var(--muted);line-height:1.35}
+.tabs{flex:1;display:flex;flex-direction:column;align-items:flex-end;gap:7px;padding:4px 0 calc(env(safe-area-inset-bottom,0px) + 30px)}
+.tab{flex:none;border:0;height:48px;display:flex;align-items:center;padding:5px 6px;border-radius:12px 0 0 12px;width:78%;transition:width .2s}
+.tab.on{width:94%;box-shadow:-2px 2px 6px rgba(0,0,0,.2)}
+.tab.off{opacity:.55;filter:saturate(.4)}
+.tab .lab{flex:1;display:flex;align-items:center;gap:8px;background:var(--page);border-radius:8px;padding:7px 10px;color:var(--ink);font-size:16px;font-weight:600;text-align:left;min-width:0}
+.tab .lab span:first-child{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .n{font-size:14px;color:var(--muted);font-weight:500}
+.tab .ck{width:14px;color:var(--red)}
+.newtab{flex:none;width:72%;height:48px;border:1.5px dashed var(--muted);border-right:0;border-radius:12px 0 0 12px;background:transparent;text-align:left;padding:0 16px;color:var(--muted);font-size:16px;font-weight:600;opacity:.8}
+.newbox{width:88%;flex:none;background:var(--field);border-radius:12px 0 0 12px;padding:10px 12px;display:flex;gap:6px}
+.newbox input{flex:1;min-width:0;height:40px;border:0;border-radius:10px;background:var(--page);padding:0 10px;font-size:16px}
+
+/* ---------- full pages: reader, editor, tab editor ---------- */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;z-index:10;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+.screen.on{transform:none;visibility:visible}
+.screen.up{transform:translateY(100%)}
+.screen.up.on{transform:none}
+.bar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px 10px}
+.bar .gap{flex:1}
+.back{display:flex;align-items:center;gap:4px;border:0;height:40px;border-radius:20px;padding:0 14px 0 10px;background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.18);color:var(--red);font-size:17px;font-weight:600}
+.back svg{width:10px;height:17px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.sheetpage{flex:1;min-height:0;margin:0 8px;background:var(--page);border-radius:16px 16px 0 0;box-shadow:var(--shadow);padding:22px 18px calc(env(safe-area-inset-bottom,0px) + 50px)}
+
+/* reader */
+.rtitle{border-top:1px solid var(--muted);border-bottom:1px solid var(--muted);padding:9px 0 7px}
+.rtitle h1{margin:0;font-size:calc(28px*var(--fs));font-weight:700;line-height:1.15;color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;padding:9px 0 0}
+.chip{font-size:12px;font-weight:600;padding:3px 10px 3px 8px;border-radius:0 8px 8px 0}
+.photos{display:flex;gap:8px;overflow-x:auto;margin:14px -18px 0;padding:0 18px;scrollbar-width:none}
+.photos::-webkit-scrollbar{display:none}
+.photos img{height:190px;max-width:none;border-radius:6px;object-fit:cover;flex:none;background:var(--chip)}
+.photos img:only-child{width:100%}
+.rbody h4{margin:22px 0 2px}
+.ing{display:grid;grid-template-columns:max-content minmax(0,1fr)}
+.ing .q,.ing .t{padding:9px 0;border-bottom:.5px solid var(--hair)}
+.ing .q{padding-right:12px;text-align:right;font-weight:700;font-size:calc(18px*var(--fs));color:var(--red);min-width:26px}
+.ing .t{font-size:calc(17px*var(--fs));line-height:1.4;color:var(--text)}
+.ing .sub{grid-column:1/-1;padding:14px 0 4px;font-size:calc(15px*var(--fs));font-weight:600;font-style:italic;color:var(--ink)}
+.method p{margin:10px 0 0;font-size:calc(17px*var(--fs));line-height:1.65;color:var(--soft)}
+.method .sub{margin:16px 0 0;font-size:calc(16px*var(--fs));font-weight:600;font-style:italic;color:var(--ink)}
+.rnote{margin:8px 0 0;font-size:calc(16px*var(--fs));line-height:1.55;color:var(--soft);white-space:pre-wrap}
+.src{display:inline-block;margin-top:24px;font-size:14px;color:var(--muted)}
+.none{color:var(--muted);font-size:16px;line-height:1.5;margin-top:18px}
+
+/* editor */
+.fld{display:block;margin:0 0 16px}
+.fld > span{display:block;margin-bottom:6px}
+.fld input,.fld textarea{width:100%;border:0;border-radius:12px;background:var(--field);padding:11px 12px;font-size:17px;line-height:1.45;color:var(--text);outline:0}
+.fld textarea{resize:none;min-height:120px}
+.hint{font-size:13px;color:var(--muted);margin:6px 2px 0;line-height:1.4}
+.tabrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tabrow .chip{font-size:14px;padding:6px 12px 6px 10px}
+.addchip{border:1.5px dashed var(--muted);background:transparent;border-radius:16px;font-size:14px;font-weight:600;color:var(--muted);padding:5px 12px}
+.phgrid{display:flex;flex-wrap:wrap;gap:8px}
+.ph{position:relative;width:84px;height:84px;border-radius:10px;background:var(--chip) center/cover no-repeat}
+.ph button{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:13px;border:0;background:var(--btn);color:var(--on-btn);font-size:15px;line-height:1}
+.ph.add{border:1.5px dashed var(--muted);background:transparent;display:grid;place-items:center;color:var(--muted);font-size:28px}
+.ph.busy{opacity:.5}
+.danger{margin-top:20px;border:0;background:transparent;color:var(--red);font-size:16px;font-weight:600;padding:10px 0}
+
+/* tab editor */
+.terow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--hair)}
+.sw{width:34px;height:34px;flex:none;border-radius:0 8px 8px 0;border:0;box-shadow:1px 1px 3px rgba(0,0,0,.25)}
+.terow input{flex:1;min-width:0;height:38px;border:0;border-radius:10px;background:var(--field);padding:0 10px;font-size:16px;color:var(--text)}
+.mini{width:34px;height:34px;flex:none;border:0;border-radius:17px;background:var(--chip);color:var(--ink);display:grid;place-items:center;font-size:15px}
+.mini:disabled{opacity:.3}
+.mini.x{color:var(--red)}
+
+/* menu sheet */
+.msheet{position:fixed;left:0;right:0;bottom:0;background:var(--page);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.2);padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:21}
+.msheet.on{transform:none}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--hair);margin:0 auto 12px}
+.msheet h3{margin:16px 0 8px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:2px;background:var(--chip);border-radius:10px}
+.seg button{border:0;border-radius:8px;padding:9px 0;font-size:15px;font-weight:600;background:transparent;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.mitem{display:flex;align-items:center;width:100%;border:0;background:transparent;padding:14px 2px;border-bottom:.5px solid var(--hair);font-size:17px;font-weight:500;color:var(--ink);text-align:left}
+.who{font-size:14px;color:var(--muted);margin-top:14px}
+
+/* bars */
+.undo,.toast{position:fixed;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);background:var(--btn);color:var(--on-btn);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:15px;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.undo span{flex:1}
+.undo button{border:0;background:transparent;color:var(--on-btn);font-weight:700;font-size:15px;text-decoration:underline}
+
+/* sign-in */
+.gate{position:fixed;inset:0;display:grid;place-items:center;padding:20px;z-index:50}
+.gate form{width:100%;max-width:340px;background:var(--page);border-radius:18px;box-shadow:var(--shadow);padding:26px 20px;display:flex;flex-direction:column;gap:10px}
+.gate h1{margin:0;font-size:32px;font-weight:600;color:var(--ink);text-align:center}
+.gate p{margin:0 0 6px;text-align:center;color:var(--muted);font-size:15px;line-height:1.4}
+.gate input{height:46px;border:0;border-radius:12px;background:var(--field);padding:0 14px;font-size:17px;outline:0}
+.gate .err{color:var(--red);min-height:1.2em;font-size:14px}
+.gate button{height:46px;border:0;border-radius:23px;background:var(--red);color:#fff;font-size:17px;font-weight:600}
+
+@media (min-width:700px){
+  .book,.sheetpage{max-width:760px;width:100%;margin-left:auto;margin-right:auto}
+  .sheetpage{margin-left:auto;margin-right:auto}
+}
+</style>
+</head>
+<body class="cloth">
+
+<div id="app">
+  <div class="top">
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="search" placeholder="Search recipes" autocomplete="off" autocorrect="off" enterkeyhint="search" aria-label="Search recipes">
+    </label>
+    <button class="round" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></svg></button>
+  </div>
+  <div class="book">
+    <div class="page scroll" id="pageEl">
+      <div class="phead"><h1 id="head">Recipes</h1><span id="count"></span></div>
+      <ul id="list"></ul>
+      <div class="empty" id="empty" hidden></div>
+    </div>
+    <button class="rail" id="rail" aria-label="Open tabs"></button>
+  </div>
+  <button class="fab" id="addBtn" aria-label="Add a recipe" hidden><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+</div>
+
+<!-- recipe page -->
+<section class="screen cloth" id="reader" aria-label="Recipe">
+  <div class="bar">
+    <button class="back" id="rBack"><svg viewBox="0 0 10 17"><path d="M8.5 1.5l-7 7 7 7"/></svg><span id="rBackLbl">Recipes</span></button>
+    <span class="gap"></span>
+    <button class="round" id="fsBtn" aria-label="Text size" style="font-size:15px;font-weight:700">Aa</button>
+    <button class="pill" id="editBtn" hidden>Edit</button>
+  </div>
+  <div class="sheetpage scroll" id="rPage">
+    <div class="rtitle"><h1 id="rTitle"></h1></div>
+    <div class="chips" id="rChips"></div>
+    <div class="photos" id="rPhotos"></div>
+    <div class="rbody" id="rBody"></div>
+  </div>
+</section>
+
+<!-- add / edit -->
+<section class="screen up cloth" id="editor" aria-label="Edit recipe">
+  <div class="bar">
+    <button class="back" id="eCancel" style="padding:0 14px">Cancel</button>
+    <span class="gap"></span>
+    <button class="pill red" id="eSave">Save</button>
+  </div>
+  <div class="sheetpage scroll" id="ePage">
+    <label class="fld"><span class="label">Name</span><input id="eName" type="text" autocomplete="off" placeholder="Mom’s Lasagna"></label>
+    <div class="fld"><span class="label">Tabs</span><div class="tabrow" id="eTabs"></div></div>
+    <label class="fld"><span class="label">Ingredients</span><textarea id="eIng" rows="6" placeholder="1 pound lasagna noodles&#10;2 cups shredded mozzarella"></textarea>
+      <div class="hint">One per line. Start with the amount and it lines up on the page.</div></label>
+    <label class="fld"><span class="label">Method</span><textarea id="eSteps" rows="7" placeholder="Brown the sausage; drain…"></textarea>
+      <div class="hint">Each line is its own paragraph.</div></label>
+    <label class="fld"><span class="label">Notes</span><textarea id="eNote" rows="3" style="min-height:80px"></textarea></label>
+    <label class="fld"><span class="label">From (link)</span><input id="eSrc" type="url" inputmode="url" autocomplete="off" autocapitalize="none" placeholder="https://"></label>
+    <div class="fld"><span class="label">Photos</span><div class="phgrid" id="ePhotos"></div>
+      <input id="eFile" type="file" accept="image/*" multiple hidden></div>
+    <button class="danger" id="eDelete" hidden>Delete this recipe</button>
+  </div>
+</section>
+
+<!-- edit tabs -->
+<section class="screen up cloth" id="tabEd" aria-label="Edit tabs">
+  <div class="bar">
+    <button class="back" id="tCancel" style="padding:0 14px">Cancel</button>
+    <span class="gap"></span>
+    <button class="pill red" id="tSave">Save</button>
+  </div>
+  <div class="sheetpage scroll">
+    <h2 style="margin:0 0 4px;font-size:28px;font-weight:600;color:var(--ink)">Tabs</h2>
+    <div class="hint" style="margin:0 0 10px">Tap a colour to change it. Renaming a tab renames it on every recipe.</div>
+    <div id="tRows"></div>
+    <button class="addchip" id="tAdd" style="margin-top:14px">+ New tab</button>
+  </div>
+</section>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer scroll" id="drawer" aria-label="Tabs">
+  <div class="dhead"><h2 id="dTitle">Tabs</h2><button class="pill" id="dDone">Done</button></div>
+  <div class="dsub" id="dSub" hidden></div>
+  <div class="tabs" id="dTabs"></div>
+</aside>
+
+<div class="msheet" id="menu" role="dialog" aria-label="Menu">
+  <div class="grab"></div>
+  <h3 class="label">Appearance</h3>
+  <div class="seg" id="themeSeg"><button data-m="light">Light</button><button data-m="dark">Dark</button><button data-m="">Auto</button></div>
+  <h3 class="label" style="margin-top:20px">Recipes</h3>
+  <button class="mitem" id="mTabs">Edit tabs</button>
+  <button class="mitem" id="mOut">Sign out</button>
+  <div class="who" id="mWho"></div>
+</div>
+
+<div class="undo" id="undo" hidden><span id="undoMsg"></span><button id="undoBtn">Undo</button></div>
+<div class="toast" id="toast" hidden></div>
+
+<div class="gate cloth" id="gate" hidden>
+  <form id="gateForm" autocomplete="on">
+    <h1>Recipes</h1>
+    <p>Sign in with your Home Board login.</p>
+    <input id="gUser" type="text" placeholder="Email or username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+    <input id="gPass" type="password" placeholder="Password" autocomplete="current-password" required>
+    <div class="err" id="gErr"></div>
+    <button type="submit" id="gBtn">Sign in</button>
+  </form>
+</div>
+
+<script src="pocketbase.umd.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const pb = new PocketBase(location.origin); pb.autoCancellation(false);
+const me = () => pb.authStore.isValid && pb.authStore.record ? pb.authStore.record : null;
+const isEditor = () => !!(me() && me().role === 'editor' && me().household);
+const PAL = ['#5a6890','#d6b66a','#8c9bc2','#e6dbc2','#c9b596','#9fb08f','#bfc8de','#a8998a'];
+const S = { recipes: [], tabs: [], tabRec: null, tab: 'All', q: '', open: null, edit: null, drawerMode: 'browse', pick: [], ready: false };
+const store = { get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v }catch{ return d } }, set(k, v){ try{ localStorage.setItem(k, v) }catch{} } };
+
+/* ---------- helpers ---------- */
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e }
+function lightColour(hex){ const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299*r + 0.587*g + 0.114*b) > 140 }
+function chipStyle(c){ return 'background:' + c + ';color:' + (lightColour(c) ? '#1f2b5e' : '#fff') }
+function colourOf(name){ const t = S.tabs.find(x => x.n === name); if(t) return t.c; let h = 0; for(const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PAL[h % PAL.length] }
+let toastT = 0;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600) }
+function errText(e, what){ return e?.status === 403 || e?.status === 400 ? 'Only Home Board editors can change ' + what + '.' : 'Couldn’t save. Check your connection and try again.' }
+
+/* recipe <-> record (same fields Binder uses) */
+function fromRec(r){
+  const note = r.note || '', m = note.match(/(?:^|\n)Source:\s*(https?:\/\/\S+)\s*$/);
+  return { id: r.id, name: r.name || '', tags: Array.isArray(r.tags) ? r.tags.filter(Boolean) : [],
+    ingredients: r.ingredients || '', steps: r.steps || '', note: m ? note.slice(0, m.index).trim() : note.trim(), src: m ? m[1] : '',
+    photos: Array.isArray(r.photos) ? r.photos.filter(p => p && p.id) : [], pinned: !!r.pinned, created_at: r.created_at || '' };
+}
+function toRec(it){
+  const clean = v => String(v || '').split('\n').map(l => l.replace(/\s+$/, '')).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return { name: it.name.trim(), ingredients: clean(it.ingredients), steps: clean(it.steps),
+    note: [String(it.note || '').trim(), it.src ? 'Source: ' + it.src.trim() : ''].filter(Boolean).join('\n\n'),
+    tags: it.tags, photos: it.photos, updated_at: new Date().toISOString() };
+}
+const photoUrl = p => p.path || '';
+
+/* ---------- tabs: the family's list, kept in app_settings ---------- */
+function allTabs(){
+  const list = S.tabs.slice(), seen = new Set(list.map(t => t.n));
+  const extra = [...new Set(S.recipes.flatMap(r => r.tags))].filter(n => !seen.has(n)).sort((a, b) => a.localeCompare(b));
+  extra.forEach((n, i) => list.push({ n, c: colourOf(n) }));
+  return list;
+}
+async function loadTabs(){
+  S.tabs = JSON.parse(store.get('recipes-tabs:' + me().id, '[]'));
+  if(!isEditor()) return;
+  try{
+    const r = await pb.collection('app_settings').getFirstListItem(pb.filter('key = {:k}', {k: 'recipe_tabs'}));
+    S.tabRec = r; S.tabs = JSON.parse(r.value || '[]');
+  }catch(e){ if(e?.status !== 404) return; S.tabRec = null }
+  store.set('recipes-tabs:' + me().id, JSON.stringify(S.tabs));
+}
+async function saveTabs(list){
+  const value = JSON.stringify(list.map(t => ({ n: t.n, c: t.c }))), now = new Date().toISOString();
+  if(S.tabRec) S.tabRec = await pb.collection('app_settings').update(S.tabRec.id, { value, updated_at: now });
+  else S.tabRec = await pb.collection('app_settings').create({ key: 'recipe_tabs', value, created_at: now, updated_at: now });
+  S.tabs = JSON.parse(value); store.set('recipes-tabs:' + me().id, value);
+}
+
+/* ---------- list ---------- */
+function shown(){
+  const q = S.q.trim().toLowerCase();
+  let list = S.recipes;
+  if(q) list = list.filter(r => (r.name + '\n' + r.ingredients + '\n' + r.tags.join(' ')).toLowerCase().includes(q));
+  else if(S.tab !== 'All') list = list.filter(r => r.tags.includes(S.tab));
+  return list.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+function render(){
+  const tabs = allTabs();
+  if(S.tab !== 'All' && !tabs.some(t => t.n === S.tab)) S.tab = 'All';
+  const q = S.q.trim(), list = shown();
+  $('head').textContent = q ? 'Search' : S.tab === 'All' ? 'All recipes' : S.tab;
+  $('count').textContent = S.ready || S.recipes.length ? list.length : '';
+  // decorative strips: one per tab, the open one sticks out further
+  const rail = $('rail'); rail.textContent = '';
+  [{ n: 'All', c: '#3c4770' }].concat(tabs).forEach(t => {
+    const s = el('span', S.tab === t.n && !q ? 'on' : ''); s.style.background = t.c; rail.appendChild(s) });
+  const ul = $('list'); ul.textContent = '';
+  list.forEach(r => {
+    const li = el('li'), row = el('button', 'row'); row.type = 'button';
+    const th = el('span', 'thumb'), p = r.photos.find(f => /^image/.test(f.type || 'image') && photoUrl(f));
+    if(p){ th.classList.add('photo'); th.style.backgroundImage = 'url("' + photoUrl(p).replace(/"/g, '%22') + '")' } else th.textContent = (r.name.trim()[0] || '·').toUpperCase();
+    const tx = el('span', 'rtext'); tx.append(el('span', 'rname', r.name || 'Untitled'));
+    const other = r.tags.filter(t => t !== S.tab); if(other.length) tx.append(el('span', 'rtags', other.join(' · ')));
+    row.append(th, tx); row.onclick = () => openReader(r.id);
+    li.appendChild(row);
+    if(isEditor()) swipeDelete(li, row, r);
+    ul.appendChild(li);
+  });
+  const empty = $('empty'); empty.hidden = list.length > 0;
+  empty.innerHTML = !S.ready ? '<b>Opening the recipe book…</b>'
+    : q ? '<b>Nothing found</b>Try another word.'
+    : S.tab !== 'All' ? '<b>Nothing under ' + S.tab.replace(/[<&]/g, '') + ' yet</b>Open a recipe, tap Edit, and add this tab.'
+    : '<b>No recipes yet</b>' + (isEditor() ? 'Tap + to add the first one.' : '');
+  $('addBtn').hidden = !isEditor();
+}
+
+/* swipe a row left to delete, with Undo */
+let openRow = null;
+function closeRow(){ if(openRow){ openRow.querySelector('.row').style.transform = ''; openRow = null } }
+function swipeDelete(li, row, r){
+  const bg = el('button', 'delbg', 'Delete'); bg.type = 'button'; bg.onclick = () => { openRow = null; removeRecipe(r) };
+  li.insertBefore(bg, row);
+  const W = 88; let x0 = 0, y0 = 0, dx = 0, mode = '', base = 0;
+  row.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = ''; base = openRow === li ? -W : 0 }, { passive: true });
+  row.addEventListener('touchmove', e => {
+    const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+    if(!mode){ if(Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) mode = 'x'; else if(Math.abs(my) > 8) mode = 'y' }
+    if(mode !== 'x') return;
+    e.preventDefault(); if(openRow && openRow !== li) closeRow();
+    dx = Math.min(0, base + mx); li.classList.add('dragging'); row.style.transform = 'translateX(' + dx + 'px)';
+  }, { passive: false });
+  row.addEventListener('touchend', () => {
+    li.classList.remove('dragging'); if(mode !== 'x') return;
+    if(dx < -row.offsetWidth * 0.6){ row.style.transform = 'translateX(-100%)'; openRow = null; setTimeout(() => removeRecipe(r), 180) }
+    else if(dx < -44){ row.style.transform = 'translateX(-' + W + 'px)'; openRow = li }
+    else { row.style.transform = ''; if(openRow === li) openRow = null }
+  });
+  row.addEventListener('click', e => { if(openRow === li){ e.stopPropagation(); e.preventDefault(); closeRow() } }, true);
+}
+document.addEventListener('touchstart', e => { if(openRow && !openRow.contains(e.target)) closeRow() }, { passive: true });
+
+let undoT = 0;
+async function removeRecipe(r){
+  try{ await pb.collection('recipes').delete(r.id) }catch(e){ toast(errText(e, 'recipes')); render(); return }
+  S.recipes = S.recipes.filter(x => x.id !== r.id); render(); saveCache();
+  $('undoMsg').textContent = 'Deleted ' + (r.name || 'recipe'); $('undo').hidden = false;
+  clearTimeout(undoT); undoT = setTimeout(() => $('undo').hidden = true, 6000);
+  $('undoBtn').onclick = async () => {
+    $('undo').hidden = true;
+    try{ const rec = await pb.collection('recipes').create({ id: r.id, ...toRec(r), pinned: r.pinned, created_at: r.created_at || new Date().toISOString() }); keep(fromRec(rec)) }
+    catch(e){ toast('Couldn’t bring it back.') }
+  };
+}
+
+/* ---------- drawer ---------- */
+function openDrawer(mode){
+  S.drawerMode = mode;
+  $('dTitle').textContent = mode === 'pick' ? 'Tabs for this recipe' : 'Tabs';
+  $('dTitle').style.fontSize = mode === 'pick' ? '21px' : '';
+  $('dSub').hidden = mode !== 'pick'; $('dSub').textContent = 'Pull out every tab it belongs in.';
+  paintDrawer(); $('drawer').scrollTop = 0;
+  $('drawer').classList.add('on'); $('scrim').classList.add('on');
+}
+function closeDrawer(){
+  $('drawer').classList.remove('on'); if(!$('menu').classList.contains('on')) $('scrim').classList.remove('on');
+  if(S.drawerMode === 'pick'){ S.edit.tags = S.pick.slice(); paintEdTabs() }
+}
+function paintDrawer(){
+  const box = $('dTabs'); box.textContent = '';
+  const pick = S.drawerMode === 'pick', tabs = allTabs();
+  const list = pick ? tabs : [{ n: 'All', c: '#3c4770' }].concat(tabs);
+  list.forEach(t => {
+    const on = pick ? S.pick.includes(t.n) : (S.tab === t.n && !S.q.trim());
+    const b = el('button', 'tab' + (on ? ' on' : pick ? ' off' : '')); b.type = 'button';
+    b.style.background = t.c; b.setAttribute('aria-pressed', String(on));
+    const lab = el('span', 'lab'); lab.append(el('span', '', t.n));
+    if(!pick) lab.append(el('span', 'n', t.n === 'All' ? S.recipes.length : S.recipes.filter(r => r.tags.includes(t.n)).length));
+    lab.append(el('span', 'ck', on ? '✓' : '')); b.appendChild(lab);
+    b.onclick = () => {
+      if(pick){ S.pick = on ? S.pick.filter(x => x !== t.n) : S.pick.concat(t.n); paintDrawer(); return }
+      S.tab = t.n; S.q = ''; $('q').value = ''; $('pageEl').scrollTop = 0; render(); closeDrawer();
+    };
+    box.appendChild(b);
+  });
+  if(isEditor()){
+    const nb = el('button', 'newtab', '+ New tab'); nb.type = 'button';
+    nb.onclick = () => {
+      const wrap = el('div', 'newbox'), inp = el('input'), ok = el('button', 'pill', 'Add');
+      inp.placeholder = 'e.g. Easter'; inp.maxLength = 40; ok.type = 'button';
+      const add = async () => {
+        const v = inp.value.trim().replace(/\s+/g, ' '); if(!v) return;
+        const tabs = allTabs();
+        if(!tabs.some(t => t.n.toLowerCase() === v.toLowerCase())){
+          try{ await saveTabs(tabs.concat({ n: v, c: PAL[tabs.length % PAL.length] })) }catch(e){ toast(errText(e, 'tabs')); return }
+        }
+        const name = allTabs().find(t => t.n.toLowerCase() === v.toLowerCase()).n;
+        if(pick && !S.pick.includes(name)) S.pick.push(name);
+        paintDrawer(); render();
+      };
+      ok.onclick = add; inp.onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); add() } };
+      wrap.append(inp, ok); nb.replaceWith(wrap); inp.focus();
+    };
+    box.appendChild(nb);
+  }
+}
+$('rail').onclick = () => openDrawer('browse');
+$('dDone').onclick = closeDrawer;
+$('scrim').onclick = () => { if($('drawer').classList.contains('on')) closeDrawer(); closeMenu() };
+
+/* ---------- reader ---------- */
+const FR = { '1/2':'½','1/4':'¼','3/4':'¾','1/3':'⅓','2/3':'⅔','1/8':'⅛','3/8':'⅜','5/8':'⅝','7/8':'⅞' };
+const AMT = /^((?:\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?(?:\s*[½¼¾⅓⅔⅛⅜⅝⅞])?|[½¼¾⅓⅔⅛⅜⅝⅞])\s+(.+)$/;
+const HEAD = l => l.match(/^—\s*(.+?)\s*—$/) || l.match(/^#+\s*(.+)$/) || l.match(/^([^0-9].{0,40}):$/);
+function niceAmt(a){ return a.replace(/(\d+)\s+(\d\/\d)/, (m, w, f) => FR[f] ? w + FR[f] : m).replace(/^\d\/\d$/, f => FR[f] || f).replace(/\s*([½¼¾⅓⅔⅛⅜⅝⅞])/, '$1') }
+function openReader(id){
+  const r = S.recipes.find(x => x.id === id); if(!r) return;
+  S.open = id; paintReader(); $('rPage').scrollTop = 0; $('reader').classList.add('on');
+}
+function closeReader(){ $('reader').classList.remove('on'); S.open = null }
+function paintReader(){
+  const r = S.recipes.find(x => x.id === S.open); if(!r){ closeReader(); return }
+  $('rBackLbl').textContent = S.q.trim() ? 'Search' : S.tab === 'All' ? 'Recipes' : S.tab;
+  $('rTitle').textContent = r.name || 'Untitled';
+  const chips = $('rChips'); chips.textContent = '';
+  r.tags.forEach(t => { const c = el('span', 'chip', t); c.style.cssText = chipStyle(colourOf(t)); chips.appendChild(c) });
+  chips.hidden = !r.tags.length;
+  const ph = $('rPhotos'); ph.textContent = '';
+  r.photos.filter(p => /^image/.test(p.type || 'image') && photoUrl(p)).forEach(p => { const i = el('img'); i.src = photoUrl(p); i.alt = ''; i.loading = 'lazy'; ph.appendChild(i) });
+  ph.hidden = !ph.children.length;
+  const body = $('rBody'); body.textContent = '';
+  const ing = r.ingredients.split('\n').map(l => l.trim()).filter(Boolean);
+  if(ing.length){
+    body.append(el('h4', 'label', 'Ingredients'));
+    const g = el('div', 'ing');
+    ing.forEach(l => {
+      const h = HEAD(l); if(h){ g.append(el('div', 'sub', h[1])); return }
+      const m = l.replace(/^[-•*]\s*/, '').match(AMT);
+      g.append(el('div', 'q', m ? niceAmt(m[1]) : ''), el('div', 't', m ? m[2] : l.replace(/^[-•*]\s*/, '')));
+    });
+    body.append(g);
+  }
+  const st = r.steps.split('\n').map(l => l.trim()).filter(Boolean);
+  if(st.length){
+    body.append(el('h4', 'label', 'Method'));
+    const m = el('div', 'method');
+    st.forEach(l => { const h = HEAD(l); m.append(h ? el('div', 'sub', h[1]) : el('p', '', l.replace(/^(?:step\s*)?\d+[.):]\s+/i, ''))) });
+    body.append(m);
+  }
+  if(r.note){ body.append(el('h4', 'label', 'Notes'), el('p', 'rnote', r.note)) }
+  if(!ing.length && !st.length && !r.note) body.append(el('p', 'none', isEditor() ? 'Nothing written yet. Tap Edit to add the ingredients and method.' : 'Nothing written yet.'));
+  if(r.src && /^https?:\/\//i.test(r.src)){
+    const a = el('a', 'src'); a.href = r.src; a.target = '_blank'; a.rel = 'noopener';
+    try{ a.textContent = 'From ' + new URL(r.src).hostname.replace(/^www\./, '') + ' ↗' }catch{ a.textContent = 'Source ↗' }
+    body.append(el('div'), a);
+  }
+  $('editBtn').hidden = !isEditor();
+}
+$('rBack').onclick = closeReader;
+$('editBtn').onclick = () => openEditor(S.open);
+const SIZES = [1, 1.15, 1.3];
+function applyFs(){ document.documentElement.style.setProperty('--fs', SIZES[+store.get('recipes-fs', '0')] || 1) }
+$('fsBtn').onclick = () => { store.set('recipes-fs', String((+store.get('recipes-fs', '0') + 1) % SIZES.length)); applyFs() };
+// swipe right on an open recipe to go back
+(function(){
+  let x0 = 0, y0 = 0, go = false;
+  $('reader').addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; go = !e.target.closest('.photos') }, { passive: true });
+  $('reader').addEventListener('touchend', e => {
+    if(!go) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if(dx > 80 && Math.abs(dy) < dx * 0.6) closeReader();
+  }, { passive: true });
+})();
+
+/* ---------- editor ---------- */
+function openEditor(id){
+  const r = id ? S.recipes.find(x => x.id === id) : null;
+  S.edit = r ? JSON.parse(JSON.stringify(r)) : { id: '', name: '', tags: S.tab !== 'All' && !S.q.trim() ? [S.tab] : [], ingredients: '', steps: '', note: '', src: '', photos: [], pinned: false };
+  S.edit.newPhotos = [];
+  $('eName').value = S.edit.name; $('eIng').value = S.edit.ingredients; $('eSteps').value = S.edit.steps;
+  $('eNote').value = S.edit.note; $('eSrc').value = S.edit.src; $('eDelete').hidden = !r;
+  paintEdTabs(); paintEdPhotos(); $('ePage').scrollTop = 0;
+  $('editor').classList.add('on');
+  [$('eIng'), $('eSteps'), $('eNote')].forEach(grow);
+}
+function closeEditor(){ $('editor').classList.remove('on'); document.activeElement && document.activeElement.blur() }
+function grow(t){ t.style.height = 'auto'; t.style.height = Math.max(t.scrollHeight + 2, t.id === 'eNote' ? 80 : 120) + 'px' }
+['eIng', 'eSteps', 'eNote'].forEach(i => $(i).addEventListener('input', e => grow(e.target)));
+function paintEdTabs(){
+  const box = $('eTabs'); box.textContent = '';
+  S.edit.tags.forEach(t => { const c = el('span', 'chip', t); c.style.cssText = chipStyle(colourOf(t)); box.appendChild(c) });
+  const b = el('button', 'addchip', S.edit.tags.length ? 'Change' : '+ Choose tabs'); b.type = 'button';
+  b.onclick = () => { S.pick = S.edit.tags.slice(); openDrawer('pick') };
+  box.appendChild(b);
+}
+function paintEdPhotos(){
+  const box = $('ePhotos'); box.textContent = '';
+  S.edit.photos.forEach((p, i) => {
+    const d = el('div', 'ph'); d.style.backgroundImage = 'url("' + photoUrl(p).replace(/"/g, '%22') + '")';
+    const x = el('button', '', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Remove photo');
+    x.onclick = () => { S.edit.photos.splice(i, 1); paintEdPhotos() };
+    d.appendChild(x); box.appendChild(d);
+  });
+  (S.edit.uploading || []).forEach(() => box.appendChild(el('div', 'ph busy')));
+  const add = el('button', 'ph add', '+'); add.type = 'button'; add.setAttribute('aria-label', 'Add a photo');
+  add.onclick = () => $('eFile').click(); box.appendChild(add);
+}
+$('eFile').onchange = async e => {
+  const files = [...e.target.files].filter(f => /^image\//.test(f.type)); e.target.value = '';
+  const ed = S.edit; ed.uploading = (ed.uploading || []).concat(files.map(f => f.name)); paintEdPhotos();
+  for(const f of files){
+    try{
+      const fd = new FormData(); fd.append('owner', me().id); fd.append('household', me().household || ''); fd.append('file', f);
+      const r = await pb.collection('binder_files').create(fd);
+      const path = '/api/files/' + r.collectionId + '/' + r.id + '/' + encodeURIComponent(r.file);
+      ed.photos.push({ id: r.id, type: f.type, name: f.name, size: f.size, path }); ed.newPhotos.push(r.id);
+    }catch(err){ toast(err?.status === 413 ? f.name + ' is too big.' : 'Couldn’t upload ' + f.name + '.') }
+    ed.uploading.shift(); if(S.edit === ed) paintEdPhotos();
+  }
+};
+$('eCancel').onclick = async () => {
+  const fresh = S.edit && S.edit.newPhotos || []; closeEditor();
+  for(const id of fresh){ try{ await pb.collection('binder_files').delete(id) }catch{} }   // photos added then abandoned
+};
+$('eSave').onclick = async () => {
+  const ed = S.edit;
+  ed.name = $('eName').value.trim(); ed.ingredients = $('eIng').value; ed.steps = $('eSteps').value; ed.note = $('eNote').value; ed.src = $('eSrc').value.trim();
+  if(!ed.name){ toast('Give the recipe a name.'); $('eName').focus(); return }
+  if((ed.uploading || []).length){ toast('Still uploading a photo…'); return }
+  if(ed.src && !/^https?:\/\//i.test(ed.src)) ed.src = 'https://' + ed.src;
+  $('eSave').disabled = true;
+  try{
+    const col = pb.collection('recipes'), data = toRec(ed);
+    const rec = ed.id ? await col.update(ed.id, data) : await col.create({ ...data, pinned: false, created_at: new Date().toISOString() });
+    keep(fromRec(rec)); closeEditor();
+    if(S.open !== rec.id) openReader(rec.id); else paintReader();
+  }catch(e){ toast(errText(e, 'recipes')) }
+  $('eSave').disabled = false;
+};
+$('eDelete').onclick = () => { const r = S.recipes.find(x => x.id === S.edit.id); closeEditor(); closeReader(); if(r) removeRecipe(r) };
+$('addBtn').onclick = () => openEditor('');
+
+/* ---------- edit tabs (rename, colour, order, remove) ---------- */
+let TE = [];
+function openTabEd(){ TE = allTabs().map(t => ({ n: t.n, c: t.c, was: t.n })); paintTabEd(); $('tabEd').classList.add('on') }
+function paintTabEd(){
+  const box = $('tRows'); box.textContent = '';
+  TE.forEach((t, i) => {
+    const row = el('div', 'terow');
+    const sw = el('button', 'sw'); sw.type = 'button'; sw.style.background = t.c; sw.setAttribute('aria-label', 'Change colour of ' + t.n);
+    sw.onclick = () => { t.c = PAL[(PAL.indexOf(t.c) + 1) % PAL.length]; paintTabEd() };
+    const inp = el('input'); inp.value = t.n; inp.maxLength = 40; inp.setAttribute('aria-label', 'Tab name'); inp.oninput = () => t.n = inp.value;
+    const up = el('button', 'mini', '↑'), dn = el('button', 'mini', '↓'), x = el('button', 'mini x', '×');
+    [up, dn, x].forEach(b => b.type = 'button');
+    up.setAttribute('aria-label', 'Move up'); dn.setAttribute('aria-label', 'Move down'); x.setAttribute('aria-label', 'Remove tab');
+    up.disabled = i === 0; dn.disabled = i === TE.length - 1;
+    up.onclick = () => { TE.splice(i - 1, 0, TE.splice(i, 1)[0]); paintTabEd() };
+    dn.onclick = () => { TE.splice(i + 1, 0, TE.splice(i, 1)[0]); paintTabEd() };
+    x.onclick = () => {
+      const n = S.recipes.filter(r => r.tags.includes(t.was)).length;
+      if(n && x.dataset.sure !== '1'){ x.dataset.sure = '1'; x.textContent = n; x.setAttribute('aria-label', 'Tap again to take it off ' + n + ' recipes'); toast('Tap again to take “' + t.was + '” off ' + n + ' recipe' + (n > 1 ? 's' : '') + '.'); return }
+      TE.splice(i, 1); paintTabEd();
+    };
+    row.append(sw, inp, up, dn, x); box.appendChild(row);
+  });
+}
+$('tAdd').onclick = () => { TE.push({ n: '', c: PAL[TE.length % PAL.length], was: '' }); paintTabEd(); const ins = $('tRows').querySelectorAll('input'); ins[ins.length - 1].focus() };
+$('tCancel').onclick = () => $('tabEd').classList.remove('on');
+$('tSave').onclick = async () => {
+  const list = TE.map(t => ({ ...t, n: t.n.trim().replace(/\s+/g, ' ') })).filter(t => t.n);
+  const names = list.map(t => t.n.toLowerCase());
+  if(names.some((n, i) => names.indexOf(n) !== i)){ toast('Two tabs have the same name.'); return }
+  const rename = {}; list.forEach(t => { if(t.was && t.was !== t.n) rename[t.was] = t.n });
+  const kept = new Set(list.map(t => t.was).filter(Boolean));
+  const gone = allTabs().map(t => t.n).filter(n => !kept.has(n));
+  $('tSave').disabled = true;
+  try{
+    for(const r of S.recipes){
+      if(!r.tags.some(t => rename[t] || gone.includes(t))) continue;
+      const tags = [...new Set(r.tags.filter(t => !gone.includes(t)).map(t => rename[t] || t))];
+      const rec = await pb.collection('recipes').update(r.id, { tags, updated_at: new Date().toISOString() }); keep(fromRec(rec), true);
+    }
+    await saveTabs(list);
+    if(rename[S.tab]) S.tab = rename[S.tab];
+    $('tabEd').classList.remove('on'); render(); saveCache();
+  }catch(e){ toast(errText(e, 'tabs')) }
+  $('tSave').disabled = false;
+};
+
+/* ---------- menu + appearance ---------- */
+function openMenu(){
+  const m = store.get('recipes-theme', '');
+  $('themeSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  $('mTabs').hidden = !isEditor();
+  const u = me(); $('mWho').textContent = u ? 'Signed in as ' + (u.name || u.username || u.email || '') : '';
+  $('menu').classList.add('on'); $('scrim').classList.add('on');
+}
+function closeMenu(){ $('menu').classList.remove('on'); if(!$('drawer').classList.contains('on')) $('scrim').classList.remove('on') }
+$('menuBtn').onclick = openMenu;
+$('themeSeg').onclick = e => {
+  const b = e.target.closest('button'); if(!b) return;
+  store.set('recipes-theme', b.dataset.m); applyTheme();
+  $('themeSeg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+};
+function applyTheme(){
+  const m = store.get('recipes-theme', '');
+  const dark = m === 'dark' || (m !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#2b1517' : '#f7f1e3');
+  render();
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+$('mTabs').onclick = () => { closeMenu(); openTabEd() };
+$('mOut').onclick = () => { closeMenu(); signOut() };
+
+/* ---------- search ---------- */
+$('q').addEventListener('input', e => { S.q = e.target.value; $('pageEl').scrollTop = 0; render() });
+
+/* ---------- data ---------- */
+function keep(r, quiet){
+  const i = S.recipes.findIndex(x => x.id === r.id);
+  if(i >= 0) S.recipes[i] = r; else S.recipes.push(r);
+  if(!quiet){ render(); saveCache(); if(S.open === r.id && $('reader').classList.contains('on')) paintReader() }
+}
+function saveCache(){ if(me()) store.set('recipes-cache:' + me().id, JSON.stringify(S.recipes)) }
+async function load(){
+  S.recipes = JSON.parse(store.get('recipes-cache:' + me().id, '[]')); S.ready = S.recipes.length > 0; render();
+  await loadTabs(); render();
+  try{
+    const list = await pb.collection('recipes').getFullList({ batch: 500 });
+    S.recipes = list.map(fromRec); S.ready = true; render(); saveCache();
+  }catch(e){
+    if(e?.status === 401 || e?.status === 403){ signOut('Please sign in again.'); return }
+    S.ready = true; render(); if(!S.recipes.length) toast('Couldn’t load recipes. Check your connection.');
+  }
+  pb.collection('recipes').subscribe('*', ev => {
+    if(ev.action === 'delete'){ S.recipes = S.recipes.filter(x => x.id !== ev.record.id); render(); saveCache(); if(S.open === ev.record.id) closeReader() }
+    else keep(fromRec(ev.record));
+  }).catch(() => {});
+  if(isEditor()) pb.collection('app_settings').subscribe('*', ev => {
+    if(ev.record.key !== 'recipe_tabs') return;
+    S.tabRec = ev.action === 'delete' ? null : ev.record; S.tabs = ev.action === 'delete' ? [] : JSON.parse(ev.record.value || '[]'); render();
+  }).catch(() => {});
+}
+
+/* ---------- sign in ---------- */
+function showGate(msg){ $('gate').hidden = false; $('gErr').textContent = msg || ''; $('app').hidden = true }
+function signOut(msg){
+  try{ pb.realtime.unsubscribe() }catch{}
+  pb.authStore.clear(); S.recipes = []; S.tabs = []; S.tabRec = null; closeReader(); closeEditor(); showGate(msg);
+}
+$('gateForm').onsubmit = async e => {
+  e.preventDefault(); $('gBtn').disabled = true; $('gErr').textContent = '';
+  try{
+    await pb.collection('users').authWithPassword($('gUser').value.trim(), $('gPass').value);
+    $('gPass').value = ''; start();
+  }catch(err){ $('gErr').textContent = err?.status === 400 ? 'That login didn’t work.' : 'Couldn’t reach the server.' }
+  $('gBtn').disabled = false;
+};
+function start(){
+  if(!me()){ showGate(); return }
+  if(!me().household){ showGate('This login isn’t part of a household yet.'); pb.authStore.clear(); return }
+  $('gate').hidden = true; $('app').hidden = false; load();
+  pb.collection('users').authRefresh().catch(e => { if(e?.status === 401 || e?.status === 403 || e?.status === 404) signOut('Please sign in again.') });
+}
+
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+applyFs(); applyTheme(); start();
+</script>
+</body>
+</html>
