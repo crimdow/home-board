@@ -134,13 +134,10 @@ body{background:transparent}
   repeating-linear-gradient(180deg,transparent 0 157px,var(--seam) 157px 160px),
   repeating-linear-gradient(180deg,var(--tone-a) 0 160px,var(--tone-b) 160px 320px,var(--tone-c) 320px 480px),
   var(--wood)}
-:root{--wood:#c99a62;--seam:rgba(70,38,12,.45);--tone-a:rgba(255,235,200,.10);--tone-b:rgba(120,70,25,.10);--tone-c:rgba(255,220,170,.04);
-  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='520'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035 0.11' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.2 0 0 0 0 0.07 0 0 0 1.6 -0.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E")}
-:root[data-theme="dark"]{--wood:#4a3020;--seam:rgba(0,0,0,.55);--tone-a:rgba(255,220,180,.05);--tone-b:rgba(0,0,0,.14);--tone-c:rgba(0,0,0,.04);
-  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='520'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035 0.11' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.04 0 0 0 0 0.01 0 0 0 1.7 -0.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E")}
+:root{--wood:#7a4524;--seam:rgba(28,10,2,.6);--tone-a:rgba(255,190,130,.06);--tone-b:rgba(30,10,0,.12);--tone-c:rgba(120,50,10,.08);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='520'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035 0.11' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.06 0 0 0 0 0.01 0 0 0 1.7 -0.58'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E")}
 .marble{position:absolute;border-radius:50%;box-shadow:2px 5px 7px rgba(35,18,5,.45),inset -3px -4px 6px rgba(0,0,0,.28),inset 2px 2px 3px rgba(255,255,255,.25)}
 .marble::after{content:"";position:absolute;left:22%;top:16%;width:30%;height:24%;border-radius:50%;background:rgba(255,255,255,.85);filter:blur(.6px);transform:rotate(-30deg)}
-:root[data-theme="dark"] .marble{filter:brightness(.85)}
 .sheet{box-shadow:0 10px 30px rgba(40,20,5,.35)}
 .below .hint{background:var(--paper);padding:8px 14px;border-radius:14px;box-shadow:0 4px 12px rgba(40,20,5,.25)}
 .link{box-shadow:0 3px 10px rgba(40,20,5,.25)}
@@ -550,7 +547,7 @@ function scatterMarbles() {
   const count = 8 + Math.floor(Math.random() * 4), placed = [];
   let tries = 0;
   while (placed.length < count && tries++ < 400) {
-    const d = 16 + Math.random() * 12, x = Math.random() * (W - d), y = Math.random() * (H - d), cx = x + d / 2, cy = y + d / 2;
+    const d = 22, x = Math.random() * (W - d), y = Math.random() * (H - d), cx = x + d / 2, cy = y + d / 2;
     const under = cx > r.left + 10 && cx < r.right - 10 && cy > r.top + 10 && cy < r.bottom - 10;
     if (under && Math.random() < .9) continue;                       // mostly where they can be seen
     if (placed.some(p => Math.hypot(p.cx - cx, p.cy - cy) < (p.d + d) / 2 + 6)) continue;
