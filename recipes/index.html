@@ -43,18 +43,19 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
-html{height:100%;background:var(--cloth)}
+html{height:100%;background:var(--chin)}
 body{margin:0;position:fixed;inset:0;overflow:hidden;font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-.cloth{background-color:var(--cloth);background-image:
+/* iOS 26 home-screen apps fill the strip below the page with one solid colour, taken from the page's
+   background-color. .cloth looks the same (its cream/dark base is painted as the last image layer), but
+   its background-color is the gingham red, so that strip comes out red in light and dark. */
+.cloth{background-color:var(--chin);background-image:
   repeating-linear-gradient(0deg,var(--weave) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,var(--weave) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(45deg,var(--check) 0 18px,transparent 18px 36px),
-  repeating-linear-gradient(-45deg,var(--check) 0 18px,transparent 18px 36px)}
-/* iOS 26 home-screen apps fill the strip below the page with one colour, taken from a fixed layer at the edge.
-   This thin layer makes that colour a gingham red instead of whatever else is fixed there. */
-#chin{position:fixed;left:0;right:0;bottom:0;height:1px;background:var(--chin);z-index:1;pointer-events:none}
+  repeating-linear-gradient(-45deg,var(--check) 0 18px,transparent 18px 36px),
+  linear-gradient(var(--cloth),var(--cloth))}
 .scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
 .scroll::-webkit-scrollbar{display:none}
 .round{width:40px;height:40px;flex:none;border:0;border-radius:20px;background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.18);display:grid;place-items:center;color:var(--ink)}
@@ -205,7 +206,6 @@ li.dragging .row{transition:none}
 </style>
 </head>
 <body class="cloth">
-<div id="chin" aria-hidden="true"></div>
 
 <div id="app">
   <div class="top">
