@@ -48,6 +48,12 @@ The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also
 - Recipe page: bold title between thin rules, ingredients as rows with the amount in its own red column (1/2 shows as ½; lines ending in ":" are subheadings), the method with each line its own paragraph. No Groceries or Meals buttons (Ben removed them for now).
 - Icon: diamond gingham with a navy cursive M (Great Vibes, drawn as a path) on a cream circle with a thin red ring.
 
+## Scores (`scores/`, for scores.jermins.com)
+- One static page, `scores/index.html`, with no login and no server data: the current game lives on the device in `localStorage['scores-game-v1']` (name, players, rounds, pending row, low/high, target, over). No stats or history, by Ben's choice.
+- Hearts' sheet and Home Board look, accent amber `#c98a3e`. Any number of players (up to 12; sideways scroll past 8) and rounds. Tap + for a round: a keypad sheet walks through each player (± for negatives); tap any past score to change it. Menu (☰): game name, players (add, reorder, remove), who wins (highest or lowest), "game ends at" target (empty = end it yourself), Appearance Light / Dark / Auto (`scores-theme`). The leader's total is highlighted; reaching the target shows the winner card.
+- Served like recipes: Caddy rewrites to `/scores` on PocketBase. Behind Cloudflare Access "Family apps" with the other sites.
+- Icon: amber scorepad with tally marks.
+
 ## Shared helpers (in `index.html`)
 - `HB.swipeable(el, onDelete)`: swipe a row left to show Delete; a full swipe deletes.
 - `HB.deleteWithUndo`: shows the Undo bar.

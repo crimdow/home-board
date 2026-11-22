@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Scores</title>
+<meta name="theme-color" content="#e4e5e8" id="tc">
+<script>try{var t=localStorage.getItem('scores-theme'),d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';document.getElementById('tc').content=d?'#1d1e22':'#e4e5e8'}catch(e){}</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Scores">
+<link rel="icon" href="favicon.ico?v=1" sizes="any">
+<link rel="icon" href="icon.svg?v=1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
+<link rel="manifest" href="manifest.webmanifest?v=1">
+<style>
+:root{
+  --desk:#e4e5e8; --paper:#eeeff1; --line:#d0d2d6; --ink:#2b2e33; --pencil:#6b7079; --soft:rgba(43,46,51,.05);
+  --slot:#a3a7ae; --accent:#c98a3e; --accent-2:#b67a31; --on-accent:#fff; --chip:#d5d7db; --field:#e3e4e7; --hair:#cfd1d5;
+  --lead:rgba(201,138,62,.2);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --row:42px;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --desk:#1d1e22; --paper:#25262b; --line:#34353b; --ink:#e4e4e2; --pencil:#8b9098; --soft:rgba(255,255,255,.05);
+  --slot:#5d6068; --accent:#d39a52; --accent-2:#e0aa66; --on-accent:#16171a; --chip:#2f3035; --field:#2c2d32; --hair:#3a3b41;
+  --lead:rgba(211,154,82,.22);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--desk)}
+html,body{touch-action:manipulation;overscroll-behavior:none}
+html:has(#layer .scrim){overflow:hidden}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.45;text-transform:uppercase;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overflow-x:hidden;padding:16px 16px 40px}
+.wrap{max-width:760px;margin:0 auto}
+button,input{font:inherit;color:var(--ink);text-transform:uppercase}
+button{cursor:pointer;background:none;border:0;padding:0}
+button:disabled{opacity:.35;cursor:not-allowed}
+:focus-visible{outline:2px solid #4f7bd4;outline-offset:2px;border-radius:6px}
+
+.sheet{background:var(--paper);border-radius:16px;padding:10px 8px 16px}
+.top{display:grid;grid-template-columns:84px 1fr 84px;align-items:center;min-height:44px;padding:0 0 8px}
+.tools-l{display:flex;gap:4px}.tools-r{display:flex;gap:4px;justify-content:flex-end}
+h1{margin:0;min-width:0;text-align:center;font-size:23px;font-weight:800;letter-spacing:.06em;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+h1 button{font-weight:800;letter-spacing:.06em;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:var(--chip);color:var(--ink)}
+.icon-btn svg{width:19px;height:19px}
+@media (max-width:420px){h1{font-size:21px}.top{grid-template-columns:74px 1fr 74px}.icon-btn{width:35px;height:35px}.icon-btn svg{width:18px;height:18px}}
+
+.grid{overflow-x:auto;scrollbar-width:none}.grid::-webkit-scrollbar{display:none}
+table{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}
+table.wide{width:auto;min-width:100%}
+table.wide th,table.wide td{width:72px;min-width:72px}
+th,td{height:var(--row);padding:0 2px;text-align:center;white-space:nowrap;border-left:1px solid var(--line)}
+th:first-child,td:first-child{border-left:0}
+thead th{font-weight:800;letter-spacing:.03em;font-size:var(--fh,16px);vertical-align:bottom;padding-bottom:4px;border-bottom:1.5px solid var(--ink);overflow:hidden}
+thead th .nm{display:block;overflow:hidden;text-overflow:clip;line-height:1.05}
+td.c{font-size:var(--fc,21px);font-weight:600}
+td.c button{width:100%;height:34px;border-radius:8px;font-size:inherit;font-weight:inherit}
+td.c.neg{color:var(--accent)}
+tfoot td{font-size:var(--ft,22px);font-weight:800;border-top:1.5px solid var(--ink);padding-top:4px;position:relative}
+tfoot td .w{position:absolute;inset:6px 3px 2px;border-radius:999px}
+tfoot td.lead .w{background:var(--lead)}
+tfoot td .n{position:relative}
+tr.pending td{background:var(--soft)}
+.slot{width:min(34px,100%);aspect-ratio:1;border:1.5px dashed var(--slot);border-radius:50%;display:inline-grid;place-items:center;color:var(--pencil);font-weight:700;font-size:17px}
+.slot svg{width:16px;height:16px}
+.slot.done{border-style:solid;border-color:transparent;color:var(--ink);width:100%;aspect-ratio:auto;height:34px;border-radius:8px;font-size:calc(var(--fc,21px) - 2px)}
+.empty-sheet{padding:48px 12px;text-align:center;color:var(--pencil);font-size:17px;font-weight:700}
+
+.below{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:16px;text-align:center}
+.hint{font-size:13px;color:var(--pencil);margin:0;text-transform:none;font-weight:600}
+.primary{width:100%;max-width:360px;background:var(--accent);color:var(--on-accent);border-radius:27px;min-height:52px;padding:0 22px;font-size:17px;font-weight:700;text-transform:none}
+.primary:hover{background:var(--accent-2)}
+.primary.ghost{background:var(--chip);color:var(--ink)}
+.links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.link{text-transform:none;height:34px;padding:0 14px;border-radius:17px;background:var(--chip);color:var(--ink);font-size:14px;font-weight:700;display:inline-flex;align-items:center}
+
+/* sheets that slide up, like Home Board's */
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center}
+.pop{position:relative;background:var(--paper);width:100%;max-width:500px;max-height:calc(100% - 40px - env(safe-area-inset-top,0px));overflow:auto;border-radius:22px 22px 0 0;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:14px;animation:sheetUp .28s cubic-bezier(.2,.9,.3,1)}
+.pop::before{content:"";position:absolute;top:8px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--hair)}
+.pop.still{animation:none}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion: reduce){.pop,.card{animation:none}}
+.pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pop-head .sub{font-size:12px;color:var(--pencil);font-weight:700;letter-spacing:.07em}
+.pop-head h2{font-size:28px;font-weight:800;letter-spacing:-.2px;line-height:1.05;margin:2px 0 0;overflow-wrap:anywhere}
+.close{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--chip);color:var(--ink);flex:none}
+.close svg{width:18px;height:18px}
+.label{font-size:12px;color:var(--pencil);font-weight:700;letter-spacing:.07em;margin:4px 0 -6px}
+
+/* score entry */
+.big{font-size:68px;font-weight:700;letter-spacing:-2px;line-height:.95;text-align:center;font-variant-numeric:tabular-nums;min-height:65px}
+.big.neg{color:var(--accent)}
+.big small{display:block;font-size:12px;letter-spacing:.05em;color:var(--pencil);font-weight:700;margin-top:6px}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px 18px;justify-content:center}
+.key{width:72px;height:60px;border-radius:30px;background:var(--chip);font-size:26px;font-weight:600}
+.key:active{background:var(--hair)}
+.key.fn{font-size:20px;color:var(--pencil)}
+.who-dots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.who-dots span{width:8px;height:8px;border-radius:50%;background:var(--chip)}
+.who-dots span.on{background:var(--accent)}
+.who-dots span.done{background:var(--pencil)}
+.pop-foot{display:flex;gap:10px}
+.pop-foot .primary{flex:1}
+
+/* menu */
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:var(--chip);border-radius:12px}
+.seg2{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:4px;background:var(--chip);border-radius:12px}
+.seg3 button,.seg2 button{border-radius:9px;color:var(--pencil);font-size:15px;font-weight:700;padding:9px 0;text-transform:none}
+.seg3 button[aria-pressed="true"],.seg2 button[aria-pressed="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.names{display:flex;flex-direction:column;gap:2px}
+.nrow{display:flex;align-items:center;gap:8px}
+.nrow input{flex:1;min-width:0;font-size:19px;font-weight:600;background:transparent;border:0;border-bottom:1px solid var(--line);padding:6px 2px}
+.nrow input:focus{outline:none;border-bottom-color:var(--ink)}
+.mini{width:34px;height:34px;flex:none;border-radius:50%;background:var(--chip);display:grid;place-items:center;font-size:16px;font-weight:700;color:var(--pencil)}
+.mini:disabled{opacity:.3}
+.add{display:flex;gap:8px;align-items:center}
+.add input{flex:1;min-width:0;font-size:18px;font-weight:600;background:var(--field);border:0;border-radius:14px;padding:10px 12px}
+.add input:focus{outline:1.5px solid var(--accent)}
+.add-btn{width:42px;height:42px;border-radius:50%;background:var(--chip);display:grid;place-items:center;flex:none}
+.add-btn svg{width:18px;height:18px}
+.field{font-size:19px;font-weight:600;background:var(--field);border:0;border-radius:14px;padding:10px 12px;width:100%}
+.field:focus{outline:1.5px solid var(--accent)}
+.target{display:flex;align-items:center;gap:10px}
+.target .field{flex:1;text-align:center}
+.confirm{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px}
+.danger{color:var(--accent);font-weight:700;text-transform:none;font-size:15px}
+
+/* winner */
+.celebrate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.4)}
+.card{background:var(--paper);border-radius:26px;padding:24px 22px;max-width:420px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.card svg{width:96px;height:96px;color:var(--accent)}
+.card .eyebrow{font-size:12px;letter-spacing:.08em;color:var(--pencil);font-weight:700}
+.card .winner{font-weight:800;font-size:clamp(32px,9vw,46px);line-height:1;text-wrap:balance}
+.card .final{width:100%;display:flex;flex-direction:column;gap:4px}
+.card .final div{display:flex;justify-content:space-between;padding:4px 12px;border-radius:8px;font-size:18px;font-weight:700}
+.card .final div.lead{background:var(--lead)}
+.card .row-btns{display:flex;gap:10px;width:100%}
+.card .row-btns .primary{flex:1;font-size:15px;padding:0 10px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="layer"></div>
+<script>
+(() => {
+const KEY = 'scores-game-v1', THEME = 'scores-theme', MAX = 12;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ICON = {
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>'
+};
+
+/* ---------- the game (kept on this device only) ---------- */
+function blank(keep) {
+  return { name: keep ? keep.name : 'Scores', players: keep ? keep.players.slice() : [], rounds: [], pending: null,
+    low: keep ? keep.low : false, target: keep ? keep.target : 0, over: false };
+}
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) } catch (e) {}
+if (!state || !Array.isArray(state.players)) state = blank();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) {} };
+const totals = () => state.players.map((_, i) => state.rounds.reduce((a, r) => a + (+r[i] || 0), 0));
+function leaders(t) {
+  if (!state.rounds.length) return [];
+  const best = state.low ? Math.min(...t) : Math.max(...t);
+  return t.map((x, i) => x === best ? i : -1).filter(i => i >= 0);
+}
+function checkOver() {
+  if (!state.target || !state.rounds.length) return false;
+  const t = totals();
+  return state.low ? t.some(x => x >= state.target) : t.some(x => x >= state.target);
+}
+const fmt = v => v > 0 ? String(v) : v < 0 ? '−' + Math.abs(v) : '0';
+
+/* ---------- sheet ---------- */
+function render() {
+  const n = state.players.length;
+  if (!n) {
+    $('#app').innerHTML = `<div class="sheet">${topBar()}<div class="empty-sheet">Add players to start keeping score.</div></div>
+      <div class="below"><button class="primary" id="add-players">Add players</button></div>`;
+    wireTop(); $('#add-players').onclick = () => openPop('menu');
+    return;
+  }
+  if (!state.over && !state.pending) state.pending = state.players.map(() => null);
+  if (state.over) state.pending = null;
+  const t = totals(), lead = leaders(t), wide = n > 8;
+  const size = n <= 4 ? '--fh:16px;--fc:21px;--ft:22px' : n <= 6 ? '--fh:14px;--fc:18px;--ft:19px' : '--fh:13px;--fc:17px;--ft:18px';
+  const head = `<tr>${state.players.map(p => `<th scope="col"><span class="nm">${esc(p)}</span></th>`).join('')}</tr>`;
+  let rows = state.rounds.map((r, k) => `<tr>${r.map((s, i) =>
+    `<td class="c${s < 0 ? ' neg' : ''}"><button data-edit="${k}:${i}" aria-label="Change ${esc(state.players[i])}, round ${k + 1}">${fmt(s)}</button></td>`).join('')}</tr>`).join('');
+  if (state.pending) rows += `<tr class="pending">${state.pending.map((v, i) =>
+    `<td><button class="slot${v != null ? ' done' : ''}" data-slot="${i}" aria-label="Score for ${esc(state.players[i])}">${v != null ? fmt(v) : ICON.plus}</button></td>`).join('')}</tr>`;
+  const filled = state.rounds.length + (state.pending ? 1 : 0);
+  for (let k = filled; k < Math.max(filled + 1, 6); k++) rows += `<tr>${'<td></td>'.repeat(n)}</tr>`;
+  const foot = state.rounds.length ? `<tfoot><tr>${t.map((x, i) =>
+    `<td class="${lead.includes(i) ? 'lead' : ''}"><span class="w"></span><span class="n">${fmt(x)}</span></td>`).join('')}</tr></tfoot>` : '';
+
+  const links = [];
+  const anyIn = state.pending && state.pending.some(v => v != null);
+  if (anyIn) links.push(`<button class="link" id="clear">Clear this round</button>`);
+  else if (state.rounds.length) links.push(`<button class="link" id="undo">Erase last round</button>`);
+  if (!state.over && state.rounds.length) links.push(`<button class="link" id="end">End game</button>`);
+  const main = state.over ? `<button class="primary" id="show-win">Show winner</button>`
+    : `<p class="hint">Tap <b>+</b> to enter a round. Tap any score to change it.</p>`;
+
+  $('#app').innerHTML = `<div class="sheet">${topBar()}
+    <div class="grid"><table class="${wide ? 'wide' : ''}" style="${size}"><thead>${head}</thead><tbody>${rows}</tbody>${foot}</table></div></div>
+    <div class="below">${main}${links.length ? `<div class="links">${links.join('')}</div>` : ''}</div>`;
+  wireTop();
+  const on = (id, fn) => { const el = $('#' + id); if (el) el.onclick = fn; };
+  on('clear', () => { state.pending = null; save(); render(); });
+  on('undo', () => { state.rounds.pop(); state.over = false; state.pending = null; save(); render(); });
+  on('end', () => { state.over = true; save(); render(); celebrate(); });
+  on('show-win', celebrate);
+  document.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => openEntry({ who: +b.dataset.slot }));
+  document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const [k, i] = b.dataset.edit.split(':').map(Number); openEntry({ who: i, round: k }) });
+}
+function topBar() {
+  return `<div class="top"><span class="tools-l"><button class="icon-btn" id="fresh" aria-label="New game">${ICON.trash}</button></span>
+    <h1><button id="title" aria-label="Rename game">${esc(state.name || 'Scores')}</button></h1>
+    <span class="tools-r"><button class="icon-btn" id="menu" aria-label="Menu">${ICON.menu}</button></span></div>`;
+}
+function wireTop() {
+  $('#menu').onclick = () => openPop('menu');
+  $('#title').onclick = () => openPop('menu', 'name');
+  $('#fresh').onclick = () => { if (state.rounds.length || (state.pending || []).some(v => v != null)) openPop('fresh'); else openPop('menu') };
+}
+
+/* ---------- sheets (menus slide up; redraws keep their place) ---------- */
+const ui = { pop: null, focus: null, entry: null, draft: '', confirmFresh: false };
+function openPop(name, focus) { ui.pop = name; ui.focus = focus || null; drawPop(true) }
+function closePop() { ui.pop = null; ui.entry = null; $('#layer').innerHTML = '' }
+function drawPop(fresh) {
+  const layer = $('#layer');
+  if (!ui.pop) { layer.innerHTML = ''; return }
+  const old = layer.querySelector('.pop'), top = old ? old.scrollTop : 0;
+  layer.innerHTML = `<div class="scrim" id="scrim"><div class="pop${fresh ? '' : ' still'}" role="dialog" aria-modal="true">${POPS[ui.pop]()}</div></div>`;
+  const pop = layer.querySelector('.pop'); pop.scrollTop = top;
+  $('#scrim').onclick = e => { if (e.target.id === 'scrim') { if (ui.pop === 'entry') keepEntry(); closePop(); render() } };
+  WIRE[ui.pop] && WIRE[ui.pop](pop);
+  pop.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { if (ui.pop === 'entry') keepEntry(); closePop(); render() });
+}
+const head = (sub, title) => `<div class="pop-head"><div>${sub ? `<div class="sub">${sub}</div>` : ''}<h2>${title}</h2></div><button class="close" data-close aria-label="Close">${ICON.close}</button></div>`;
+
+const POPS = {
+  menu() {
+    const m = (() => { try { return localStorage.getItem(THEME) || '' } catch (e) { return '' } })();
+    return `${head('', 'Game')}
+      <div class="label">Name</div>
+      <input class="field" id="g-name" value="${esc(state.name || '')}" maxlength="30" placeholder="Scores" autocomplete="off">
+      <div class="label">Players</div>
+      <div class="names">${state.players.map((p, i) => `<div class="nrow"><input data-name="${i}" value="${esc(p)}" maxlength="16" aria-label="Player ${i + 1}">
+        <button class="mini" data-up="${i}" aria-label="Move up" ${i ? '' : 'disabled'}>↑</button>
+        <button class="mini" data-del="${i}" aria-label="Remove ${esc(p)}">×</button></div>`).join('')}</div>
+      ${state.players.length < MAX ? `<div class="add"><input id="new-p" placeholder="Add a player" maxlength="16" autocomplete="off"><button class="add-btn" id="add-p" aria-label="Add player">${ICON.plus}</button></div>` : ''}
+      <div class="label">Who wins</div>
+      <div class="seg2" id="low"><button data-v="0" aria-pressed="${!state.low}">Highest score</button><button data-v="1" aria-pressed="${!!state.low}">Lowest score</button></div>
+      <div class="label">Game ends at</div>
+      <div class="target"><input class="field" id="g-target" inputmode="numeric" pattern="[0-9]*" value="${state.target || ''}" placeholder="No limit"></div>
+      <p class="hint" style="margin-top:-6px">${state.low ? 'Ends when anyone reaches this; lowest total wins.' : 'Ends when anyone reaches this; highest total wins.'} Leave empty to end it yourself.</p>
+      <div class="label">Appearance</div>
+      <div class="seg3" id="theme"><button data-m="light" aria-pressed="${m === 'light'}">Light</button><button data-m="dark" aria-pressed="${m === 'dark'}">Dark</button><button data-m="" aria-pressed="${m === ''}">Auto</button></div>`;
+  },
+  fresh() {
+    return `${head('', 'Start a new game?')}
+      <p class="hint">This clears every round. Players and settings stay.</p>
+      <div class="pop-foot"><button class="primary ghost" data-close>Keep playing</button><button class="primary" id="go-fresh">New game</button></div>`;
+  },
+  entry() {
+    const e = ui.entry, name = state.players[e.who], editing = e.round != null;
+    const v = ui.draft, num = v === '' || v === '-' ? null : +v;
+    const dots = editing ? '' : `<div class="who-dots">${state.players.map((_, i) => `<span class="${i === e.who ? 'on' : state.pending[i] != null ? 'done' : ''}"></span>`).join('')}</div>`;
+    const last = editing || state.pending.every((x, i) => i === e.who || x != null);
+    return `${head(editing ? 'Round ' + (e.round + 1) : 'Round ' + (state.rounds.length + 1), esc(name))}
+      ${dots}
+      <div class="big${num < 0 ? ' neg' : ''}">${v === '' ? '<span style="color:var(--slot)">0</span>' : v === '-' ? '−' : fmt(num)}</div>
+      <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<button class="key" data-k="${d}">${d}</button>`).join('')}
+        <button class="key fn" data-k="neg" aria-label="Plus or minus">±</button><button class="key" data-k="0">0</button><button class="key fn" data-k="del" aria-label="Delete">⌫</button></div>
+      <div class="pop-foot">${!editing && e.who > 0 ? `<button class="primary ghost" id="prev">Back</button>` : ''}
+        <button class="primary" id="next">${editing ? 'Save' : last ? 'Save round' : 'Next'}</button></div>`;
+  }
+};
+const WIRE = {
+  menu(pop) {
+    pop.querySelector('#g-name').oninput = e => { state.name = e.target.value; save(); $('#title') && ($('#title').textContent = state.name || 'Scores') };
+    pop.querySelectorAll('[data-name]').forEach(inp => inp.oninput = () => { state.players[+inp.dataset.name] = inp.value; save() });
+    pop.querySelectorAll('[data-name]').forEach(inp => inp.onblur = () => { const i = +inp.dataset.name; if (!inp.value.trim()) { state.players[i] = 'Player ' + (i + 1); save(); drawPop() } render() });
+    pop.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; movePlayer(i, i - 1); drawPop(); render() });
+    pop.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+      const i = +b.dataset.del, used = state.rounds.some(r => r[i]);
+      if (used && b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '?'; b.style.color = 'var(--accent)'; b.setAttribute('aria-label', 'Tap again to remove with their scores'); return }
+      state.players.splice(i, 1); state.rounds.forEach(r => r.splice(i, 1)); if (state.pending) state.pending.splice(i, 1);
+      if (!state.players.length) state.rounds = []; save(); drawPop(); render();
+    });
+    const add = () => { const inp = pop.querySelector('#new-p'); const v = inp.value.trim().slice(0, 16); if (!v) return;
+      state.players.push(v); state.rounds.forEach(r => r.push(0)); if (state.pending) state.pending.push(null); save(); drawPop(); render();
+      const again = $('#new-p'); again && again.focus() };
+    const ab = pop.querySelector('#add-p'); if (ab) ab.onclick = add;
+    const ni = pop.querySelector('#new-p'); if (ni) ni.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); add() } };
+    pop.querySelector('#low').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.low = b.dataset.v === '1'; state.over = state.over && checkOver(); save(); drawPop(); render() };
+    pop.querySelector('#g-target').oninput = e => { const v = parseInt(e.target.value.replace(/\D/g, ''), 10); state.target = v > 0 ? v : 0; save() };
+    pop.querySelector('#g-target').onblur = () => { drawPop(); render() };
+    pop.querySelector('#theme').onclick = e => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem(THEME, b.dataset.m) } catch (x) {} applyTheme(); drawPop() };
+    if (ui.focus === 'name') { const n = pop.querySelector('#g-name'); n.focus(); n.select(); ui.focus = null }
+  },
+  fresh(pop) { pop.querySelector('#go-fresh').onclick = () => { state = blank(state); save(); closePop(); render() } },
+  entry(pop) {
+    pop.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+      const k = b.dataset.k; let v = ui.draft;
+      if (k === 'del') v = v.slice(0, -1);
+      else if (k === 'neg') v = v.startsWith('-') ? v.slice(1) : '-' + v;
+      else if (v.replace('-', '').length < 5) v = (v === '0' ? '' : v === '-0' ? '-' : v) + k;
+      ui.draft = v; drawPop();
+    });
+    const prev = pop.querySelector('#prev');
+    if (prev) prev.onclick = () => { keepEntry(); ui.entry.who--; ui.draft = draftOf(); drawPop() };
+    pop.querySelector('#next').onclick = () => {
+      const e = ui.entry; keepEntry(true);
+      if (e.round != null) { closePop(); afterChange(); return }
+      if (state.pending.every(x => x != null)) { state.rounds.push(state.pending.slice()); state.pending = null; closePop(); afterChange(); return }
+      let n = state.pending.findIndex((x, i) => i > e.who && x == null); if (n < 0) n = state.pending.findIndex(x => x == null);
+      e.who = n; ui.draft = draftOf(); drawPop();
+    };
+  }
+};
+function movePlayer(a, b) {
+  const sw = arr => { const t = arr[a]; arr[a] = arr[b]; arr[b] = t };
+  sw(state.players); state.rounds.forEach(sw); if (state.pending) sw(state.pending); save();
+}
+function draftOf() {
+  const e = ui.entry, v = e.round != null ? state.rounds[e.round][e.who] : state.pending[e.who];
+  return v == null ? '' : String(v);
+}
+function keepEntry(fill) {
+  const e = ui.entry; if (!e) return;
+  const v = ui.draft === '' || ui.draft === '-' ? (fill ? 0 : null) : +ui.draft;
+  if (e.round != null) { if (v != null) state.rounds[e.round][e.who] = v }
+  else state.pending[e.who] = v;
+  save();
+}
+function openEntry(e) { ui.entry = e; ui.draft = draftOf(); openPop('entry') }
+function afterChange() {
+  const was = state.over; state.over = checkOver(); save(); render();
+  if (state.over && !was) celebrate();
+}
+
+/* ---------- winner ---------- */
+function celebrate() {
+  const t = totals(), lead = leaders(t), names = lead.map(i => state.players[i]);
+  const order = state.players.map((p, i) => ({ p, x: t[i], i })).sort((a, b) => state.low ? a.x - b.x : b.x - a.x);
+  const box = document.createElement('div'); box.className = 'celebrate';
+  box.innerHTML = `<div class="card" role="dialog" aria-modal="true">${ICON.trophy}
+    <div class="eyebrow">${names.length > 1 ? 'It’s a tie' : 'Winner'}</div>
+    <div class="winner">${names.map(esc).join(' & ') || '—'}</div>
+    <div class="final">${order.map(o => `<div class="${lead.includes(o.i) ? 'lead' : ''}"><span>${esc(o.p)}</span><span>${fmt(o.x)}</span></div>`).join('')}</div>
+    <div class="row-btns"><button class="primary ghost" id="w-close">Back to sheet</button><button class="primary" id="w-new">New game</button></div></div>`;
+  document.body.appendChild(box);
+  box.querySelector('#w-close').onclick = () => box.remove();
+  box.querySelector('#w-new').onclick = () => { box.remove(); state = blank(state); save(); render() };
+  box.onclick = e => { if (e.target === box) box.remove() };
+}
+
+/* ---------- appearance ---------- */
+function applyTheme() {
+  let m = ''; try { m = localStorage.getItem(THEME) || '' } catch (e) {}
+  const dark = m === 'dark' || (m !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  $('#tc').content = dark ? '#1d1e22' : '#e4e5e8';
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+render();
+})();
+</script>
+</body>
+</html>
