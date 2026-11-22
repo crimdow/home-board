@@ -100,10 +100,6 @@ tr.pending td{background:var(--soft)}
 .key{width:72px;height:60px;border-radius:30px;background:var(--chip);font-size:26px;font-weight:600}
 .key:active{background:var(--hair)}
 .key.fn{font-size:20px;color:var(--pencil)}
-.who-dots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.who-dots span{width:8px;height:8px;border-radius:50%;background:var(--chip)}
-.who-dots span.on{background:var(--accent)}
-.who-dots span.done{background:var(--pencil)}
 .pop-foot{display:flex;gap:10px}
 .pop-foot .primary{flex:1}
 
@@ -211,7 +207,7 @@ function render() {
   else if (state.rounds.length) links.push(`<button class="link" id="undo">Erase last round</button>`);
   if (!state.over && state.rounds.length) links.push(`<button class="link" id="end">End game</button>`);
   const main = state.over ? `<button class="primary" id="show-win">Show winner</button>`
-    : `<p class="hint">Tap <b>+</b> to enter a round. Tap any score to change it.</p>`;
+    : `<p class="hint">Tap <b>+</b> under each player to enter their score. Tap any score to change it.</p>`;
 
   $('#app').innerHTML = `<div class="sheet">${topBar()}
     <div class="grid"><table class="${wide ? 'wide' : ''}" style="${size}"><thead>${head}</thead><tbody>${rows}</tbody>${foot}</table></div></div>
@@ -246,9 +242,9 @@ function drawPop(fresh) {
   const old = layer.querySelector('.pop'), top = old ? old.scrollTop : 0;
   layer.innerHTML = `<div class="scrim" id="scrim"><div class="pop${fresh ? '' : ' still'}" role="dialog" aria-modal="true">${POPS[ui.pop]()}</div></div>`;
   const pop = layer.querySelector('.pop'); pop.scrollTop = top;
-  $('#scrim').onclick = e => { if (e.target.id === 'scrim') { if (ui.pop === 'entry') keepEntry(); closePop(); render() } };
+  $('#scrim').onclick = e => { if (e.target.id === 'scrim') { closePop(); render() } };
   WIRE[ui.pop] && WIRE[ui.pop](pop);
-  pop.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { if (ui.pop === 'entry') keepEntry(); closePop(); render() });
+  pop.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { closePop(); render() });
 }
 const head = (sub, title) => `<div class="pop-head"><div>${sub ? `<div class="sub">${sub}</div>` : ''}<h2>${title}</h2></div><button class="close" data-close aria-label="Close">${ICON.close}</button></div>`;
 
@@ -279,15 +275,11 @@ const POPS = {
   entry() {
     const e = ui.entry, name = state.players[e.who], editing = e.round != null;
     const v = ui.draft, num = v === '' || v === '-' ? null : +v;
-    const dots = editing ? '' : `<div class="who-dots">${state.players.map((_, i) => `<span class="${i === e.who ? 'on' : state.pending[i] != null ? 'done' : ''}"></span>`).join('')}</div>`;
-    const last = editing || state.pending.every((x, i) => i === e.who || x != null);
     return `${head(editing ? 'Round ' + (e.round + 1) : 'Round ' + (state.rounds.length + 1), esc(name))}
-      ${dots}
       <div class="big${num < 0 ? ' neg' : ''}">${v === '' ? '<span style="color:var(--slot)">0</span>' : v === '-' ? '−' : fmt(num)}</div>
       <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<button class="key" data-k="${d}">${d}</button>`).join('')}
         <button class="key fn" data-k="neg" aria-label="Plus or minus">±</button><button class="key" data-k="0">0</button><button class="key fn" data-k="del" aria-label="Delete">⌫</button></div>
-      <div class="pop-foot">${!editing && e.who > 0 ? `<button class="primary ghost" id="prev">Back</button>` : ''}
-        <button class="primary" id="next">${editing ? 'Save' : last ? 'Save round' : 'Next'}</button></div>`;
+      <div class="pop-foot"><button class="primary" id="next">Enter</button></div>`;
   }
 };
 const WIRE = {
@@ -322,14 +314,10 @@ const WIRE = {
       else if (v.replace('-', '').length < 5) v = (v === '0' ? '' : v === '-0' ? '-' : v) + k;
       ui.draft = v; drawPop();
     });
-    const prev = pop.querySelector('#prev');
-    if (prev) prev.onclick = () => { keepEntry(); ui.entry.who--; ui.draft = draftOf(); drawPop() };
     pop.querySelector('#next').onclick = () => {
-      const e = ui.entry; keepEntry(true);
-      if (e.round != null) { closePop(); afterChange(); return }
-      if (state.pending.every(x => x != null)) { state.rounds.push(state.pending.slice()); state.pending = null; closePop(); afterChange(); return }
-      let n = state.pending.findIndex((x, i) => i > e.who && x == null); if (n < 0) n = state.pending.findIndex(x => x == null);
-      e.who = n; ui.draft = draftOf(); drawPop();
+      const e = ui.entry; keepEntry(true); closePop();
+      if (e.round == null && state.pending.every(x => x != null)) { state.rounds.push(state.pending.slice()); state.pending = null }
+      afterChange();
     };
   }
 };
@@ -379,6 +367,15 @@ function applyTheme() {
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+// on a laptop: type the number, - for negative, Enter to save, Esc to close
+document.addEventListener('keydown', e => {
+  if (ui.pop !== 'entry') return;
+  const k = e.key, map = { Backspace: 'del', '-': 'neg' };
+  const key = /^[0-9]$/.test(k) ? k : map[k];
+  if (key) { e.preventDefault(); const b = document.querySelector(`[data-k="${key}"]`); b && b.click() }
+  else if (k === 'Enter') { e.preventDefault(); $('#next').click() }
+  else if (k === 'Escape') { closePop(); render() }
+});
 render();
 })();
 </script>
