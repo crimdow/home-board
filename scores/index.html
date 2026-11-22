@@ -130,10 +130,10 @@ tr.pending td{background:var(--soft)}
 html{background:var(--wood)}
 body{background:transparent}
 #table{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:var(--wood)}
-.pcard{position:absolute;width:64px;height:90px;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.25),2px 6px 10px rgba(20,8,2,.45)}
+.pcard{position:absolute;width:75px;height:105px;border-radius:7px;overflow:hidden;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.25),2px 6px 10px rgba(20,8,2,.45)}
 .pcard img{display:block;width:100%;height:100%;object-fit:cover}
 .pcard.down{background:#fff}
-.pcard.down::before{content:"";position:absolute;inset:4px;border-radius:3px;
+.pcard.down::before{content:"";position:absolute;inset:5px;border-radius:4px;
   background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.28) 0 7px,transparent 7.5px),
   repeating-linear-gradient(45deg,rgba(255,255,255,.3) 0 1px,transparent 1px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.3) 0 1px,transparent 1px 5px),#b3242e;
   box-shadow:inset 0 0 0 1.5px #b3242e,inset 0 0 0 2.5px rgba(255,255,255,.75)}
@@ -564,11 +564,11 @@ function scatterMarbles() {
   const ups = [pick(COURT), pick(Math.random() < .5 ? COURT : OTHER), pick(OTHER)];
   const kinds = ['up', 'down', 'up', 'down', 'up'].slice(0, 4 + Math.floor(Math.random() * 2));
   kinds.forEach(kind => {
-    const p = spot(90, true); if (!p) return;
+    const p = spot(105, true); if (!p) return;
     const c = document.createElement('span'), rot = (Math.random() * 70 - 35).toFixed(1);
     if (kind === 'up') { c.className = 'pcard up'; c.innerHTML = `<img src="cards/${ups.shift()}.jpg" alt="">` }
     else c.className = 'pcard down';
-    c.style.cssText = `left:${((p.cx - 32) / W * 100).toFixed(2)}%;top:${((p.cy - 45) / H * 100).toFixed(2)}%;transform:rotate(${rot}deg)`;
+    c.style.cssText = `left:${((p.cx - 37.5) / W * 100).toFixed(2)}%;top:${((p.cy - 52.5) / H * 100).toFixed(2)}%;transform:rotate(${rot}deg)`;
     table.appendChild(c);
   });
   // marbles on top
