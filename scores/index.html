@@ -126,6 +126,27 @@ tr.pending td{background:var(--soft)}
 .confirm{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px}
 .danger{color:var(--accent);font-weight:700;text-transform:none;font-size:15px}
 
+/* history */
+.hist{display:flex;flex-direction:column;gap:6px}
+.hrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:14px;background:var(--chip);text-align:left}
+.hrow .t{flex:1;min-width:0}
+.hrow b{display:block;text-transform:uppercase;font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow span{display:block;font-size:13px;color:var(--pencil);font-weight:600;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow .d{font-size:12px;color:var(--pencil);font-weight:700;flex:none}
+.final2{display:flex;flex-direction:column;gap:4px}
+.final2 div{display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;font-size:18px;font-weight:700}
+.final2 div.lead{background:var(--lead)}
+.mini-grid{overflow-x:auto;border-radius:12px;background:var(--chip);padding:6px}
+.mini-grid table{--fh:12px;--fc:15px;--ft:16px}
+.mini-grid th,.mini-grid td{height:30px}
+.mini-grid table.wide th,.mini-grid table.wide td{width:56px;min-width:56px}
+.li{display:flex;flex-direction:column;gap:10px;text-transform:none}
+.li input{font-size:17px;text-transform:none;background:var(--field);border:0;border-radius:12px;padding:13px 14px;width:100%}
+.li input:focus{outline:1.5px solid var(--accent)}
+.li .err{color:var(--accent);font-size:14px;min-height:1.2em;margin:0}
+.who-line{font-size:13px;color:var(--pencil);text-transform:none;font-weight:600}
+.saved-note{font-size:13px;color:var(--pencil);text-transform:none;font-weight:600}
+
 /* winner */
 .celebrate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.4)}
 .card{background:var(--paper);border-radius:26px;padding:24px 22px;max-width:420px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
@@ -143,6 +164,7 @@ tr.pending td{background:var(--soft)}
 <body>
 <div class="wrap" id="app"></div>
 <div id="layer"></div>
+<script src="pocketbase.umd.js"></script>
 <script>
 (() => {
 const KEY = 'scores-game-v1', THEME = 'scores-theme', MAX = 12;
@@ -153,13 +175,14 @@ const ICON = {
   menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
   trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>'
 };
 
 /* ---------- the game (kept on this device only) ---------- */
 function blank(keep) {
   return { name: keep ? keep.name : 'Scores', players: keep ? keep.players.slice() : [], rounds: [], pending: null,
-    low: keep ? keep.low : false, target: keep ? keep.target : 0, over: false };
+    low: keep ? keep.low : false, target: keep ? keep.target : 0, over: false, savedId: '', unsaved: false };
 }
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) } catch (e) {}
@@ -216,7 +239,7 @@ function render() {
   const on = (id, fn) => { const el = $('#' + id); if (el) el.onclick = fn; };
   on('clear', () => { state.pending = null; save(); render(); });
   on('undo', () => { state.rounds.pop(); state.over = false; state.pending = null; save(); render(); });
-  on('end', () => { state.over = true; save(); render(); celebrate(); });
+  on('end', () => { state.over = true; save(); render(); saveFinished(); celebrate(); });
   on('show-win', celebrate);
   document.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => openEntry({ who: +b.dataset.slot }));
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const [k, i] = b.dataset.edit.split(':').map(Number); openEntry({ who: i, round: k }) });
@@ -224,10 +247,11 @@ function render() {
 function topBar() {
   return `<div class="top"><span class="tools-l"><button class="icon-btn" id="fresh" aria-label="New game">${ICON.trash}</button></span>
     <h1><button id="title" aria-label="Rename game">${esc(state.name || 'Scores')}</button></h1>
-    <span class="tools-r"><button class="icon-btn" id="menu" aria-label="Menu">${ICON.menu}</button></span></div>`;
+    <span class="tools-r"><button class="icon-btn" id="hist" aria-label="Past games">${ICON.clock}</button><button class="icon-btn" id="menu" aria-label="Menu">${ICON.menu}</button></span></div>`;
 }
 function wireTop() {
   $('#menu').onclick = () => openPop('menu');
+  $('#hist').onclick = openHistory;
   $('#title').onclick = () => openPop('menu', 'name');
   $('#fresh').onclick = () => { if (state.rounds.length || (state.pending || []).some(v => v != null)) openPop('fresh'); else openPop('menu') };
 }
@@ -264,6 +288,9 @@ const POPS = {
       <div class="label">Game ends at</div>
       <div class="target"><input class="field" id="g-target" inputmode="numeric" pattern="[0-9]*" value="${state.target || ''}" placeholder="No limit"></div>
       <p class="hint" style="margin-top:-6px">${state.low ? 'Ends when anyone reaches this; lowest total wins.' : 'Ends when anyone reaches this; highest total wins.'} Leave empty to end it yourself.</p>
+      <div class="label">Saved games</div>
+      ${me() ? `<div class="who-line">Finished games are saved for the family as ${esc(me().name || me().username || me().email || '')}.</div><button class="link" id="sign-out" style="align-self:flex-start">Sign out</button>`
+             : `<div class="who-line">Sign in with your Home Board login to save finished games for the family.</div><button class="link" id="sign-in" style="align-self:flex-start">Sign in</button>`}
       <div class="label">Appearance</div>
       <div class="seg3" id="theme"><button data-m="light" aria-pressed="${m === 'light'}">Light</button><button data-m="dark" aria-pressed="${m === 'dark'}">Dark</button><button data-m="" aria-pressed="${m === ''}">Auto</button></div>`;
   },
@@ -282,6 +309,42 @@ const POPS = {
       <div class="pop-foot"><button class="primary" id="next">Enter</button></div>`;
   }
 };
+Object.assign(POPS, {
+  signin() {
+    return `${head('', 'Sign in')}
+      <form class="li" id="li" autocomplete="on">
+        <div class="who-line">Use your Home Board login. Finished games are then saved for the whole family.</div>
+        <input id="li-u" type="text" placeholder="Email or username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required value="${esc(ui.liUser || '')}">
+        <input id="li-p" type="password" placeholder="Password" autocomplete="current-password" required>
+        <p class="err" id="li-err">${esc(ui.liErr || '')}</p>
+        <button class="primary" type="submit" id="li-go" style="max-width:none">Sign in</button>
+      </form>`;
+  },
+  history() {
+    let body;
+    if (!me()) body = `<div class="who-line">Sign in with your Home Board login to see the family’s finished games.</div><button class="primary" id="h-sign" style="max-width:none">Sign in</button>`;
+    else if (hist.err) body = `<div class="who-line">${esc(hist.err)}</div><button class="link" id="h-retry" style="align-self:flex-start">Try again</button>`;
+    else if (!hist.list) body = `<div class="who-line">Loading…</div>`;
+    else if (!hist.list.length) body = `<div class="who-line">No finished games yet. They show up here once a game ends.</div>`;
+    else body = `<div class="hist">${hist.list.map((g, i) => `<button class="hrow" data-g="${i}"><span class="t"><b>${esc(g.name || 'Scores')}</b>
+        <span>${g.winners.length > 1 ? 'Tie: ' : 'Won by '}${esc(g.winners.join(' & ') || '—')} · ${g.players.length} players · ${g.rounds.length} round${g.rounds.length === 1 ? '' : 's'}</span></span>
+        <span class="d">${esc(day(g.finished_at))}</span></button>`).join('')}</div>`;
+    return `${head('', 'Past games')}${body}`;
+  },
+  game() {
+    const g = hist.list && hist.list[ui.game]; if (!g) return head('', 'Game');
+    const order = g.players.map((p, i) => ({ p, x: g.totals[i], i })).sort((a, b) => g.low ? a.x - b.x : b.x - a.x);
+    const wide = g.players.length > 6;
+    const table = `<div class="mini-grid"><table class="${wide ? 'wide' : ''}"><thead><tr>${g.players.map(p => `<th><span class="nm">${esc(p)}</span></th>`).join('')}</tr></thead>
+      <tbody>${g.rounds.map(r => `<tr>${r.map(v => `<td class="c${v < 0 ? ' neg' : ''}">${fmt(+v || 0)}</td>`).join('')}</tr>`).join('')}</tbody>
+      <tfoot><tr>${g.totals.map(x => `<td><span class="n">${fmt(x)}</span></td>`).join('')}</tr></tfoot></table></div>`;
+    return `${head(esc(day(g.finished_at)) + ' · ' + (g.low ? 'lowest wins' : 'highest wins'), esc(g.name || 'Scores'))}
+      <div class="final2">${order.map(o => `<div class="${g.winners.includes(o.p) ? 'lead' : ''}"><span>${esc(o.p)}</span><span>${fmt(o.x)}</span></div>`).join('')}</div>
+      ${table}
+      <div class="pop-foot"><button class="primary ghost" id="g-back">All games</button><button class="primary ghost" id="g-again">Play again</button></div>
+      ${isEditor() ? `<button class="danger" id="g-del" style="align-self:center">Delete this game</button>` : ''}`;
+  }
+});
 const WIRE = {
   menu(pop) {
     pop.querySelector('#g-name').oninput = e => { state.name = e.target.value; save(); $('#title') && ($('#title').textContent = state.name || 'Scores') };
@@ -303,7 +366,41 @@ const WIRE = {
     pop.querySelector('#g-target').oninput = e => { const v = parseInt(e.target.value.replace(/\D/g, ''), 10); state.target = v > 0 ? v : 0; save() };
     pop.querySelector('#g-target').onblur = () => { drawPop(); render() };
     pop.querySelector('#theme').onclick = e => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem(THEME, b.dataset.m) } catch (x) {} applyTheme(); drawPop() };
+    const so = pop.querySelector('#sign-out'); if (so) so.onclick = () => { pb.authStore.clear(); hist.list = null; drawPop() };
+    const si = pop.querySelector('#sign-in'); if (si) si.onclick = () => { ui.after = 'menu'; openPop('signin') };
     if (ui.focus === 'name') { const n = pop.querySelector('#g-name'); n.focus(); n.select(); ui.focus = null }
+  },
+  signin(pop) {
+    pop.querySelector('#li').onsubmit = async e => {
+      e.preventDefault(); const go = pop.querySelector('#li-go'); go.disabled = true; go.textContent = 'Signing in…';
+      ui.liUser = pop.querySelector('#li-u').value.trim();
+      try {
+        await pb.collection('users').authWithPassword(ui.liUser, pop.querySelector('#li-p').value);
+        if (!me() || !me().household) { pb.authStore.clear(); throw { status: 403 } }
+        ui.liErr = ''; hist.list = null; trySaveLater(); if ((ui.after || 'history') === 'history') openHistory(); else openPop(ui.after);
+      } catch (err) {
+        ui.liErr = err && err.status === 400 ? 'That username and password didn’t match.' : err && err.status === 403 ? 'That login isn’t part of a household yet.' : 'Couldn’t reach the server.';
+        drawPop();
+      }
+    };
+  },
+  history(pop) {
+    const sg = pop.querySelector('#h-sign'); if (sg) sg.onclick = () => { ui.after = 'history'; openPop('signin') };
+    const rt = pop.querySelector('#h-retry'); if (rt) rt.onclick = () => { hist.err = ''; loadHistory() };
+    pop.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { ui.game = +b.dataset.g; openPop('game') });
+  },
+  game(pop) {
+    pop.querySelector('#g-back').onclick = () => openPop('history');
+    pop.querySelector('#g-again').onclick = () => {
+      const g = hist.list[ui.game]; state = blank({ name: g.name, players: g.players, low: g.low, target: g.target || 0 }); save(); closePop(); render();
+    };
+    const d = pop.querySelector('#g-del');
+    if (d) d.onclick = async () => {
+      if (d.dataset.sure !== '1') { d.dataset.sure = '1'; d.textContent = 'Tap again to delete'; return }
+      const g = hist.list[ui.game];
+      try { await pb.collection('score_games').delete(g.id); hist.list.splice(ui.game, 1); if (state.savedId === g.id) { state.savedId = ''; save() } openPop('history') }
+      catch (err) { d.textContent = 'Couldn’t delete it' }
+    };
   },
   fresh(pop) { pop.querySelector('#go-fresh').onclick = () => { state = blank(state); save(); closePop(); render() } },
   entry(pop) {
@@ -339,8 +436,52 @@ function keepEntry(fill) {
 function openEntry(e) { ui.entry = e; ui.draft = draftOf(); openPop('entry') }
 function afterChange() {
   const was = state.over; state.over = checkOver(); save(); render();
-  if (state.over && !was) celebrate();
+  if (state.over && !was) { saveFinished(); celebrate() }
+  else if (state.over && state.savedId) saveFinished();   // a score was changed after the end
 }
+
+/* ---------- saved games (shared with the household on bkweb) ---------- */
+const pb = window.PocketBase ? new PocketBase(location.origin) : null;
+if (pb) pb.autoCancellation(false);
+const me = () => pb && pb.authStore.isValid && pb.authStore.record ? pb.authStore.record : null;
+const isEditor = () => !!(me() && me().role === 'editor');
+const hist = { list: null, err: '' };
+const day = iso => { try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: new Date(iso).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }) } catch (e) { return '' } };
+function savedNote() {
+  if (state.savedId && !state.unsaved) return 'Saved to past games.';
+  if (!me()) return 'Sign in from ☰ to save this game for the family.';
+  return state.unsaved ? 'Not saved yet. It will try again when you’re online.' : 'Saving…';
+}
+async function saveFinished() {
+  if (!state.over || !state.rounds.length) return;
+  state.unsaved = true; save();
+  if (!me()) return;
+  const t = totals(), lead = leaders(t);
+  const data = { name: (state.name || 'Scores').slice(0, 60), players: state.players, rounds: state.rounds, totals: t,
+    winners: lead.map(i => state.players[i]), low: !!state.low, target: state.target || 0, finished_at: new Date().toISOString() };
+  try {
+    let r;
+    if (state.savedId) { try { r = await pb.collection('score_games').update(state.savedId, data) } catch (e) { if (e.status !== 404) throw e } }
+    if (!r) r = await pb.collection('score_games').create({ ...data, created_at: data.finished_at });
+    state.savedId = r.id; state.unsaved = false; save(); hist.list = null;
+  } catch (e) { if (e && (e.status === 401 || e.status === 403)) pb.authStore.clear() }
+  const n = document.getElementById('w-note'); if (n) n.textContent = savedNote();
+}
+function trySaveLater() { if (state.over && state.unsaved && me()) saveFinished() }
+async function loadHistory() {
+  if (!me()) return;
+  try {
+    const r = await pb.collection('score_games').getList(1, 100, { sort: '-finished_at' });
+    hist.list = r.items.map(g => ({ id: g.id, name: g.name, players: g.players || [], rounds: g.rounds || [], totals: g.totals || [], winners: g.winners || [], low: !!g.low, target: g.target || 0, finished_at: g.finished_at }));
+    hist.err = '';
+  } catch (e) {
+    if (e && (e.status === 401 || e.status === 403)) { pb.authStore.clear(); hist.err = '' } else hist.err = 'Couldn’t load past games. Check your connection.';
+  }
+  if (ui.pop === 'history') drawPop();
+}
+function openHistory() { openPop('history'); if (me() && !hist.list) loadHistory() }
+if (me()) pb.collection('users').authRefresh().then(trySaveLater).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) pb.authStore.clear() });
+window.addEventListener('online', trySaveLater);
 
 /* ---------- winner ---------- */
 function celebrate() {
@@ -351,6 +492,7 @@ function celebrate() {
     <div class="eyebrow">${names.length > 1 ? 'It’s a tie' : 'Winner'}</div>
     <div class="winner">${names.map(esc).join(' & ') || '—'}</div>
     <div class="final">${order.map(o => `<div class="${lead.includes(o.i) ? 'lead' : ''}"><span>${esc(o.p)}</span><span>${fmt(o.x)}</span></div>`).join('')}</div>
+    <div class="saved-note" id="w-note">${savedNote()}</div>
     <div class="row-btns"><button class="primary ghost" id="w-close">Back to sheet</button><button class="primary" id="w-new">New game</button></div></div>`;
   document.body.appendChild(box);
   box.querySelector('#w-close').onclick = () => box.remove();
