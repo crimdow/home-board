@@ -63,7 +63,7 @@ button{cursor:pointer}
 
 /* ---------- main: page + decorative tab strips ---------- */
 #app{position:absolute;inset:0;display:flex;flex-direction:column}
-.top{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px}
+.top{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 22px) 14px 12px}
 .search{flex:1;height:40px;border-radius:12px;background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.18);display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--muted)}
 .search svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 .search input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:16px;color:var(--text)}
@@ -95,7 +95,7 @@ li.dragging .row{transition:none}
 /* ---------- drawer of tabs (slides out from the right) ---------- */
 .scrim{position:fixed;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
 .scrim.on{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:calc(env(safe-area-inset-top,0px) + 64px);right:0;bottom:0;width:min(300px,82vw);background:var(--page);border-radius:18px 0 0 0;box-shadow:-6px 0 20px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:21}
+.drawer{position:fixed;top:calc(env(safe-area-inset-top,0px) + 74px);right:0;bottom:0;width:min(300px,82vw);background:var(--page);border-radius:18px 0 0 0;box-shadow:-6px 0 20px rgba(0,0,0,.22);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:21}
 .drawer.on{transform:none}
 .dhead{display:flex;align-items:center;gap:8px;padding:16px 14px 6px 18px}
 .dhead h2{flex:1;margin:0;font-size:26px;font-weight:600;color:var(--ink)}
@@ -117,7 +117,7 @@ li.dragging .row{transition:none}
 .screen.on{transform:none;visibility:visible}
 .screen.up{transform:translateY(100%)}
 .screen.up.on{transform:none}
-.bar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px 10px}
+.bar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 22px) 12px 10px}
 .bar .gap{flex:1}
 .back{display:flex;align-items:center;gap:4px;border:0;height:40px;border-radius:20px;padding:0 14px 0 10px;background:var(--page);box-shadow:0 1px 3px rgba(0,0,0,.18);color:var(--red);font-size:17px;font-weight:600}
 .back svg{width:10px;height:17px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
