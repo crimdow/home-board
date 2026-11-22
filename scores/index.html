@@ -132,6 +132,13 @@ body{background:transparent}
 #table{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:var(--wood)}
 .pcard{position:absolute;width:75px;height:105px;border-radius:7px;overflow:hidden;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.25),2px 6px 10px rgba(20,8,2,.45)}
 .pcard img{display:block;width:100%;height:100%;object-fit:cover}
+.ccard{position:absolute;width:75px;height:105px;border-radius:8px;background:#fff;padding:4px;box-shadow:0 0 0 .5px rgba(0,0,0,.25),2px 6px 10px rgba(20,8,2,.45);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;font-weight:900}
+.ccard .f{display:block;position:relative;width:100%;height:100%;border-radius:5px;background:var(--c);overflow:hidden}
+.ccard .f::before{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 3px rgba(0,0,0,.08)}
+.ccard .n{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;color:var(--c);-webkit-text-stroke:1px rgba(0,0,0,.25)}
+.ccard .k{position:absolute;font-size:13px;color:#fff;-webkit-text-stroke:.5px rgba(0,0,0,.35)}
+.ccard .k.t{left:5px;top:3px}.ccard .k.b{right:5px;bottom:3px;transform:rotate(180deg)}
+.piece{position:absolute;display:block;filter:drop-shadow(3px 6px 5px rgba(20,8,2,.5))}
 .pcard.down{background:#fff}
 .pcard.down::before{content:"";position:absolute;inset:5px;border-radius:4px;
   background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.28) 0 7px,transparent 7.5px),
@@ -544,7 +551,7 @@ scatterMarbles();
 function scatterMarbles() {
   const table = document.getElementById('table'), W = innerWidth, H = innerHeight;
   const sheet = document.querySelector('.sheet'), r = sheet ? sheet.getBoundingClientRect() : { left: W, right: 0, top: H, bottom: 0 };
-  table.querySelectorAll('.marble,.pcard').forEach(m => m.remove());
+  table.querySelectorAll('.marble,.pcard,.ccard,.piece').forEach(m => m.remove());
   const placed = [], below = document.querySelector('.below'), b2 = below ? below.getBoundingClientRect() : null;
   const hits = (rc, cx, cy, pad) => rc && cx > rc.left - pad && cx < rc.right + pad && cy > rc.top - pad && cy < rc.bottom + pad;
   const spot = (size, clear) => {
@@ -562,7 +569,7 @@ function scatterMarbles() {
   const OTHER = ['ace_of_spades', 'ace_of_hearts', '10_of_diamonds', '7_of_clubs', '5_of_hearts', '9_of_spades'];
   const pick = arr => arr.splice(Math.floor(Math.random() * arr.length), 1)[0];
   const ups = [pick(COURT), pick(Math.random() < .5 ? COURT : OTHER), pick(OTHER)];
-  const kinds = ['up', 'down', 'up', 'down', 'up'].slice(0, 4 + Math.floor(Math.random() * 2));
+  const kinds = ['up', 'down', 'up'].slice(0, 2 + Math.floor(Math.random() * 2));
   kinds.forEach(kind => {
     const p = spot(105, true); if (!p) return;
     const c = document.createElement('span'), rot = (Math.random() * 70 - 35).toFixed(1);
@@ -571,10 +578,32 @@ function scatterMarbles() {
     c.style.cssText = `left:${((p.cx - 37.5) / W * 100).toFixed(2)}%;top:${((p.cy - 52.5) / H * 100).toFixed(2)}%;transform:rotate(${rot}deg)`;
     table.appendChild(c);
   });
+  // a couple of colour-match cards (bright, numbered)
+  const CC = ['#d7262e', '#f2b80f', '#2a9a48', '#1e6fd0'];
+  for (let i = 0, n = 1 + (Math.random() < .6 ? 1 : 0); i < n; i++) {
+    const p = spot(105, true); if (!p) break;
+    const c = document.createElement('span'), num = Math.floor(Math.random() * 10), rot = (Math.random() * 80 - 40).toFixed(1);
+    c.className = 'ccard'; c.style.setProperty('--c', CC[Math.floor(Math.random() * CC.length)]);
+    c.innerHTML = `<span class="f"><span class="k t">${num}</span><span class="n">${num}</span><span class="k b">${num}</span></span>`;
+    c.style.left = ((p.cx - 37.5) / W * 100).toFixed(2) + '%'; c.style.top = ((p.cy - 52.5) / H * 100).toFixed(2) + '%';
+    c.style.transform = `rotate(${rot}deg)`;
+    table.appendChild(c);
+  }
+  // a few chess pieces, standing
+  const PIECES = { king: 76, queen: 70, rook: 54, bishop: 62, knight: 60, pawn: 48 };
+  const names = Object.keys(PIECES);
+  for (let i = 0, n = 2; i < n; i++) {
+    const kind = i === 0 ? 'knight' : names[Math.floor(Math.random() * names.length)], h = PIECES[kind];
+    const p = spot(h, true); if (!p) break;
+    const img = document.createElement('img'), col = Math.random() < .5 ? 'white' : 'black';
+    img.className = 'piece'; img.alt = ''; img.src = `pieces/${col}_${kind}.png`;
+    img.style.height = h + 'px'; img.style.left = ((p.cx - h * .35) / W * 100).toFixed(2) + '%'; img.style.top = ((p.cy - h / 2) / H * 100).toFixed(2) + '%';
+    table.appendChild(img);
+  }
   // marbles on top
   const COLOURS = [['#ff6b6b', '#d62f3a', '#7c0f16'], ['#6ea8ff', '#2f6fe0', '#123c8c'], ['#ffe27a', '#f2c21b', '#a87c00'],
     ['#7fe0a0', '#2fa35a', '#0f5a2c'], ['#ffffff', '#e9e9e9', '#a9a9a9'], ['#6a6a6a', '#262626', '#050505']];
-  const count = 6 + Math.floor(Math.random() * 3);
+  const count = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < count; i++) {
     const p = spot(30); if (!p) continue;
     const c = COLOURS[i < COLOURS.length ? i : Math.floor(Math.random() * COLOURS.length)], m = document.createElement('span');
