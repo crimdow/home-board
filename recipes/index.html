@@ -69,8 +69,9 @@ button{cursor:pointer}
 .search input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:16px;color:var(--text)}
 .search input::placeholder{color:var(--muted)}
 .book{flex:1;min-height:0;display:flex}
-.page{flex:1;min-width:0;background:var(--page);box-shadow:var(--shadow);padding:0 14px calc(env(safe-area-inset-bottom,0px) + 110px) 16px}
-.phead{display:flex;align-items:baseline;gap:8px;padding:18px 0 8px;border-bottom:2px solid var(--red);position:sticky;top:0;background:var(--page);z-index:1}
+.page{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--page);box-shadow:var(--shadow)}
+.plist{flex:1;min-height:0;padding:0 14px calc(env(safe-area-inset-bottom,0px) + 110px) 16px}
+.phead{flex:none;display:flex;align-items:baseline;gap:8px;margin:0 14px 0 16px;padding:18px 0 8px;border-bottom:2px solid var(--red)}
 .phead h1{margin:0;font-size:32px;font-weight:600;color:var(--ink);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .phead span{font-size:15px;font-weight:600;color:var(--muted)}
 #list{list-style:none;margin:0;padding:0}
@@ -209,10 +210,12 @@ li.dragging .row{transition:none}
     <button class="round" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></svg></button>
   </div>
   <div class="book">
-    <div class="page scroll" id="pageEl">
+    <div class="page">
       <div class="phead"><h1 id="head">Recipes</h1><span id="count"></span></div>
-      <ul id="list"></ul>
-      <div class="empty" id="empty" hidden></div>
+      <div class="plist scroll" id="pageEl">
+        <ul id="list"></ul>
+        <div class="empty" id="empty" hidden></div>
+      </div>
     </div>
     <button class="rail" id="rail" aria-label="Open tabs"></button>
   </div>
