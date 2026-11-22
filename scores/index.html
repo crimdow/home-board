@@ -129,8 +129,18 @@ tr.pending td{background:var(--soft)}
 /* the table: oak boards with a few marbles */
 html{background:var(--wood)}
 body{background:transparent}
-#table{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:var(--wood) url(wood.jpg?v=1) center top/cover no-repeat}
-:root{--wood:#7a4524}
+#table{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:var(--wood)}
+.pcard{position:absolute;width:58px;height:82px;border-radius:7px;box-shadow:2px 6px 10px rgba(20,8,2,.45);font-family:Georgia,"Times New Roman",serif;text-transform:none}
+.pcard.up{background:#fbf8f1;border:1px solid rgba(0,0,0,.12)}
+.pcard.up .ix{position:absolute;left:5px;top:3px;display:flex;flex-direction:column;align-items:center;font-size:15px;font-weight:700;line-height:1}
+.pcard.up .ix.b{left:auto;top:auto;right:5px;bottom:3px;transform:rotate(180deg)}
+.pcard.up .ix i{font-style:normal;font-size:13px;margin-top:1px}
+.pcard.up .pip{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;line-height:1}
+.pcard.red{color:#c8303c}.pcard.blk{color:#1d1e22}
+.pcard.down{background:#fbf8f1}
+.pcard.down::before{content:"";position:absolute;inset:4px;border-radius:4px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7);
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0 1.5px,transparent 1.5px 7px),repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 1.5px,transparent 1.5px 7px),#c8303c}
+:root{--wood:#6b3d22}
 .marble{position:absolute;border-radius:50%;box-shadow:2px 5px 7px rgba(35,18,5,.45),inset -3px -4px 6px rgba(0,0,0,.28),inset 2px 2px 3px rgba(255,255,255,.25)}
 .marble::after{content:"";position:absolute;left:22%;top:16%;width:30%;height:24%;border-radius:50%;background:rgba(255,255,255,.85);filter:blur(.6px);transform:rotate(-30deg)}
 .sheet{box-shadow:0 10px 30px rgba(40,20,5,.35)}
@@ -533,29 +543,47 @@ document.addEventListener('keydown', e => {
 render();
 scatterMarbles();
 
-/* a few marbles strewn about the table, where they'll show (edges and below the sheet) */
+/* a few cards and marbles strewn about the table, where they'll show (edges and below the sheet) */
 function scatterMarbles() {
   const table = document.getElementById('table'), W = innerWidth, H = innerHeight;
   const sheet = document.querySelector('.sheet'), r = sheet ? sheet.getBoundingClientRect() : { left: W, right: 0, top: H, bottom: 0 };
+  table.querySelectorAll('.marble,.pcard').forEach(m => m.remove());
+  const placed = [];
+  const spot = size => {
+    for (let tries = 0; tries < 300; tries++) {
+      const x = Math.random() * (W - size), y = Math.random() * (H - size), cx = x + size / 2, cy = y + size / 2;
+      const under = cx > r.left + 14 && cx < r.right - 14 && cy > r.top + 14 && cy < r.bottom - 14;
+      if (under && Math.random() < .9) continue;                     // mostly where they can be seen
+      if (placed.some(p => Math.hypot(p.cx - cx, p.cy - cy) < (p.s + size) / 2 * .8)) continue;
+      const p = { x, y, cx, cy, s: size }; placed.push(p); return p;
+    }
+    return null;
+  };
+  // cards: a couple face down, a few face up, tossed at angles
+  const SUITS = [['♥', 'red'], ['♦', 'red'], ['♠', 'blk'], ['♣', 'blk']], RANKS = ['A', 'K', 'Q', 'J', '10', '9', '7', '5', '3'];
+  ['down', 'up', 'down', 'up', 'up'].slice(0, 4 + Math.floor(Math.random() * 2)).forEach(kind => {
+    const p = spot(84); if (!p) return;
+    const c = document.createElement('span'), rot = (Math.random() * 70 - 35).toFixed(1);
+    if (kind === 'up') {
+      const [suit, col] = SUITS[Math.floor(Math.random() * 4)], rank = RANKS[Math.floor(Math.random() * RANKS.length)];
+      c.className = 'pcard up ' + col;
+      c.innerHTML = `<span class="ix">${rank}<i>${suit}</i></span><span class="pip">${suit}</span><span class="ix b">${rank}<i>${suit}</i></span>`;
+    } else c.className = 'pcard down';
+    c.style.cssText = `left:${((p.cx - 29) / W * 100).toFixed(2)}%;top:${((p.cy - 41) / H * 100).toFixed(2)}%;transform:rotate(${rot}deg)`;
+    table.appendChild(c);
+  });
+  // marbles on top
   const COLOURS = [['#ff6b6b', '#d62f3a', '#7c0f16'], ['#6ea8ff', '#2f6fe0', '#123c8c'], ['#ffe27a', '#f2c21b', '#a87c00'],
     ['#7fe0a0', '#2fa35a', '#0f5a2c'], ['#ffffff', '#e9e9e9', '#a9a9a9'], ['#6a6a6a', '#262626', '#050505']];
-  const count = 7 + Math.floor(Math.random() * 3), placed = [];
-  let tries = 0;
-  while (placed.length < count && tries++ < 400) {
-    const d = 30, x = Math.random() * (W - d), y = Math.random() * (H - d), cx = x + d / 2, cy = y + d / 2;
-    const under = cx > r.left + 10 && cx < r.right - 10 && cy > r.top + 10 && cy < r.bottom - 10;
-    if (under && Math.random() < .9) continue;                       // mostly where they can be seen
-    if (placed.some(p => Math.hypot(p.cx - cx, p.cy - cy) < (p.d + d) / 2 + 6)) continue;
-    placed.push({ x, y, d, cx, cy });
-  }
-  table.querySelectorAll('.marble').forEach(m => m.remove());
-  placed.forEach((p, i) => {
+  const count = 6 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    const p = spot(30); if (!p) continue;
     const c = COLOURS[i < COLOURS.length ? i : Math.floor(Math.random() * COLOURS.length)], m = document.createElement('span');
     m.className = 'marble';
-    m.style.cssText = `left:${(p.x / W * 100).toFixed(2)}%;top:${(p.y / H * 100).toFixed(2)}%;width:${p.d.toFixed(1)}px;height:${p.d.toFixed(1)}px;` +
+    m.style.cssText = `left:${(p.x / W * 100).toFixed(2)}%;top:${(p.y / H * 100).toFixed(2)}%;width:30px;height:30px;` +
       `background:radial-gradient(circle at 34% 30%,${c[0]} 0 12%,${c[1]} 48%,${c[2]} 100%)`;
     table.appendChild(m);
-  });
+  }
 }
 })();
 </script>
