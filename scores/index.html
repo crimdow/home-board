@@ -130,16 +130,13 @@ tr.pending td{background:var(--soft)}
 html{background:var(--wood)}
 body{background:transparent}
 #table{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:var(--wood)}
-.pcard{position:absolute;width:58px;height:82px;border-radius:7px;box-shadow:2px 6px 10px rgba(20,8,2,.45);font-family:Georgia,"Times New Roman",serif;text-transform:none}
-.pcard.up{background:#fbf8f1;border:1px solid rgba(0,0,0,.12)}
-.pcard.up .ix{position:absolute;left:5px;top:3px;display:flex;flex-direction:column;align-items:center;font-size:15px;font-weight:700;line-height:1}
-.pcard.up .ix.b{left:auto;top:auto;right:5px;bottom:3px;transform:rotate(180deg)}
-.pcard.up .ix i{font-style:normal;font-size:13px;margin-top:1px}
-.pcard.up .pip{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;line-height:1}
-.pcard.red{color:#c8303c}.pcard.blk{color:#1d1e22}
-.pcard.down{background:#fbf8f1}
-.pcard.down::before{content:"";position:absolute;inset:4px;border-radius:4px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7);
-  background:repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0 1.5px,transparent 1.5px 7px),repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 1.5px,transparent 1.5px 7px),#c8303c}
+.pcard{position:absolute;width:64px;height:90px;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.25),2px 6px 10px rgba(20,8,2,.45)}
+.pcard img{display:block;width:100%;height:100%;object-fit:cover}
+.pcard.down{background:#fff}
+.pcard.down::before{content:"";position:absolute;inset:4px;border-radius:3px;
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.28) 0 7px,transparent 7.5px),
+  repeating-linear-gradient(45deg,rgba(255,255,255,.3) 0 1px,transparent 1px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.3) 0 1px,transparent 1px 5px),#b3242e;
+  box-shadow:inset 0 0 0 1.5px #b3242e,inset 0 0 0 2.5px rgba(255,255,255,.75)}
 :root{--wood:#6b3d22}
 .marble{position:absolute;border-radius:50%;box-shadow:2px 5px 7px rgba(35,18,5,.45),inset -3px -4px 6px rgba(0,0,0,.28),inset 2px 2px 3px rgba(255,255,255,.25)}
 .marble::after{content:"";position:absolute;left:22%;top:16%;width:30%;height:24%;border-radius:50%;background:rgba(255,255,255,.85);filter:blur(.6px);transform:rotate(-30deg)}
@@ -548,28 +545,30 @@ function scatterMarbles() {
   const table = document.getElementById('table'), W = innerWidth, H = innerHeight;
   const sheet = document.querySelector('.sheet'), r = sheet ? sheet.getBoundingClientRect() : { left: W, right: 0, top: H, bottom: 0 };
   table.querySelectorAll('.marble,.pcard').forEach(m => m.remove());
-  const placed = [];
-  const spot = size => {
-    for (let tries = 0; tries < 300; tries++) {
+  const placed = [], below = document.querySelector('.below'), b2 = below ? below.getBoundingClientRect() : null;
+  const hits = (rc, cx, cy, pad) => rc && cx > rc.left - pad && cx < rc.right + pad && cy > rc.top - pad && cy < rc.bottom + pad;
+  const spot = (size, clear) => {
+    for (let tries = 0; tries < 400; tries++) {
       const x = Math.random() * (W - size), y = Math.random() * (H - size), cx = x + size / 2, cy = y + size / 2;
-      const under = cx > r.left + 14 && cx < r.right - 14 && cy > r.top + 14 && cy < r.bottom - 14;
-      if (under && Math.random() < .9) continue;                     // mostly where they can be seen
+      if (clear) { if (hits(r, cx, cy, size * .35) || hits(b2, cx, cy, size * .35)) continue }   // cards stay in full view
+      else if (hits(r, cx, cy, -14) && Math.random() < .9) continue;                            // marbles mostly in view
       if (placed.some(p => Math.hypot(p.cx - cx, p.cy - cy) < (p.s + size) / 2 * .8)) continue;
       const p = { x, y, cx, cy, s: size }; placed.push(p); return p;
     }
     return null;
   };
-  // cards: a couple face down, a few face up, tossed at angles
-  const SUITS = [['♥', 'red'], ['♦', 'red'], ['♠', 'blk'], ['♣', 'blk']], RANKS = ['A', 'K', 'Q', 'J', '10', '9', '7', '5', '3'];
-  ['down', 'up', 'down', 'up', 'up'].slice(0, 4 + Math.floor(Math.random() * 2)).forEach(kind => {
-    const p = spot(84); if (!p) return;
+  // cards: a couple face down, a few face up (always at least one face card), tossed at angles
+  const COURT = ['king_of_hearts', 'queen_of_spades', 'jack_of_diamonds', 'king_of_clubs', 'queen_of_hearts', 'jack_of_spades'];
+  const OTHER = ['ace_of_spades', 'ace_of_hearts', '10_of_diamonds', '7_of_clubs', '5_of_hearts', '9_of_spades'];
+  const pick = arr => arr.splice(Math.floor(Math.random() * arr.length), 1)[0];
+  const ups = [pick(COURT), pick(Math.random() < .5 ? COURT : OTHER), pick(OTHER)];
+  const kinds = ['up', 'down', 'up', 'down', 'up'].slice(0, 4 + Math.floor(Math.random() * 2));
+  kinds.forEach(kind => {
+    const p = spot(90, true); if (!p) return;
     const c = document.createElement('span'), rot = (Math.random() * 70 - 35).toFixed(1);
-    if (kind === 'up') {
-      const [suit, col] = SUITS[Math.floor(Math.random() * 4)], rank = RANKS[Math.floor(Math.random() * RANKS.length)];
-      c.className = 'pcard up ' + col;
-      c.innerHTML = `<span class="ix">${rank}<i>${suit}</i></span><span class="pip">${suit}</span><span class="ix b">${rank}<i>${suit}</i></span>`;
-    } else c.className = 'pcard down';
-    c.style.cssText = `left:${((p.cx - 29) / W * 100).toFixed(2)}%;top:${((p.cy - 41) / H * 100).toFixed(2)}%;transform:rotate(${rot}deg)`;
+    if (kind === 'up') { c.className = 'pcard up'; c.innerHTML = `<img src="cards/${ups.shift()}.jpg" alt="">` }
+    else c.className = 'pcard down';
+    c.style.cssText = `left:${((p.cx - 32) / W * 100).toFixed(2)}%;top:${((p.cy - 45) / H * 100).toFixed(2)}%;transform:rotate(${rot}deg)`;
     table.appendChild(c);
   });
   // marbles on top
