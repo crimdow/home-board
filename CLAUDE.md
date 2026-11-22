@@ -43,9 +43,9 @@ The Kildow family's home-screen web app (Ash, Ben, Stella, Evie). This repo also
 ## Recipe book (`recipes/`, for recipes.jermins.com)
 - Its own home-screen app, one file `recipes/index.html` with its own copy of `pocketbase.umd.js`, icons and manifest. Uses only relative paths, so it works at home.jermins.com/recipes/ and at recipes.jermins.com (Caddy rewrites to `/recipes`).
 - Same `recipes` table as Binder (name, ingredients, steps, note with a trailing `Source: url`, tags, photos). Photos upload to `binder_files`, like Binder.
-- **Its own look, chosen by Ben** (not the Home Board greys): red diamond gingham "picnic cloth" background, cream pages, navy ink, one font everywhere (Fraunces, not the soft style). Dark mode: deep red cloth, dark navy pages. Light / Dark / Auto in ☰, saved as `recipes-theme`.
+- **Its own look, chosen by Ben** (not the Home Board greys): red diamond gingham "picnic cloth" background, cream pages, navy ink, one font everywhere (Lora; Fraunces was tried and dropped because its f and j looked glitchy). Dark mode: deep red cloth, dark navy pages. Light / Dark / Auto in ☰, saved as `recipes-theme`.
 - **Tabs = tags.** Decorative coloured strips down the right edge (no words, not tappable one by one); tapping the edge slides out the drawer with names and counts. One tab at a time on the list; a recipe can be in many (picked in the same drawer from Edit). Order and colours live in `app_settings` key `recipe_tabs` (`[{n, c}]`, editors only); viewers get colours from a hash of the name. Edit tabs (☰) renames or removes a tab on every recipe. Colours are muted, no reds (red is for the cloth and accents).
-- Recipe page: Fraunces title between thin rules, ingredients as rows with the amount in its own red column (1/2 shows as ½; lines ending in ":" are subheadings), the method with each line its own paragraph. No Groceries or Meals buttons (Ben removed them for now).
+- Recipe page: bold title between thin rules, ingredients as rows with the amount in its own red column (1/2 shows as ½; lines ending in ":" are subheadings), the method with each line its own paragraph. No Groceries or Meals buttons (Ben removed them for now).
 - Icon: diamond gingham with a navy cursive M (Great Vibes, drawn as a path) on a cream circle with a thin red ring.
 
 ## Shared helpers (in `index.html`)
