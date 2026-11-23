@@ -199,6 +199,50 @@ li.dragging .row{transition:none}
 .gate .err{color:var(--red);min-height:1.2em;font-size:14px}
 .gate button{height:46px;border:0;border-radius:23px;background:var(--red);color:#fff;font-size:17px;font-weight:600}
 
+/* family recipes */
+.heart{color:var(--red);font-size:.8em;margin-left:5px}
+.fam{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:13px;font-weight:600;color:var(--muted)}
+.fam b{display:inline-flex;align-items:center;gap:4px;background:var(--red);color:#fff;border-radius:10px;padding:3px 9px 3px 7px;font-size:12px}
+.share{display:flex;align-items:center;gap:12px;background:var(--field);border-radius:12px;padding:12px;margin:0 0 16px}
+.share div{flex:1}.share b{display:block;font-size:16px;font-weight:600;color:var(--ink)}.share div span{font-size:13px;color:var(--muted);line-height:1.35}
+.toggle{width:51px;height:31px;flex:none;border:0;border-radius:16px;background:var(--hair);position:relative;transition:background .2s}
+.toggle:after{content:'';position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.toggle[aria-pressed="true"]{background:var(--red)}
+.toggle[aria-pressed="true"]:after{transform:translateX(20px)}
+/* note photos (e.g. the handwritten card) */
+.nphotos{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.nphoto{display:flex;gap:12px;align-items:center;width:100%;border:0;padding:8px;border-radius:10px;background:var(--field);text-align:left;color:var(--soft)}
+.nphoto img{width:110px;height:78px;object-fit:cover;border-radius:6px;flex:none;background:var(--chip)}
+.nphoto span{font-size:14px;line-height:1.35}.nphoto b{color:var(--ink);font-weight:600}
+/* comments */
+.cmts{margin-top:30px;border-top:1px solid var(--hair);padding-top:4px}
+.cmt{display:flex;gap:10px;margin-top:14px}
+.av{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px}
+.cb{flex:1;min-width:0}
+.cb .who2{font-size:14px;font-weight:700;color:var(--ink)}
+.cb .who2 i{font-weight:500;font-style:normal;color:var(--muted);margin-left:6px;font-size:13px}
+.cb .who2 button{border:0;background:transparent;color:var(--muted);font-size:13px;padding:0 0 0 8px;text-decoration:underline}
+.cb .tx{font-size:calc(16px*var(--fs));line-height:1.45;color:var(--soft);margin-top:2px;white-space:pre-wrap;overflow-wrap:anywhere}
+.cb .cph{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cb .cph img{width:120px;height:90px;object-fit:cover;border-radius:8px;background:var(--chip)}
+.cnone{color:var(--muted);font-size:15px;margin-top:10px}
+.cin{display:flex;gap:8px;margin-top:16px;align-items:flex-end}
+.cin textarea{flex:1;min-width:0;min-height:42px;max-height:140px;border:0;border-radius:21px;background:var(--field);padding:10px 14px;font-size:16px;line-height:1.35;color:var(--text);outline:0;resize:none}
+.cin button{width:42px;height:42px;flex:none;border:0;border-radius:50%;background:var(--field);color:var(--ink);display:grid;place-items:center}
+.cin button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cin button.send{background:var(--red);color:#fff}
+.cin button.send:disabled{opacity:.4}
+.cpend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cpend .ph{width:64px;height:64px}
+/* full-screen photo */
+.viewer{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.92);overflow:auto;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s,visibility 0s .2s;-webkit-overflow-scrolling:touch}
+.viewer.on{opacity:1;visibility:visible;transition:opacity .2s}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer.big{display:block}
+.viewer.big img{max-width:none;max-height:none;width:250%}
+.viewer .vx{position:fixed;top:calc(env(safe-area-inset-top,0px) + 18px);right:14px;width:40px;height:40px;border:0;border-radius:20px;background:rgba(255,255,255,.18);color:#fff;font-size:20px}
+.viewer .vh{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);text-align:center;color:rgba(255,255,255,.7);font-size:13px;pointer-events:none}
+
 @media (min-width:700px){
   .book,.sheetpage{max-width:760px;width:100%;margin-left:auto;margin-right:auto}
   .sheetpage{margin-left:auto;margin-right:auto}
@@ -239,8 +283,20 @@ li.dragging .row{transition:none}
   <div class="sheetpage scroll" id="rPage">
     <div class="rtitle"><h1 id="rTitle"></h1></div>
     <div class="chips" id="rChips"></div>
+    <div class="fam" id="rFam" hidden></div>
     <div class="photos" id="rPhotos"></div>
     <div class="rbody" id="rBody"></div>
+    <div class="cmts" id="rCmts">
+      <h4 class="label" id="cHead">Comments</h4>
+      <div id="cList"></div>
+      <div class="cpend" id="cPend" hidden></div>
+      <div class="cin">
+        <button type="button" id="cPhoto" aria-label="Add a photo"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+        <textarea id="cText" rows="1" placeholder="Add a comment…" maxlength="4000"></textarea>
+        <button type="button" class="send" id="cSend" aria-label="Post comment" disabled><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+      </div>
+      <input id="cFile" type="file" accept="image/*" multiple hidden>
+    </div>
   </div>
 </section>
 
@@ -253,12 +309,16 @@ li.dragging .row{transition:none}
   </div>
   <div class="sheetpage scroll" id="ePage">
     <label class="fld"><span class="label">Name</span><input id="eName" type="text" autocomplete="off" placeholder="Mom’s Lasagna"></label>
+    <div class="share" id="eShare" hidden><div><b>Family recipe</b><span>Everyone in the family can see it, comment and make changes. Off: only your household.</span></div><button type="button" class="toggle" id="eFam" aria-pressed="false" aria-label="Family recipe"></button></div>
     <div class="fld"><span class="label">Tabs</span><div class="tabrow" id="eTabs"></div></div>
     <label class="fld"><span class="label">Ingredients</span><textarea id="eIng" rows="6" placeholder="1 pound lasagna noodles&#10;2 cups shredded mozzarella"></textarea>
       <div class="hint">One per line. Start with the amount and it lines up on the page.</div></label>
     <label class="fld"><span class="label">Method</span><textarea id="eSteps" rows="7" placeholder="Brown the sausage; drain…"></textarea>
       <div class="hint">Each line is its own paragraph.</div></label>
     <label class="fld"><span class="label">Notes</span><textarea id="eNote" rows="3" style="min-height:80px"></textarea></label>
+    <div class="fld" style="margin-top:-6px"><div class="phgrid" id="eNPhotos"></div>
+      <div class="hint">Photos for the notes, like the original handwritten card.</div>
+      <input id="eNFile" type="file" accept="image/*" multiple hidden></div>
     <label class="fld"><span class="label">From (link)</span><input id="eSrc" type="url" inputmode="url" autocomplete="off" autocapitalize="none" placeholder="https://"></label>
     <div class="fld"><span class="label">Photos</span><div class="phgrid" id="ePhotos"></div>
       <input id="eFile" type="file" accept="image/*" multiple hidden></div>
@@ -299,6 +359,8 @@ li.dragging .row{transition:none}
   <div class="who" id="mWho"></div>
 </div>
 
+<div class="viewer" id="viewer" aria-label="Photo"><img id="vImg" alt=""><button class="vx" id="vClose" aria-label="Close">×</button><div class="vh">Tap the photo to zoom</div></div>
+
 <div class="undo" id="undo" hidden><span id="undoMsg"></span><button id="undoBtn">Undo</button></div>
 <div class="toast" id="toast" hidden></div>
 
@@ -321,7 +383,10 @@ const pb = new PocketBase(location.origin); pb.autoCancellation(false);
 const me = () => pb.authStore.isValid && pb.authStore.record ? pb.authStore.record : null;
 const isEditor = () => !!(me() && me().role === 'editor' && me().household);
 const PAL = ['#5a6890','#d6b66a','#8c9bc2','#e6dbc2','#c9b596','#9fb08f','#bfc8de','#a8998a'];
-const S = { recipes: [], tabs: [], tabRec: null, tab: 'All', q: '', open: null, edit: null, drawerMode: 'browse', pick: [], ready: false };
+const S = { recipes: [], tabs: [], tabRec: null, tab: 'All', q: '', open: null, edit: null, drawerMode: 'browse', pick: [], ready: false, fam: false, cmts: [], cPend: [], cBusy: 0 };
+const FAMTAB = { n: 'Family', c: '#a33d45', key: '\u2665family' };   // the built-in tab of recipes every family household shares
+const own = r => !!(r && me() && r.household === me().household);
+const canEdit = r => isEditor() && (!r || own(r) || (r.family && S.fam));
 const store = { get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v }catch{ return d } }, set(k, v){ try{ localStorage.setItem(k, v) }catch{} } };
 
 /* ---------- helpers ---------- */
@@ -338,20 +403,22 @@ function fromRec(r){
   const note = r.note || '', m = note.match(/(?:^|\n)Source:\s*(https?:\/\/\S+)\s*$/);
   return { id: r.id, name: r.name || '', tags: Array.isArray(r.tags) ? r.tags.filter(Boolean) : [],
     ingredients: r.ingredients || '', steps: r.steps || '', note: m ? note.slice(0, m.index).trim() : note.trim(), src: m ? m[1] : '',
-    photos: Array.isArray(r.photos) ? r.photos.filter(p => p && p.id) : [], pinned: !!r.pinned, created_at: r.created_at || '' };
+    photos: Array.isArray(r.photos) ? r.photos.filter(p => p && p.id) : [], pinned: !!r.pinned, created_at: r.created_at || '',
+    family: !!r.family, added_by: r.added_by || '', household: r.household || '',
+    note_photos: Array.isArray(r.note_photos) ? r.note_photos.filter(p => p && p.id) : [] };
 }
 function toRec(it){
   const clean = v => String(v || '').split('\n').map(l => l.replace(/\s+$/, '')).join('\n').replace(/\n{3,}/g, '\n\n').trim();
   return { name: it.name.trim(), ingredients: clean(it.ingredients), steps: clean(it.steps),
     note: [String(it.note || '').trim(), it.src ? 'Source: ' + it.src.trim() : ''].filter(Boolean).join('\n\n'),
-    tags: it.tags, photos: it.photos, updated_at: new Date().toISOString() };
+    tags: it.tags, photos: it.photos, note_photos: it.note_photos || [], updated_at: new Date().toISOString() };
 }
 const photoUrl = p => p.path || '';
 
 /* ---------- tabs: the family's list, kept in app_settings ---------- */
 function allTabs(){
   const list = S.tabs.slice(), seen = new Set(list.map(t => t.n));
-  const extra = [...new Set(S.recipes.flatMap(r => r.tags))].filter(n => !seen.has(n)).sort((a, b) => a.localeCompare(b));
+  const extra = [...new Set(S.recipes.filter(own).flatMap(r => r.tags))].filter(n => !seen.has(n)).sort((a, b) => a.localeCompare(b));
   extra.forEach((n, i) => list.push({ n, c: colourOf(n) }));
   return list;
 }
@@ -376,34 +443,37 @@ function shown(){
   const q = S.q.trim().toLowerCase();
   let list = S.recipes;
   if(q) list = list.filter(r => (r.name + '\n' + r.ingredients + '\n' + r.tags.join(' ')).toLowerCase().includes(q));
+  else if(S.tab === FAMTAB.key) list = list.filter(r => r.family);
   else if(S.tab !== 'All') list = list.filter(r => r.tags.includes(S.tab));
   return list.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 function render(){
   const tabs = allTabs();
-  if(S.tab !== 'All' && !tabs.some(t => t.n === S.tab)) S.tab = 'All';
+  if(S.tab !== 'All' && S.tab !== FAMTAB.key && !tabs.some(t => t.n === S.tab)) S.tab = 'All';
   const q = S.q.trim(), list = shown();
-  $('head').textContent = q ? 'Search' : S.tab === 'All' ? 'All recipes' : S.tab;
+  $('head').textContent = q ? 'Search' : S.tab === 'All' ? 'All recipes' : S.tab === FAMTAB.key ? 'Family recipes' : S.tab;
   $('count').textContent = S.ready || S.recipes.length ? list.length : '';
   // decorative strips: one per tab, the open one sticks out further
   const rail = $('rail'); rail.textContent = '';
-  [{ n: 'All', c: '#3c4770' }].concat(tabs).forEach(t => {
-    const s = el('span', S.tab === t.n && !q ? 'on' : ''); s.style.background = t.c; rail.appendChild(s) });
+  [{ n: 'All', c: '#3c4770' }].concat(showFam() ? [FAMTAB] : [], tabs).forEach(t => {
+    const s = el('span', S.tab === (t.key || t.n) && !q ? 'on' : ''); s.style.background = t.c; rail.appendChild(s) });
   const ul = $('list'); ul.textContent = '';
   list.forEach(r => {
     const li = el('li'), row = el('button', 'row'); row.type = 'button';
     const th = el('span', 'thumb'), p = r.photos.find(f => /^image/.test(f.type || 'image') && photoUrl(f));
     if(p){ th.classList.add('photo'); th.style.backgroundImage = 'url("' + photoUrl(p).replace(/"/g, '%22') + '")' } else th.textContent = (r.name.trim()[0] || '·').toUpperCase();
-    const tx = el('span', 'rtext'); tx.append(el('span', 'rname', r.name || 'Untitled'));
+    const tx = el('span', 'rtext'), nm = el('span', 'rname', r.name || 'Untitled'); tx.append(nm);
+    if(r.family){ const h = el('span', 'heart', '♥'); h.setAttribute('aria-label', 'Family recipe'); nm.append(h) }
     const other = r.tags.filter(t => t !== S.tab); if(other.length) tx.append(el('span', 'rtags', other.join(' · ')));
     row.append(th, tx); row.onclick = () => openReader(r.id);
     li.appendChild(row);
-    if(isEditor()) swipeDelete(li, row, r);
+    if(isEditor() && own(r)) swipeDelete(li, row, r);
     ul.appendChild(li);
   });
   const empty = $('empty'); empty.hidden = list.length > 0;
   empty.innerHTML = !S.ready ? '<b>Opening the recipe book…</b>'
     : q ? '<b>Nothing found</b>Try another word.'
+    : S.tab === FAMTAB.key ? '<b>No family recipes yet</b>Open a recipe, tap Edit, and turn on Family recipe.'
     : S.tab !== 'All' ? '<b>Nothing under ' + S.tab.replace(/[<&]/g, '') + ' yet</b>Open a recipe, tap Edit, and add this tab.'
     : '<b>No recipes yet</b>' + (isEditor() ? 'Tap + to add the first one.' : '');
   $('addBtn').hidden = !isEditor();
@@ -442,12 +512,13 @@ async function removeRecipe(r){
   clearTimeout(undoT); undoT = setTimeout(() => $('undo').hidden = true, 6000);
   $('undoBtn').onclick = async () => {
     $('undo').hidden = true;
-    try{ const rec = await pb.collection('recipes').create({ id: r.id, ...toRec(r), pinned: r.pinned, created_at: r.created_at || new Date().toISOString() }); keep(fromRec(rec)) }
+    try{ const rec = await pb.collection('recipes').create({ id: r.id, ...toRec(r), family: r.family && S.fam, pinned: r.pinned, created_at: r.created_at || new Date().toISOString() }); keep(fromRec(rec)) }
     catch(e){ toast('Couldn’t bring it back.') }
   };
 }
 
 /* ---------- drawer ---------- */
+const showFam = () => S.fam || S.recipes.some(r => r.family);
 function openDrawer(mode){
   S.drawerMode = mode;
   $('dTitle').textContent = mode === 'pick' ? 'Tabs for this recipe' : 'Tabs';
@@ -463,17 +534,19 @@ function closeDrawer(){
 function paintDrawer(){
   const box = $('dTabs'); box.textContent = '';
   const pick = S.drawerMode === 'pick', tabs = allTabs();
-  const list = pick ? tabs : [{ n: 'All', c: '#3c4770' }].concat(tabs);
+  const list = pick ? tabs : [{ n: 'All', c: '#3c4770' }].concat(showFam() ? [FAMTAB] : [], tabs);
   list.forEach(t => {
-    const on = pick ? S.pick.includes(t.n) : (S.tab === t.n && !S.q.trim());
+    const id = t.key || t.n;
+    const on = pick ? S.pick.includes(t.n) : (S.tab === id && !S.q.trim());
     const b = el('button', 'tab' + (on ? ' on' : pick ? ' off' : '')); b.type = 'button';
     b.style.background = t.c; b.setAttribute('aria-pressed', String(on));
     const lab = el('span', 'lab'); lab.append(el('span', '', t.n));
-    if(!pick) lab.append(el('span', 'n', t.n === 'All' ? S.recipes.length : S.recipes.filter(r => r.tags.includes(t.n)).length));
+    if(t.key) lab.firstChild.textContent = '♥ ' + t.n;
+    if(!pick) lab.append(el('span', 'n', t.n === 'All' ? S.recipes.length : t.key ? S.recipes.filter(r => r.family).length : S.recipes.filter(r => r.tags.includes(t.n)).length));
     lab.append(el('span', 'ck', on ? '✓' : '')); b.appendChild(lab);
     b.onclick = () => {
       if(pick){ S.pick = on ? S.pick.filter(x => x !== t.n) : S.pick.concat(t.n); paintDrawer(); return }
-      S.tab = t.n; S.q = ''; $('q').value = ''; $('pageEl').scrollTop = 0; render(); closeDrawer();
+      S.tab = id; S.q = ''; $('q').value = ''; $('pageEl').scrollTop = 0; render(); closeDrawer();
     };
     box.appendChild(b);
   });
@@ -509,18 +582,21 @@ const HEAD = l => l.match(/^—\s*(.+?)\s*—$/) || l.match(/^#+\s*(.+)$/) || l.
 function niceAmt(a){ return a.replace(/(\d+)\s+(\d\/\d)/, (m, w, f) => FR[f] ? w + FR[f] : m).replace(/^\d\/\d$/, f => FR[f] || f).replace(/\s*([½¼¾⅓⅔⅛⅜⅝⅞])/, '$1') }
 function openReader(id){
   const r = S.recipes.find(x => x.id === id); if(!r) return;
-  S.open = id; paintReader(); $('rPage').scrollTop = 0; $('reader').classList.add('on');
+  if(S.open !== id){ S.cmts = []; dropPending(); $('cText').value = ''; growC() }
+  S.open = id; paintReader(); paintComments(); loadComments(id); $('rPage').scrollTop = 0; $('reader').classList.add('on');
 }
-function closeReader(){ $('reader').classList.remove('on'); S.open = null }
+function closeReader(){ $('reader').classList.remove('on'); S.open = null; dropPending() }
 function paintReader(){
   const r = S.recipes.find(x => x.id === S.open); if(!r){ closeReader(); return }
-  $('rBackLbl').textContent = S.q.trim() ? 'Search' : S.tab === 'All' ? 'Recipes' : S.tab;
+  $('rBackLbl').textContent = S.q.trim() ? 'Search' : S.tab === 'All' ? 'Recipes' : S.tab === FAMTAB.key ? 'Family' : S.tab;
   $('rTitle').textContent = r.name || 'Untitled';
   const chips = $('rChips'); chips.textContent = '';
   r.tags.forEach(t => { const c = el('span', 'chip', t); c.style.cssText = chipStyle(colourOf(t)); chips.appendChild(c) });
   chips.hidden = !r.tags.length;
+  const fam = $('rFam'); fam.textContent = ''; fam.hidden = !r.family;
+  if(r.family){ fam.append(el('b', '', '♥ Family recipe'), el('span', '', (r.added_by ? 'added by ' + r.added_by + ' · ' : '') + 'everyone can see it')) }
   const ph = $('rPhotos'); ph.textContent = '';
-  r.photos.filter(p => /^image/.test(p.type || 'image') && photoUrl(p)).forEach(p => { const i = el('img'); i.src = photoUrl(p); i.alt = ''; i.loading = 'lazy'; ph.appendChild(i) });
+  r.photos.filter(p => /^image/.test(p.type || 'image') && photoUrl(p)).forEach(p => { const i = el('img'); i.src = photoUrl(p); i.alt = ''; i.loading = 'lazy'; i.onclick = () => view(i.src); ph.appendChild(i) });
   ph.hidden = !ph.children.length;
   const body = $('rBody'); body.textContent = '';
   const ing = r.ingredients.split('\n').map(l => l.trim()).filter(Boolean);
@@ -541,14 +617,28 @@ function paintReader(){
     st.forEach(l => { const h = HEAD(l); m.append(h ? el('div', 'sub', h[1]) : el('p', '', l.replace(/^(?:step\s*)?\d+[.):]\s+/i, ''))) });
     body.append(m);
   }
-  if(r.note){ body.append(el('h4', 'label', 'Notes'), el('p', 'rnote', r.note)) }
-  if(!ing.length && !st.length && !r.note) body.append(el('p', 'none', isEditor() ? 'Nothing written yet. Tap Edit to add the ingredients and method.' : 'Nothing written yet.'));
+  const nps = r.note_photos.filter(p => photoUrl(p));
+  if(r.note || nps.length){
+    body.append(el('h4', 'label', 'Notes'));
+    if(r.note) body.append(el('p', 'rnote', r.note));
+    if(nps.length){
+      const box = el('div', 'nphotos');
+      nps.forEach((p, i) => {
+        const b = el('button', 'nphoto'); b.type = 'button';
+        const im = el('img'); im.src = photoUrl(p); im.alt = ''; im.loading = 'lazy';
+        const t = el('span'); t.append(el('b', '', nps.length > 1 ? 'Photo ' + (i + 1) : 'Photo'), el('br'), document.createTextNode('Tap to see it full size'));
+        b.append(im, t); b.onclick = () => view(photoUrl(p)); box.append(b);
+      });
+      body.append(box);
+    }
+  }
+  if(!ing.length && !st.length && !r.note && !nps.length) body.append(el('p', 'none', isEditor() ? 'Nothing written yet. Tap Edit to add the ingredients and method.' : 'Nothing written yet.'));
   if(r.src && /^https?:\/\//i.test(r.src)){
     const a = el('a', 'src'); a.href = r.src; a.target = '_blank'; a.rel = 'noopener';
     try{ a.textContent = 'From ' + new URL(r.src).hostname.replace(/^www\./, '') + ' ↗' }catch{ a.textContent = 'Source ↗' }
     body.append(el('div'), a);
   }
-  $('editBtn').hidden = !isEditor();
+  $('editBtn').hidden = !canEdit(r);
 }
 $('rBack').onclick = closeReader;
 $('editBtn').onclick = () => openEditor(S.open);
@@ -558,21 +648,107 @@ $('fsBtn').onclick = () => { store.set('recipes-fs', String((+store.get('recipes
 // swipe right on an open recipe to go back
 (function(){
   let x0 = 0, y0 = 0, go = false;
-  $('reader').addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; go = !e.target.closest('.photos') }, { passive: true });
+  $('reader').addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; go = !e.target.closest('.photos, .cin') }, { passive: true });
   $('reader').addEventListener('touchend', e => {
     if(!go) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
     if(dx > 80 && Math.abs(dy) < dx * 0.6) closeReader();
   }, { passive: true });
 })();
 
+/* ---------- comments ---------- */
+const AVC = ['#4f7bd4','#d45b6c','#c98a3e','#3f9a66','#8a6bb8','#36ad9c'];
+function avColour(name){ let h = 0; for(const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AVC[h % AVC.length] }
+function when(iso){
+  const d = new Date(iso); if(isNaN(d)) return '';
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(new Date()) - day(d)) / 86400000);
+  if(diff === 0) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if(diff === 1) return 'Yesterday';
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
+}
+async function loadComments(id){
+  try{
+    const list = await pb.collection('recipe_comments').getFullList({ filter: pb.filter('recipe = {:r}', { r: id }), sort: 'created_at' });
+    if(S.open === id){ S.cmts = list; paintComments() }
+  }catch{}
+}
+function paintComments(){
+  const r = S.recipes.find(x => x.id === S.open), box = $('cList'); box.textContent = '';
+  const list = S.cmts.slice().sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+  $('cHead').textContent = list.length ? 'Comments · ' + list.length : 'Comments';
+  if(!list.length) box.append(el('p', 'cnone', r && r.family ? 'No comments yet. Made it? Say how it went.' : 'No comments yet. Only your household sees comments here.'));
+  list.forEach(c => {
+    const name = c.author_name || 'Someone', row = el('div', 'cmt');
+    const av = el('span', 'av', name.trim()[0].toUpperCase()); av.style.background = avColour(name);
+    const cb = el('div', 'cb'), who = el('div', 'who2', name); who.append(el('i', '', when(c.created_at)));
+    if(c.author === me()?.id || (r && own(r) && isEditor())){
+      const del = el('button', '', 'Delete'); del.type = 'button';
+      del.onclick = async () => {
+        if(del.dataset.sure !== '1'){ del.dataset.sure = '1'; del.textContent = 'Tap to delete'; return }
+        try{ await pb.collection('recipe_comments').delete(c.id); S.cmts = S.cmts.filter(x => x.id !== c.id); paintComments() }catch{ toast('Couldn’t delete that comment.') }
+      };
+      who.append(del);
+    }
+    cb.append(who);
+    if(c.text) cb.append(el('div', 'tx', c.text));
+    const ps = (Array.isArray(c.photos) ? c.photos : []).filter(p => p && photoUrl(p));
+    if(ps.length){ const g = el('div', 'cph'); ps.forEach(p => { const i = el('img'); i.src = photoUrl(p); i.alt = ''; i.loading = 'lazy'; i.onclick = () => view(i.src); g.append(i) }); cb.append(g) }
+    row.append(av, cb); box.append(row);
+  });
+}
+function growC(){ const t = $('cText'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; canSend() }
+function canSend(){ $('cSend').disabled = S.cBusy > 0 || (!$('cText').value.trim() && !S.cPend.length) }
+$('cText').addEventListener('input', growC);
+function paintPending(){
+  const box = $('cPend'); box.textContent = ''; box.hidden = !S.cPend.length && !S.cBusy;
+  S.cPend.forEach((p, i) => {
+    const d = el('div', 'ph'); d.style.backgroundImage = 'url("' + photoUrl(p).replace(/"/g, '%22') + '")';
+    const x = el('button', '', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Remove photo');
+    x.onclick = () => { const [g] = S.cPend.splice(i, 1); pb.collection('binder_files').delete(g.id).catch(() => {}); paintPending() };
+    d.append(x); box.append(d);
+  });
+  for(let i = 0; i < S.cBusy; i++) box.append(el('div', 'ph busy'));
+  canSend();
+}
+function dropPending(){ S.cPend.forEach(p => pb.collection('binder_files').delete(p.id).catch(() => {})); S.cPend = []; paintPending() }
+$('cPhoto').onclick = () => $('cFile').click();
+$('cFile').onchange = async e => {
+  const files = [...e.target.files].filter(f => /^image\//.test(f.type)); e.target.value = '';
+  S.cBusy += files.length; paintPending();
+  for(const f of files){
+    try{ S.cPend.push(await uploadPhoto(f)) }catch(err){ toast(err?.status === 413 ? f.name + ' is too big.' : 'Couldn’t upload ' + f.name + '.') }
+    S.cBusy--; paintPending();
+  }
+};
+$('cSend').onclick = async () => {
+  const text = $('cText').value.trim(), id = S.open; if(!id || (!text && !S.cPend.length)) return;
+  $('cSend').disabled = true;
+  try{
+    const c = await pb.collection('recipe_comments').create({ recipe: id, text, photos: S.cPend });
+    S.cPend = []; paintPending(); $('cText').value = ''; growC(); $('cText').blur();
+    S.cmts = S.cmts.filter(x => x.id !== c.id).concat(c); paintComments();
+  }catch(e){ toast('Couldn’t post that. Check your connection and try again.') }
+  canSend();
+};
+
+/* ---------- full-screen photo ---------- */
+function view(src){ $('vImg').src = src; $('viewer').classList.remove('big'); $('viewer').classList.add('on') }
+$('vClose').onclick = e => { e.stopPropagation(); $('viewer').classList.remove('on') };
+$('vImg').onclick = e => {
+  e.stopPropagation(); const v = $('viewer'), big = !v.classList.contains('big'); v.classList.toggle('big', big);
+  if(big){ const im = $('vImg'); requestAnimationFrame(() => { v.scrollLeft = (im.offsetWidth - v.clientWidth) / 2; v.scrollTop = Math.max(0, (im.offsetHeight - v.clientHeight) / 2) }) }
+};
+$('viewer').onclick = () => $('viewer').classList.remove('on');
+
 /* ---------- editor ---------- */
 function openEditor(id){
   const r = id ? S.recipes.find(x => x.id === id) : null;
   S.edit = r ? JSON.parse(JSON.stringify(r)) : { id: '', name: '', tags: S.tab !== 'All' && !S.q.trim() ? [S.tab] : [], ingredients: '', steps: '', note: '', src: '', photos: [], pinned: false };
-  S.edit.newPhotos = [];
+  S.edit.newPhotos = []; S.edit.note_photos = S.edit.note_photos || []; S.edit.nUploading = [];
+  $('eShare').hidden = !(S.fam && (!r || own(r))); $('eFam').setAttribute('aria-pressed', String(!!S.edit.family));
   $('eName').value = S.edit.name; $('eIng').value = S.edit.ingredients; $('eSteps').value = S.edit.steps;
-  $('eNote').value = S.edit.note; $('eSrc').value = S.edit.src; $('eDelete').hidden = !r;
-  paintEdTabs(); paintEdPhotos(); $('ePage').scrollTop = 0;
+  $('eNote').value = S.edit.note; $('eSrc').value = S.edit.src; $('eDelete').hidden = !r || !own(r);
+  paintEdTabs(); paintEdPhotos(); paintEdNPhotos(); $('ePage').scrollTop = 0;
   $('editor').classList.add('on');
   [$('eIng'), $('eSteps'), $('eNote')].forEach(grow);
 }
@@ -598,6 +774,33 @@ function paintEdPhotos(){
   const add = el('button', 'ph add', '+'); add.type = 'button'; add.setAttribute('aria-label', 'Add a photo');
   add.onclick = () => $('eFile').click(); box.appendChild(add);
 }
+$('eFam').onclick = () => { S.edit.family = !S.edit.family; $('eFam').setAttribute('aria-pressed', String(S.edit.family)) };
+function paintEdNPhotos(){
+  const box = $('eNPhotos'); box.textContent = '';
+  S.edit.note_photos.forEach((p, i) => {
+    const d = el('div', 'ph'); d.style.backgroundImage = 'url("' + photoUrl(p).replace(/"/g, '%22') + '")';
+    const x = el('button', '', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Remove photo');
+    x.onclick = () => { S.edit.note_photos.splice(i, 1); paintEdNPhotos() };
+    d.appendChild(x); box.appendChild(d);
+  });
+  S.edit.nUploading.forEach(() => box.appendChild(el('div', 'ph busy')));
+  const add = el('button', 'ph add', '+'); add.type = 'button'; add.setAttribute('aria-label', 'Add a photo to the notes');
+  add.onclick = () => $('eNFile').click(); box.appendChild(add);
+}
+async function uploadPhoto(f){
+  const fd = new FormData(); fd.append('owner', me().id); fd.append('household', me().household || ''); fd.append('file', f);
+  const r = await pb.collection('binder_files').create(fd);
+  return { id: r.id, type: f.type, name: f.name, size: f.size, path: '/api/files/' + r.collectionId + '/' + r.id + '/' + encodeURIComponent(r.file) };
+}
+$('eNFile').onchange = async e => {
+  const files = [...e.target.files].filter(f => /^image\//.test(f.type)); e.target.value = '';
+  const ed = S.edit; ed.nUploading = ed.nUploading.concat(files.map(f => f.name)); paintEdNPhotos();
+  for(const f of files){
+    try{ const p = await uploadPhoto(f); ed.note_photos.push(p); ed.newPhotos.push(p.id) }
+    catch(err){ toast(err?.status === 413 ? f.name + ' is too big.' : 'Couldn’t upload ' + f.name + '.') }
+    ed.nUploading.shift(); if(S.edit === ed) paintEdNPhotos();
+  }
+};
 $('eFile').onchange = async e => {
   const files = [...e.target.files].filter(f => /^image\//.test(f.type)); e.target.value = '';
   const ed = S.edit; ed.uploading = (ed.uploading || []).concat(files.map(f => f.name)); paintEdPhotos();
@@ -619,11 +822,12 @@ $('eSave').onclick = async () => {
   const ed = S.edit;
   ed.name = $('eName').value.trim(); ed.ingredients = $('eIng').value; ed.steps = $('eSteps').value; ed.note = $('eNote').value; ed.src = $('eSrc').value.trim();
   if(!ed.name){ toast('Give the recipe a name.'); $('eName').focus(); return }
-  if((ed.uploading || []).length){ toast('Still uploading a photo…'); return }
+  if((ed.uploading || []).length || (ed.nUploading || []).length){ toast('Still uploading a photo…'); return }
   if(ed.src && !/^https?:\/\//i.test(ed.src)) ed.src = 'https://' + ed.src;
   $('eSave').disabled = true;
   try{
     const col = pb.collection('recipes'), data = toRec(ed);
+    if(S.fam && (!ed.id || own(ed))) data.family = !!ed.family;   // only the recipe's own household turns sharing on or off
     const rec = ed.id ? await col.update(ed.id, data) : await col.create({ ...data, pinned: false, created_at: new Date().toISOString() });
     keep(fromRec(rec)); closeEditor();
     if(S.open !== rec.id) openReader(rec.id); else paintReader();
@@ -650,7 +854,7 @@ function paintTabEd(){
     up.onclick = () => { TE.splice(i - 1, 0, TE.splice(i, 1)[0]); paintTabEd() };
     dn.onclick = () => { TE.splice(i + 1, 0, TE.splice(i, 1)[0]); paintTabEd() };
     x.onclick = () => {
-      const n = S.recipes.filter(r => r.tags.includes(t.was)).length;
+      const n = S.recipes.filter(r => own(r) && r.tags.includes(t.was)).length;
       if(n && x.dataset.sure !== '1'){ x.dataset.sure = '1'; x.textContent = n; x.setAttribute('aria-label', 'Tap again to take it off ' + n + ' recipes'); toast('Tap again to take “' + t.was + '” off ' + n + ' recipe' + (n > 1 ? 's' : '') + '.'); return }
       TE.splice(i, 1); paintTabEd();
     };
@@ -668,7 +872,7 @@ $('tSave').onclick = async () => {
   const gone = allTabs().map(t => t.n).filter(n => !kept.has(n));
   $('tSave').disabled = true;
   try{
-    for(const r of S.recipes){
+    for(const r of S.recipes.filter(own)){
       if(!r.tags.some(t => rename[t] || gone.includes(t))) continue;
       const tags = [...new Set(r.tags.filter(t => !gone.includes(t)).map(t => rename[t] || t))];
       const rec = await pb.collection('recipes').update(r.id, { tags, updated_at: new Date().toISOString() }); keep(fromRec(rec), true);
@@ -716,8 +920,13 @@ function keep(r, quiet){
   if(!quiet){ render(); saveCache(); if(S.open === r.id && $('reader').classList.contains('on')) paintReader() }
 }
 function saveCache(){ if(me()) store.set('recipes-cache:' + me().id, JSON.stringify(S.recipes)) }
+async function loadFam(){
+  S.fam = store.get('recipes-fam:' + me().id, '') === '1';
+  try{ const h = await pb.collection('households').getOne(me().household); S.fam = !!h.family; store.set('recipes-fam:' + me().id, S.fam ? '1' : '') }catch{}
+}
 async function load(){
   S.recipes = JSON.parse(store.get('recipes-cache:' + me().id, '[]')); S.ready = S.recipes.length > 0; render();
+  await loadFam(); render();
   await loadTabs(); render();
   try{
     const list = await pb.collection('recipes').getFullList({ batch: 500 });
@@ -730,6 +939,11 @@ async function load(){
     if(ev.action === 'delete'){ S.recipes = S.recipes.filter(x => x.id !== ev.record.id); render(); saveCache(); if(S.open === ev.record.id) closeReader() }
     else keep(fromRec(ev.record));
   }).catch(() => {});
+  pb.collection('recipe_comments').subscribe('*', ev => {
+    if(ev.record.recipe !== S.open) return;
+    S.cmts = S.cmts.filter(c => c.id !== ev.record.id); if(ev.action !== 'delete') S.cmts.push(ev.record);
+    paintComments();
+  }).catch(() => {});
   if(isEditor()) pb.collection('app_settings').subscribe('*', ev => {
     if(ev.record.key !== 'recipe_tabs') return;
     S.tabRec = ev.action === 'delete' ? null : ev.record; S.tabs = ev.action === 'delete' ? [] : JSON.parse(ev.record.value || '[]'); render();
@@ -740,7 +954,7 @@ async function load(){
 function showGate(msg){ $('gate').hidden = false; $('gErr').textContent = msg || ''; $('app').hidden = true }
 function signOut(msg){
   try{ pb.realtime.unsubscribe() }catch{}
-  pb.authStore.clear(); S.recipes = []; S.tabs = []; S.tabRec = null; closeReader(); closeEditor(); showGate(msg);
+  pb.authStore.clear(); S.recipes = []; S.tabs = []; S.tabRec = null; S.fam = false; S.cmts = []; closeReader(); closeEditor(); showGate(msg);
 }
 $('gateForm').onsubmit = async e => {
   e.preventDefault(); $('gBtn').disabled = true; $('gErr').textContent = '';

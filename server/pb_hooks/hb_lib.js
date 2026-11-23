@@ -43,6 +43,7 @@ module.exports = {
     const h = new Record(app.findCollectionByNameOrId("households"));
     h.set("name", name);
     h.set("settings", lib.defaultSettings());
+    h.set("family", true);   // new households are family: they see the Recipe book's family recipes
     h.set("created_at", new Date().toISOString());
     app.save(h);
     const s = new Record(app.findCollectionByNameOrId("app_settings"));
