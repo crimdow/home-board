@@ -83,7 +83,7 @@ onRecordCreateRequest((e) => {
     e.record.set("household", e.auth ? e.auth.getString("household") : "");
   }
   return e.next();
-}, "days", "grocery_stores", "grocery_items", "grocery_usuals", "meals", "todos", "plans", "recipes", "house_items", "notes", "app_settings", "panel_photos", "score_games", "recipe_comments");
+}, "days", "grocery_stores", "grocery_items", "grocery_usuals", "meals", "todos", "plans", "recipes", "house_items", "notes", "app_settings", "panel_photos", "score_games", "recipe_comments", "score_live");
 
 // Recipe book: who added a recipe, and who wrote a comment, come from the login, not the phone.
 // (Hook handlers can't see functions outside them, so the name is worked out in each.)
@@ -102,6 +102,20 @@ onRecordCreateRequest((e) => {
   if (!String(e.record.getString("text")).trim() && !/"id"/.test(e.record.getString("photos"))) throw new BadRequestError("Write a comment or add a photo.");
   return e.next();
 }, "recipe_comments");
+
+// Scores live view: the scorekeeper's name comes from the login; old games are cleared after 12 hours.
+onRecordCreateRequest((e) => {
+  const u = e.auth;
+  if (!e.hasSuperuserAuth() && u) {
+    e.record.set("keeper", u.id);
+    e.record.set("keeper_name", u.getString("name") || u.getString("username") || u.getString("email").split("@")[0]);
+  }
+  return e.next();
+}, "score_live");
+cronAdd("score_live_cleanup", "17 * * * *", () => {
+  const cut = new Date(Date.now() - 12 * 3600 * 1000).toISOString().replace("T", " ");
+  $app.findRecordsByFilter("score_live", "updated < {:t}", "", 500, 0, { t: cut }).forEach((r) => $app.delete(r));
+});
 
 // ---- invites (household editors) ----
 routerAdd("GET", "/api/hb/invites", (e) => {

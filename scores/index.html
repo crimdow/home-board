@@ -165,6 +165,21 @@ body{background:transparent}
 .who-line{font-size:13px;color:var(--pencil);text-transform:none;font-weight:600}
 .saved-note{font-size:13px;color:var(--pencil);text-transform:none;font-weight:600}
 
+/* live */
+.livebar{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.livego{display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;border-radius:14px;background:var(--paper);box-shadow:0 4px 12px rgba(40,20,5,.25);text-align:left}
+.livego .t{flex:1;min-width:0}
+.livego b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.livego span.s{display:block;font-size:12px;color:var(--pencil);font-weight:600;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.livego .go{font-size:13px;font-weight:800;color:var(--accent)}
+.dot{width:9px;height:9px;flex:none;border-radius:50%;background:#e0413c;box-shadow:0 0 0 3px rgba(224,65,60,.22);animation:blink 1.6s ease-in-out infinite}
+.dot.done{background:var(--pencil);box-shadow:none;animation:none}
+@keyframes blink{50%{opacity:.35}}
+@media (prefers-reduced-motion: reduce){.dot{animation:none}}
+.watchnote{display:flex;align-items:center;gap:8px;justify-content:center}
+.slot.seen{color:var(--pencil);font-size:16px}
+.livebadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--accent)}
+
 /* winner */
 .celebrate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.4)}
 .card{background:var(--paper);border-radius:26px;padding:24px 22px;max-width:420px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
@@ -206,7 +221,7 @@ function blank(keep) {
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) } catch (e) {}
 if (!state || !Array.isArray(state.players)) state = blank();
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) {} pushLive() };
 const totals = () => state.players.map((_, i) => state.rounds.reduce((a, r) => a + (+r[i] || 0), 0));
 function leaders(t) {
   if (!state.rounds.length) return [];
@@ -222,11 +237,13 @@ const fmt = v => v > 0 ? String(v) : v < 0 ? '−' + Math.abs(v) : '0';
 
 /* ---------- sheet ---------- */
 function render() {
+  if (live.watch) return renderWatch();
   const n = state.players.length;
   if (!n) {
-    $('#app').innerHTML = `<div class="sheet">${topBar()}<div class="empty-sheet">Add players to start keeping score.</div></div>
+    if (live.watch) return renderWatch();
+    $('#app').innerHTML = `${liveBar()}<div class="sheet">${topBar()}<div class="empty-sheet">Add players to start keeping score.</div></div>
       <div class="below"><button class="primary" id="add-players">Add players</button></div>`;
-    wireTop(); $('#add-players').onclick = () => openPop('menu');
+    wireTop(); wireLive(); $('#add-players').onclick = () => openPop('menu');
     return;
   }
   if (!state.over && !state.pending) state.pending = state.players.map(() => null);
@@ -251,10 +268,10 @@ function render() {
   const main = state.over ? `<button class="primary" id="show-win">Show winner</button>`
     : `<p class="hint">Tap <b>+</b> under each player to enter their score. Tap any score to change it.</p>`;
 
-  $('#app').innerHTML = `<div class="sheet">${topBar()}
+  $('#app').innerHTML = `${liveBar()}<div class="sheet">${topBar()}
     <div class="grid"><table class="${wide ? 'wide' : ''}" style="${size}"><thead>${head}</thead><tbody>${rows}</tbody>${foot}</table></div></div>
     <div class="below">${main}${links.length ? `<div class="links">${links.join('')}</div>` : ''}</div>`;
-  wireTop();
+  wireTop(); wireLive();
   const on = (id, fn) => { const el = $('#' + id); if (el) el.onclick = fn; };
   on('clear', () => { state.pending = null; save(); render(); });
   on('undo', () => { state.rounds.pop(); state.over = false; state.pending = null; save(); render(); });
@@ -310,6 +327,10 @@ const POPS = {
       <div class="label">Saved games</div>
       ${me() ? `<div class="who-line">Finished games are saved for the family as ${esc(me().name || me().username || me().email || '')}.</div><button class="link" id="sign-out" style="align-self:flex-start">Sign out</button>`
              : `<div class="who-line">Sign in with your Home Board login to save finished games for the family.</div><button class="link" id="sign-in" style="align-self:flex-start">Sign in</button>`}
+      <div class="label">Live</div>
+      ${me() ? `<div class="seg2" id="live-on"><button data-v="1" aria-pressed="${liveOn()}">Share live</button><button data-v="0" aria-pressed="${!liveOn()}">Off</button></div>
+        <p class="hint" style="margin-top:-6px">${liveOn() ? 'Anyone who opens scores.jermins.com can watch this game as you keep score.' : 'Nobody else sees this game until it’s finished.'}</p>`
+             : `<div class="who-line">Sign in to share this game live, so anyone who opens the site can watch.</div>`}
       <div class="label">Appearance</div>
       <div class="seg3" id="theme"><button data-m="light" aria-pressed="${m === 'light'}">Light</button><button data-m="dark" aria-pressed="${m === 'dark'}">Dark</button><button data-m="" aria-pressed="${m === ''}">Auto</button></div>`;
   },
@@ -385,7 +406,9 @@ const WIRE = {
     pop.querySelector('#g-target').oninput = e => { const v = parseInt(e.target.value.replace(/\D/g, ''), 10); state.target = v > 0 ? v : 0; save() };
     pop.querySelector('#g-target').onblur = () => { drawPop(); render() };
     pop.querySelector('#theme').onclick = e => { const b = e.target.closest('button'); if (!b) return; try { localStorage.setItem(THEME, b.dataset.m) } catch (x) {} applyTheme(); drawPop() };
-    const so = pop.querySelector('#sign-out'); if (so) so.onclick = () => { pb.authStore.clear(); hist.list = null; drawPop() };
+    const lo = pop.querySelector('#live-on'); if (lo) lo.onclick = e => { const b = e.target.closest('button'); if (!b) return;
+      try { localStorage.setItem(LIVEKEY, b.dataset.v === '1' ? '' : 'off') } catch (x) {} if (b.dataset.v === '1') pushLive(); else stopLive(); drawPop() };
+    const so = pop.querySelector('#sign-out'); if (so) so.onclick = async () => { await stopLive(); pb.authStore.clear(); hist.list = null; drawPop() };
     const si = pop.querySelector('#sign-in'); if (si) si.onclick = () => { ui.after = 'menu'; openPop('signin') };
     if (ui.focus === 'name') { const n = pop.querySelector('#g-name'); n.focus(); n.select(); ui.focus = null }
   },
@@ -396,7 +419,7 @@ const WIRE = {
       try {
         await pb.collection('users').authWithPassword(ui.liUser, pop.querySelector('#li-p').value);
         if (!me() || !me().household) { pb.authStore.clear(); throw { status: 403 } }
-        ui.liErr = ''; hist.list = null; trySaveLater(); if ((ui.after || 'history') === 'history') openHistory(); else openPop(ui.after);
+        ui.liErr = ''; hist.list = null; trySaveLater(); pushLive(); if ((ui.after || 'history') === 'history') openHistory(); else openPop(ui.after);
       } catch (err) {
         ui.liErr = err && err.status === 400 ? 'That username and password didn’t match.' : err && err.status === 403 ? 'That login isn’t part of a household yet.' : 'Couldn’t reach the server.';
         drawPop();
@@ -502,6 +525,89 @@ function openHistory() { openPop('history'); if (me() && !hist.list) loadHistory
 if (me()) pb.collection('users').authRefresh().then(trySaveLater).catch(e => { if (e && (e.status === 401 || e.status === 403 || e.status === 404)) pb.authStore.clear() });
 window.addEventListener('online', trySaveLater);
 
+/* ---------- live: share the game being kept, watch someone else's ---------- */
+const LIVEKEY = 'scores-live', LIVEID = 'scores-live-id';
+const live = { list: [], watch: null, rec: null, t: 0, busy: false, again: false };
+const liveOn = () => { try { return localStorage.getItem(LIVEKEY) !== 'off' } catch (e) { return true } };
+const myLive = () => { try { return localStorage.getItem(LIVEID) || '' } catch (e) { return '' } };
+function pushLive() {
+  if (!pb || !me() || !liveOn() || !state || !state.players.length) return;
+  clearTimeout(live.t); live.t = setTimeout(sendLive, 400);
+}
+async function sendLive() {
+  if (live.busy) { live.again = true; return }
+  live.busy = true;
+  const data = { name: (state.name || 'Scores').slice(0, 60), players: state.players, rounds: state.rounds,
+    pending: state.pending ? state.pending.map(v => v != null) : [], low: !!state.low, target: state.target || 0, over: !!state.over };
+  try {
+    let r = null, id = myLive();
+    if (id) { try { r = await pb.collection('score_live').update(id, data) } catch (e) { if (e.status !== 404) throw e } }
+    if (!r) { r = await pb.collection('score_live').create(data); try { localStorage.setItem(LIVEID, r.id) } catch (e) {} }
+  } catch (e) { if (e && (e.status === 401 || e.status === 403)) pb.authStore.clear() }
+  live.busy = false; if (live.again) { live.again = false; sendLive() }
+}
+async function stopLive() {
+  clearTimeout(live.t); const id = myLive(); if (!id || !me()) return;
+  try { await pb.collection('score_live').delete(id) } catch (e) {}
+  try { localStorage.removeItem(LIVEID) } catch (e) {}
+}
+const fresh = g => Date.now() - new Date(String(g.updated).replace(' ', 'T')).getTime() < 12 * 3600 * 1000;
+async function loadLive() {
+  if (!pb) return;
+  try {
+    const r = await pb.collection('score_live').getList(1, 20, { sort: '-updated' });
+    live.list = r.items.filter(fresh);
+  } catch (e) { live.list = [] }
+  // a phone with no game of its own goes straight to the game being played now
+  const now = others().find(g => !g.over);
+  if (now && !state.players.length && !ui.pop) { live.watch = now.id; live.rec = now }
+  if (!ui.pop && !document.querySelector('.celebrate')) { render(); if (live.list.length) scatterMarbles() }
+  pb.collection('score_live').subscribe('*', ev => {
+    live.list = live.list.filter(g => g.id !== ev.record.id);
+    if (ev.action !== 'delete') live.list.unshift(ev.record);
+    live.list.sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
+    if (live.watch === ev.record.id) live.rec = ev.action === 'delete' ? null : ev.record;
+    if (!ui.pop || live.watch) render();
+  }).catch(() => {});
+}
+const others = () => live.list.filter(g => g.id !== myLive() && (g.players || []).length);
+const clock = iso => { try { return new Date(String(iso).replace(' ', 'T')).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) } catch (e) { return '' } };
+function liveBar() {
+  const list = others(); if (!list.length) return '';
+  return `<div class="livebar">${list.slice(0, 3).map(g => `<button class="livego" data-watch="${esc(g.id)}"><span class="dot${g.over ? ' done' : ''}"></span>
+    <span class="t"><b>${esc(g.name || 'Scores')}</b><span class="s">${g.over ? 'Finished' : 'Live now'} · ${esc(g.keeper_name || 'Someone')} is keeping score · ${(g.players || []).length} players</span></span>
+    <span class="go">Watch</span></button>`).join('')}</div>`;
+}
+function wireLive() {
+  document.querySelectorAll('[data-watch]').forEach(b => b.onclick = () => {
+    live.watch = b.dataset.watch; live.rec = live.list.find(g => g.id === live.watch) || null; scrollTo(0, 0); render(); scatterMarbles();
+  });
+}
+function renderWatch() {
+  const g = live.rec;
+  if (!g) {
+    $('#app').innerHTML = `<div class="sheet"><div class="top"><span class="tools-l"><button class="icon-btn" id="leave" aria-label="Back to my sheet">${ICON.close}</button></span><h1>Live</h1><span></span></div>
+      <div class="empty-sheet">That game isn’t live any more.</div></div><div class="below"><button class="primary" id="leave2">Back to my sheet</button></div>`;
+  } else {
+    const P = g.players || [], R = g.rounds || [], pend = g.over ? [] : (g.pending || []), n = P.length;
+    const t = P.map((_, i) => R.reduce((a, r) => a + (+r[i] || 0), 0));
+    const best = R.length ? (g.low ? Math.min(...t) : Math.max(...t)) : null;
+    const size = n <= 4 ? '--fh:16px;--fc:21px;--ft:22px' : n <= 6 ? '--fh:14px;--fc:18px;--ft:19px' : '--fh:13px;--fc:17px;--ft:18px';
+    let rows = R.map(r => `<tr>${r.map(v => `<td class="c${v < 0 ? ' neg' : ''}"><button tabindex="-1">${fmt(+v || 0)}</button></td>`).join('')}</tr>`).join('');
+    if (!g.over) rows += `<tr class="pending">${P.map((_, i) => `<td><span class="slot seen">${pend[i] ? '✓' : ''}</span></td>`).join('')}</tr>`;
+    for (let k = R.length + (g.over ? 0 : 1); k < Math.max(R.length + 1, 6); k++) rows += `<tr>${'<td></td>'.repeat(n)}</tr>`;
+    const foot = R.length ? `<tfoot><tr>${t.map(x => `<td class="${x === best ? 'lead' : ''}"><span class="w"></span><span class="n">${fmt(x)}</span></td>`).join('')}</tr></tfoot>` : '';
+    const winners = g.over && R.length ? P.filter((_, i) => t[i] === best) : [];
+    $('#app').innerHTML = `<div class="sheet"><div class="top"><span class="tools-l"><button class="icon-btn" id="leave" aria-label="Back to my sheet">${ICON.close}</button></span>
+      <h1>${esc(g.name || 'Scores')}</h1><span class="tools-r"><span class="livebadge"><span class="dot${g.over ? ' done' : ''}"></span>${g.over ? 'FINAL' : 'LIVE'}</span></span></div>
+      <div class="grid"><table class="${n > 8 ? 'wide' : ''}" style="${size}"><thead><tr>${P.map(p => `<th scope="col"><span class="nm">${esc(p)}</span></th>`).join('')}</tr></thead><tbody>${rows}</tbody>${foot}</table></div></div>
+      <div class="below"><p class="hint">${g.over ? (winners.length > 1 ? 'Tie: ' : 'Won by ') + esc(winners.join(' & ') || '—') + ' · ' : ''}${esc(g.keeper_name || 'Someone')} is keeping score${g.target ? ' · ends at ' + g.target : ''} · ${g.low ? 'lowest wins' : 'highest wins'} · updated ${esc(clock(g.updated))}</p>
+      <div class="links"><button class="link" id="leave2">Back to my sheet</button></div></div>`;
+  }
+  const leave = () => { live.watch = null; live.rec = null; render(); scatterMarbles() };
+  $('#leave').onclick = leave; $('#leave2').onclick = leave;
+}
+
 /* ---------- winner ---------- */
 function celebrate() {
   const t = totals(), lead = leaders(t), names = lead.map(i => state.players[i]);
@@ -539,6 +645,7 @@ document.addEventListener('keydown', e => {
 });
 render();
 scatterMarbles();
+loadLive(); pushLive();
 
 /* a few cards and marbles strewn about the table, where they'll show (edges and below the sheet) */
 function scatterMarbles() {
