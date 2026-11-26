@@ -183,6 +183,8 @@ body{background:transparent}
 .livego b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .livego span.s{display:block;font-size:12px;color:var(--pencil);font-weight:600;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .livego .go{font-size:13px;font-weight:800;color:var(--accent)}
+.livego .hide{width:30px;height:30px;flex:none;margin-right:-6px;border-radius:50%;background:var(--chip);color:var(--pencil);display:grid;place-items:center}
+.livego .hide svg{width:13px;height:13px}
 .dot{width:9px;height:9px;flex:none;border-radius:50%;background:#e0413c;box-shadow:0 0 0 3px rgba(224,65,60,.22);animation:blink 1.6s ease-in-out infinite}
 .dot.done{background:var(--pencil);box-shadow:none;animation:none}
 @keyframes blink{50%{opacity:.35}}
@@ -541,7 +543,8 @@ if (me()) pb.collection('users').authRefresh().then(trySaveLater).catch(e => { i
 window.addEventListener('online', trySaveLater);
 
 /* ---------- live: share the game being kept, watch someone else's ---------- */
-const LIVEKEY = 'scores-live', LIVEID = 'scores-live-id';
+const LIVEKEY = 'scores-live', LIVEID = 'scores-live-id', LIVESENT = 'scores-live-sent', LIVEHIDE = 'scores-live-hide';
+const hidden = () => { try { return JSON.parse(localStorage.getItem(LIVEHIDE) || '[]') } catch (e) { return [] } };
 const live = { list: [], watch: null, rec: null, t: 0, busy: false, again: false };
 const liveOn = () => { try { return localStorage.getItem(LIVEKEY) !== 'off' } catch (e) { return true } };
 const myLive = () => { try { return localStorage.getItem(LIVEID) || '' } catch (e) { return '' } };
@@ -554,17 +557,24 @@ async function sendLive() {
   live.busy = true;
   const data = { name: (state.name || 'Scores').slice(0, 60), players: state.players, rounds: state.rounds,
     pending: state.pending ? state.pending.map(v => v != null) : [], low: !!state.low, target: state.target || 0, over: !!state.over };
+  // only send real changes: re-sending the same finished game (e.g. every time the app opens) kept it "fresh" in everyone's Live bar
+  const sig = JSON.stringify(data);
+  try { if (sig === localStorage.getItem(LIVESENT)) { live.busy = false; return } } catch (e) {}
   try {
     let r = null, id = myLive();
     if (id) { try { r = await pb.collection('score_live').update(id, data) } catch (e) { if (e.status !== 404) throw e } }
-    if (!r) { r = await pb.collection('score_live').create(data); try { localStorage.setItem(LIVEID, r.id) } catch (e) {} }
+    if (!r) {
+      if (data.over) { live.busy = false; return }   // never bring a finished game back to life
+      r = await pb.collection('score_live').create(data); try { localStorage.setItem(LIVEID, r.id) } catch (e) {}
+    }
+    try { localStorage.setItem(LIVESENT, sig) } catch (e) {}
   } catch (e) { if (e && (e.status === 401 || e.status === 403)) pb.authStore.clear() }
   live.busy = false; if (live.again) { live.again = false; sendLive() }
 }
 async function stopLive() {
   clearTimeout(live.t); const id = myLive(); if (!id || !me()) return;
   try { await pb.collection('score_live').delete(id) } catch (e) {}
-  try { localStorage.removeItem(LIVEID) } catch (e) {}
+  try { localStorage.removeItem(LIVEID); localStorage.removeItem(LIVESENT) } catch (e) {}
 }
 const fresh = g => Date.now() - new Date(String(g.updated).replace(' ', 'T')).getTime() < 12 * 3600 * 1000;
 async function loadLive() {
@@ -587,15 +597,19 @@ async function loadLive() {
 }
 const age = g => Date.now() - new Date(String(g.updated).replace(' ', 'T')).getTime();
 // finished games only stay in the Live bar for 15 minutes
-const others = () => live.list.filter(g => g.id !== myLive() && (g.players || []).length && (!g.over || age(g) < 15 * 60000));
+const others = () => live.list.filter(g => g.id !== myLive() && (g.players || []).length && (!g.over || age(g) < 15 * 60000) && !hidden().includes(g.id + ':' + g.updated));
 const clock = iso => { try { return new Date(String(iso).replace(' ', 'T')).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) } catch (e) { return '' } };
 function liveBar() {
   const list = others(); if (!list.length) return '';
   return `<div class="livebar">${list.slice(0, 3).map(g => `<button class="livego" data-watch="${esc(g.id)}"><span class="dot${g.over ? ' done' : ''}"></span>
     <span class="t"><b>${esc(g.name || 'Scores')}</b><span class="s">${g.over ? 'Finished' : 'Live now'} · ${esc(g.keeper_name || 'Someone')} is keeping score · ${(g.players || []).length} players</span></span>
-    <span class="go">Watch</span></button>`).join('')}</div>`;
+    <span class="go">Watch</span><span class="hide" data-hide="${esc(g.id + ':' + g.updated)}" role="button" aria-label="Hide this game">${ICON.close}</span></button>`).join('')}</div>`;
 }
 function wireLive() {
+  document.querySelectorAll('[data-hide]').forEach(x => x.onclick = e => {
+    e.stopPropagation(); try { localStorage.setItem(LIVEHIDE, JSON.stringify(hidden().concat(x.dataset.hide).slice(-30))) } catch (er) {}
+    render(); scatterMarbles();
+  });
   document.querySelectorAll('[data-watch]').forEach(b => b.onclick = () => {
     live.watch = b.dataset.watch; live.rec = live.list.find(g => g.id === live.watch) || null; scrollTo(0, 0); render(); scatterMarbles();
   });
