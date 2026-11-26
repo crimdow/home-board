@@ -103,7 +103,7 @@ onRecordCreateRequest((e) => {
   return e.next();
 }, "recipe_comments");
 
-// Scores live view: the scorekeeper's name comes from the login; old games are cleared after 12 hours.
+// Scores live view: the scorekeeper's name comes from the login; old games are cleared after 12 hours (finished ones after an hour).
 onRecordCreateRequest((e) => {
   const u = e.auth;
   if (!e.hasSuperuserAuth() && u) {
@@ -114,7 +114,8 @@ onRecordCreateRequest((e) => {
 }, "score_live");
 cronAdd("score_live_cleanup", "17 * * * *", () => {
   const cut = new Date(Date.now() - 12 * 3600 * 1000).toISOString().replace("T", " ");
-  $app.findRecordsByFilter("score_live", "updated < {:t}", "", 500, 0, { t: cut }).forEach((r) => $app.delete(r));
+  const done = new Date(Date.now() - 3600 * 1000).toISOString().replace("T", " ");   // finished games: after an hour
+  $app.findRecordsByFilter("score_live", "updated < {:t} || (over = true && updated < {:d})", "", 500, 0, { t: cut, d: done }).forEach((r) => $app.delete(r));
 });
 
 // ---- invites (household editors) ----

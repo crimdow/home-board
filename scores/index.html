@@ -51,8 +51,19 @@ h1 button{font-weight:800;letter-spacing:.06em;max-width:100%;overflow:hidden;te
 
 .grid{overflow-x:auto;scrollbar-width:none}.grid::-webkit-scrollbar{display:none}
 table{border-collapse:collapse;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}
-table.wide{width:auto;min-width:100%}
-table.wide th,table.wide td{width:72px;min-width:72px}
+/* many players: everyone fits across the sheet (no sideways scroll); names stand on end */
+table.tall th,table.tall td{padding:0}
+table.tall thead th{height:auto;padding:4px 0 6px}
+table.tall thead th .nm{writing-mode:vertical-rl;transform:rotate(180deg);margin:0 auto;max-height:96px;text-overflow:ellipsis;white-space:nowrap;line-height:1}
+table.tall td.c button,table.tall .slot.done{border-radius:6px;letter-spacing:-.03em}
+table.tall tfoot td{letter-spacing:-.04em}
+table.tall tfoot td .w{inset:5px 1px 2px;border-radius:8px}
+table.tall .slot{width:min(26px,100%)}
+/* 13+ players: the sheet uses nearly the whole width */
+body.many{padding-left:5px;padding-right:5px}
+body.many .sheet{padding-left:2px;padding-right:2px}
+body.many table.tall td.c,body.many table.tall tfoot td{letter-spacing:-.06em}
+table.tall .slot svg{width:13px;height:13px}
 th,td{height:var(--row);padding:0 2px;text-align:center;white-space:nowrap;border-left:1px solid var(--line)}
 th:first-child,td:first-child{border-left:0}
 thead th{font-weight:800;letter-spacing:.03em;font-size:var(--fh,16px);vertical-align:bottom;padding-bottom:4px;border-bottom:1.5px solid var(--ink);overflow:hidden}
@@ -157,7 +168,7 @@ body{background:transparent}
 .mini-grid{overflow-x:auto;border-radius:12px;background:var(--chip);padding:6px}
 .mini-grid table{--fh:12px;--fc:15px;--ft:16px}
 .mini-grid th,.mini-grid td{height:30px}
-.mini-grid table.wide th,.mini-grid table.wide td{width:56px;min-width:56px}
+
 .li{display:flex;flex-direction:column;gap:10px;text-transform:none}
 .li input{font-size:17px;text-transform:none;background:var(--field);border:0;border-radius:12px;padding:13px 14px;width:100%}
 .li input:focus{outline:1.5px solid var(--accent)}
@@ -201,7 +212,11 @@ body{background:transparent}
 <script src="pocketbase.umd.js"></script>
 <script>
 (() => {
-const KEY = 'scores-game-v1', THEME = 'scores-theme', MAX = 12;
+const KEY = 'scores-game-v1', THEME = 'scores-theme', MAX = 16;
+// type size and layout for the number of players, so everyone fits across the sheet
+const fit = n => n <= 4 ? { cls: '', css: '--fh:16px;--fc:21px;--ft:22px' } : n <= 6 ? { cls: '', css: '--fh:14px;--fc:18px;--ft:19px' }
+  : n <= 8 ? { cls: 'tall', css: '--fh:14px;--fc:17px;--ft:18px' } : n <= 10 ? { cls: 'tall', css: '--fh:13px;--fc:15px;--ft:15px' }
+  : n <= 12 ? { cls: 'tall', css: '--fh:12px;--fc:14px;--ft:14px' } : n <= 14 ? { cls: 'tall', css: '--fh:11px;--fc:13px;--ft:13px' } : { cls: 'tall', css: '--fh:10.5px;--fc:11.5px;--ft:11.5px' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ICON = {
@@ -237,6 +252,7 @@ const fmt = v => v > 0 ? String(v) : v < 0 ? '−' + Math.abs(v) : '0';
 
 /* ---------- sheet ---------- */
 function render() {
+  document.body.classList.toggle('many', (live.watch ? ((live.rec || {}).players || []) : state.players).length > 12);
   if (live.watch) return renderWatch();
   const n = state.players.length;
   if (!n) {
@@ -248,8 +264,7 @@ function render() {
   }
   if (!state.over && !state.pending) state.pending = state.players.map(() => null);
   if (state.over) state.pending = null;
-  const t = totals(), lead = leaders(t), wide = n > 8;
-  const size = n <= 4 ? '--fh:16px;--fc:21px;--ft:22px' : n <= 6 ? '--fh:14px;--fc:18px;--ft:19px' : '--fh:13px;--fc:17px;--ft:18px';
+  const t = totals(), lead = leaders(t), F = fit(n);
   const head = `<tr>${state.players.map(p => `<th scope="col"><span class="nm">${esc(p)}</span></th>`).join('')}</tr>`;
   let rows = state.rounds.map((r, k) => `<tr>${r.map((s, i) =>
     `<td class="c${s < 0 ? ' neg' : ''}"><button data-edit="${k}:${i}" aria-label="Change ${esc(state.players[i])}, round ${k + 1}">${fmt(s)}</button></td>`).join('')}</tr>`).join('');
@@ -269,7 +284,7 @@ function render() {
     : `<p class="hint">Tap <b>+</b> under each player to enter their score. Tap any score to change it.</p>`;
 
   $('#app').innerHTML = `${liveBar()}<div class="sheet">${topBar()}
-    <div class="grid"><table class="${wide ? 'wide' : ''}" style="${size}"><thead>${head}</thead><tbody>${rows}</tbody>${foot}</table></div></div>
+    <div class="grid"><table class="${F.cls}" style="${F.css}"><thead>${head}</thead><tbody>${rows}</tbody>${foot}</table></div></div>
     <div class="below">${main}${links.length ? `<div class="links">${links.join('')}</div>` : ''}</div>`;
   wireTop(); wireLive();
   const on = (id, fn) => { const el = $('#' + id); if (el) el.onclick = fn; };
@@ -374,8 +389,8 @@ Object.assign(POPS, {
   game() {
     const g = hist.list && hist.list[ui.game]; if (!g) return head('', 'Game');
     const order = g.players.map((p, i) => ({ p, x: g.totals[i], i })).sort((a, b) => g.low ? a.x - b.x : b.x - a.x);
-    const wide = g.players.length > 6;
-    const table = `<div class="mini-grid"><table class="${wide ? 'wide' : ''}"><thead><tr>${g.players.map(p => `<th><span class="nm">${esc(p)}</span></th>`).join('')}</tr></thead>
+    const F = fit(g.players.length + 2);
+    const table = `<div class="mini-grid"><table class="${F.cls}" style="${F.css}"><thead><tr>${g.players.map(p => `<th><span class="nm">${esc(p)}</span></th>`).join('')}</tr></thead>
       <tbody>${g.rounds.map(r => `<tr>${r.map(v => `<td class="c${v < 0 ? ' neg' : ''}">${fmt(+v || 0)}</td>`).join('')}</tr>`).join('')}</tbody>
       <tfoot><tr>${g.totals.map(x => `<td><span class="n">${fmt(x)}</span></td>`).join('')}</tr></tfoot></table></div>`;
     return `${head(esc(day(g.finished_at)) + ' · ' + (g.low ? 'lowest wins' : 'highest wins'), esc(g.name || 'Scores'))}
@@ -570,7 +585,9 @@ async function loadLive() {
     if (!ui.pop || live.watch) render();
   }).catch(() => {});
 }
-const others = () => live.list.filter(g => g.id !== myLive() && (g.players || []).length);
+const age = g => Date.now() - new Date(String(g.updated).replace(' ', 'T')).getTime();
+// finished games only stay in the Live bar for 15 minutes
+const others = () => live.list.filter(g => g.id !== myLive() && (g.players || []).length && (!g.over || age(g) < 15 * 60000));
 const clock = iso => { try { return new Date(String(iso).replace(' ', 'T')).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) } catch (e) { return '' } };
 function liveBar() {
   const list = others(); if (!list.length) return '';
@@ -592,7 +609,7 @@ function renderWatch() {
     const P = g.players || [], R = g.rounds || [], pend = g.over ? [] : (g.pending || []), n = P.length;
     const t = P.map((_, i) => R.reduce((a, r) => a + (+r[i] || 0), 0));
     const best = R.length ? (g.low ? Math.min(...t) : Math.max(...t)) : null;
-    const size = n <= 4 ? '--fh:16px;--fc:21px;--ft:22px' : n <= 6 ? '--fh:14px;--fc:18px;--ft:19px' : '--fh:13px;--fc:17px;--ft:18px';
+    const F = fit(n);
     let rows = R.map(r => `<tr>${r.map(v => `<td class="c${v < 0 ? ' neg' : ''}"><button tabindex="-1">${fmt(+v || 0)}</button></td>`).join('')}</tr>`).join('');
     if (!g.over) rows += `<tr class="pending">${P.map((_, i) => `<td><span class="slot seen">${pend[i] ? '✓' : ''}</span></td>`).join('')}</tr>`;
     for (let k = R.length + (g.over ? 0 : 1); k < Math.max(R.length + 1, 6); k++) rows += `<tr>${'<td></td>'.repeat(n)}</tr>`;
@@ -600,7 +617,7 @@ function renderWatch() {
     const winners = g.over && R.length ? P.filter((_, i) => t[i] === best) : [];
     $('#app').innerHTML = `<div class="sheet"><div class="top"><span class="tools-l"><button class="icon-btn" id="leave" aria-label="Back to my sheet">${ICON.close}</button></span>
       <h1>${esc(g.name || 'Scores')}</h1><span class="tools-r"><span class="livebadge"><span class="dot${g.over ? ' done' : ''}"></span>${g.over ? 'FINAL' : 'LIVE'}</span></span></div>
-      <div class="grid"><table class="${n > 8 ? 'wide' : ''}" style="${size}"><thead><tr>${P.map(p => `<th scope="col"><span class="nm">${esc(p)}</span></th>`).join('')}</tr></thead><tbody>${rows}</tbody>${foot}</table></div></div>
+      <div class="grid"><table class="${F.cls}" style="${F.css}"><thead><tr>${P.map(p => `<th scope="col"><span class="nm">${esc(p)}</span></th>`).join('')}</tr></thead><tbody>${rows}</tbody>${foot}</table></div></div>
       <div class="below"><p class="hint">${g.over ? (winners.length > 1 ? 'Tie: ' : 'Won by ') + esc(winners.join(' & ') || '—') + ' · ' : ''}${esc(g.keeper_name || 'Someone')} is keeping score${g.target ? ' · ends at ' + g.target : ''} · ${g.low ? 'lowest wins' : 'highest wins'} · updated ${esc(clock(g.updated))}</p>
       <div class="links"><button class="link" id="leave2">Back to my sheet</button></div></div>`;
   }
